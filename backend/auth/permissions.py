@@ -85,6 +85,11 @@ class PermissionCache:
         with self._lock:
             self._cmd_whitelist.discard(cmd_prefix.strip().lower())
 
+    def get_whitelist(self) -> list[str]:
+        """返回当前命令白名单的排序副本。"""
+        with self._lock:
+            return sorted(self._cmd_whitelist)
+
     def check_command(self, command: str) -> tuple[bool, str]:
         """
         检查命令是否允许执行。

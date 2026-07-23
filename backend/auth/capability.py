@@ -13,13 +13,17 @@ class LLMCapability:
     """
 
     # 已知支持视觉的模型名子串（小写）
+    # 注意：必须是"视觉版本"的精确标识，不能误匹配同名的非视觉版本
+    # 例如 glm-4-flash 不是视觉模型，glm-4v 才是
     KNOWN_VISION_MODELS: Set[str] = {
         "gpt-4o", "gpt-4-turbo", "gpt-4-vision",
-        "claude-3", "claude-3-5",
+        "claude-3", "claude-3.5",  # claude-3-5 改为 claude-3.5（点号版本）
         "gemini-1.5", "gemini-pro-vision",
         "qwen-vl", "qwen2-vl",
         "moonshot-v1-vision",
-        "glm-4v", "glm-4-flash",  # 智谱 GLM-4 系列支持视觉
+        "glm-4v",           # 智谱 GLM-4V（注意 v 后缀）才是视觉模型
+        "glm-4-plus-v",     # glm-4-plus 的视觉版（如存在）
+        # 移除 glm-4-flash：它不是视觉模型，glm-4v 才是
     }
 
     def __init__(self, model_name: str = ""):

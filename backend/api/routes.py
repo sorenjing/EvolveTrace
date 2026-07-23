@@ -11,7 +11,7 @@ from slowapi.util import get_remote_address
 
 from auth.admin import require_admin, require_agent
 from services import agent_service, tool_service, admin_service, config_service
-from config import LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
+from config import LLM_API_KEY, LLM_BASE_URL, LLM_MODEL, get_llm_config
 
 # 速率限制器（从 main 注入，避免循环导入）
 limiter = Limiter(key_func=get_remote_address)

@@ -21,18 +21,35 @@ log = get_logger("tools.screenshot")
 
 
 def _is_headless() -> bool:
-    """检测当前是否为无 GUI 环境（无法截屏）。"""
+    """检测当前是否为无 GUI 环境（无法截屏）。
+
+    Windows 没有真正可靠的 headless 检测 API，GetDesktopWindow() 返回的是
+    桌面窗口句柄常量（通常非零），不能用于判断。这里改用
+    GetSystemMetrics(SM_REMOTESESSION)=0x1000 + 进程会话ID组合判断，
+    无法确定时返回 False，让截图函数自身异常兜底。
+    """
     # Linux: 无 DISPLAY 环境变量
     if os.name == "posix" and not os.environ.get("DISPLAY"):
         return True
-    # Windows: 检测桌面会话
+    # Windows: 通过 SessionId 判断（Session 0 通常是服务会话，无桌面）
     if os.name == "nt":
         try:
             import ctypes
-            if ctypes.windll.user32.GetDesktopWindow() == 0:
+            from ctypes import wintypes
+            # SM_REMOTESESSION = 0x1000，返回非零表示当前是远程会话（有桌面）
+            # 不能仅凭此判断，还需查 ProcessIdToSessionId
+            kernel32 = ctypes.windll.kernel32
+            process_id = ctypes.windll.kernel32.GetCurrentProcessId()
+            session_id = wintypes.DWORD()
+            if not kernel32.ProcessIdToSessionId(process_id, ctypes.byref(session_id)):
+                # 调用失败，无法判断，交给截图函数兜底
+                return False
+            # Session 0 通常是服务会话（无桌面交互），其他会话通常有桌面
+            if session_id.value == 0:
                 return True
         except Exception:
-            return True
+            # 探测失败，不轻易返回 True（会误禁用截图），交给截图函数兜底
+            return False
     return False
 
 

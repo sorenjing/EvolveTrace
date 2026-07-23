@@ -15,22 +15,89 @@ KEEP_RECENT_STEPS = 4
 
 
 def extract_todos(history: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """从历史步骤中提取所有 todo 项及其状态。"""
-    todos = []
+    """从历史步骤中提取所有 todo 项及其状态。
+
+    支持两种来源：
+    1. 结构化字段：模型在 JSON 输出中包含 "todos" 字段（新约定，优先）
+    2. 文本匹配：从 thought/observation 中提取 [x]/[ ]/已完成/未完成 标记行（兜底）
+    """
+    todos: list[dict[str, Any]] = []
+    seen_keys: set[str] = set()  # 去重键，避免同一 todo 被重复提取
+
     for h in history:
         obs = h.get("observation", "")
         thought = h.get("thought", "")
-        # 检测 todo 模式：模型在 thought 或 observation 中提到的任务清单
+
+        # 来源 1：结构化 todos 字段（新约定，LLM 在 actionInput 中带 todos）
+        action_input = h.get("actionInput") or {}
+        if isinstance(action_input, dict):
+            raw_todos = action_input.get("todos")
+            if isinstance(raw_todos, list):
+                for t in raw_todos:
+                    if not isinstance(t, dict):
+                        continue
+                    content = (t.get("content") or "").strip()
+                    if not content:
+                        continue
+                    done = bool(t.get("done", False))
+                    key = content.lower()
+                    if key in seen_keys:
+                        # 同一 todo 更新状态（后出现的覆盖前面的）
+                        for existing in todos:
+                            if existing["content"].lower() == key:
+                                existing["done"] = done
+                                existing["step"] = h.get("step", 0)
+                                break
+                    else:
+                        seen_keys.add(key)
+                        todos.append({
+                            "step": h.get("step", 0),
+                            "content": content,
+                            "done": done,
+                            "context": h.get("action", ""),
+                        })
+
+        # 来源 2：文本匹配（兜底，兼容旧格式或未遵循约定的输出）
         text = f"{thought}\n{obs}"
-        # 简单提取包含 [x] / [ ] /已完成/未完成 的行
         for line in text.splitlines():
             line = line.strip()
-            if any(marker in line for marker in ["[x]", "[ ]", "[X]", "已完成", "未完成", "TODO:", "DONE:"]):
-                todos.append({
-                    "step": h.get("step", 0),
-                    "content": line,
-                    "context": h.get("action", ""),
-                })
+            if not line:
+                continue
+            # 匹配 [x] / [ ] / [X] 标记
+            if "[x]" in line.lower() or "[ ]" in line:
+                done = "[x]" in line.lower()
+                # 提取标记后的内容
+                for marker in ["[x]", "[X]", "[ ]"]:
+                    if marker in line:
+                        content = line.replace(marker, "").strip(" -•*")
+                        break
+                else:
+                    content = line
+                key = content.lower()
+                if key and key not in seen_keys:
+                    seen_keys.add(key)
+                    todos.append({
+                        "step": h.get("step", 0),
+                        "content": content,
+                        "done": done,
+                        "context": h.get("action", ""),
+                    })
+            # 兼容中文标记
+            elif any(m in line for m in ["已完成：", "未完成：", "TODO:", "DONE:"]):
+                done = ("已完成" in line) or ("DONE:" in line)
+                for marker in ["已完成：", "未完成：", "TODO:", "DONE:"]:
+                    if marker in line:
+                        content = line.replace(marker, "").strip()
+                        break
+                key = content.lower()
+                if key and key not in seen_keys:
+                    seen_keys.add(key)
+                    todos.append({
+                        "step": h.get("step", 0),
+                        "content": content,
+                        "done": done,
+                        "context": h.get("action", ""),
+                    })
     return todos
 
 
@@ -58,7 +125,8 @@ def compress_history(history: list[dict[str, Any]]) -> tuple[list[dict[str, Any]
     if todos:
         summary_lines.append("任务进度（不可丢失）：")
         for t in todos:
-            summary_lines.append(f"  - {t['content']}")
+            mark = "[x]" if t.get("done") else "[ ]"
+            summary_lines.append(f"  {mark} {t['content']}")
         summary_lines.append("")
 
     # 2. 保留关键文件操作结果
@@ -95,7 +163,8 @@ def build_compressed_user_prompt(
     if todos:
         lines.append("当前任务进度（不可遗忘）：")
         for t in todos:
-            lines.append(f"  - {t['content']}")
+            mark = "[x]" if t.get("done") else "[ ]"
+            lines.append(f"  {mark} {t['content']}")
         lines.append("")
 
     lines.append("历史步骤：")

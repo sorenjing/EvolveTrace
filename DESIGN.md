@@ -41,7 +41,27 @@ while (step < maxSteps && !taskDone):
     6. 将 Thought/Action/Observation 写入历史，继续循环
 ```
 
-### 2.2 工具层设计
+### 2.2 为什么不用 LangChain（与 LangChain 概念映射）
+
+> 面试时最常被问的问题。以下是刻意选择自研的核心理由，以及与 LangChain 概念的对应关系。
+
+| 自研（EvolveLab） | LangChain 等价概念 | 选择自研的理由 |
+|---|---|---|
+| `AgentKernel.run()` | `AgentExecutor` | 完全控制循环逻辑，能在任意节点插入安全检测、上下文压缩 |
+| `TOOLS` dict + `TOOLS_META` | `BaseTool` / `@tool` | 更轻量，无需继承框架基类，普通函数即工具 |
+| `self.history` (list[dict]) | `ConversationBufferMemory` | 自定义压缩策略（保留 todo + 完成状态），LangChain 的 memory 做不到 |
+| `AgentEvent` (dataclass) | `AgentAction` / `AgentFinish` | 更细粒度的事件（thought/action/observation/error/complete），方便 SSE 流式推送 |
+| `LLMClient.chat()` | `ChatOpenAI` | 直接 httpx 调用，无框架抽象层，指数退避重试、JSON 容错全自控 |
+| `build_system_prompt()` | `PromptTemplate` | 动态拼接工具元数据，按视觉能力决定是否暴露截图工具 |
+
+**选择自研的本质原因**：
+1. Agent 循环的核心逻辑不到 200 行（kernel.py + llm.py + prompts.py），不值得引入一个框架
+2. 安全需求（命令注入三层防御、路径沙箱、Git 快照回滚）必须嵌入循环内部，框架的抽象层反而成为障碍
+3. 面试时能讲清楚每一行代码为什么这么写，比"我调了 LangChain 的 AgentExecutor"有说服力得多
+
+> 如果你需要证明自己**也懂 LangChain**：这个项目的每一层都对应 LangChain 的一个模块，你只需要在面试时把这个映射表讲出来即可。
+
+### 2.3 工具层设计
 
 | 工具 | 功能 | 安全边界 |
 |------|------|----------|
@@ -62,12 +82,63 @@ while (step < maxSteps && !taskDone):
 | `delete_tool` | 删除自定义工具 | 仅限自定义工具 |
 | `final_answer` | 结束任务 | — |
 
-### 2.3 容错与防死循环
+### 2.4 容错与防死循环
 
 - **JSON 解析容错**：LLM 返回非 JSON 时，正则提取 + 重试
-- **死循环检测**：连续 3 次相同 action 强制终止
+- **死循环检测**：连续 3 次相同 action 强制终止（按 action + observation 完全匹配）
 - **上下文压缩**：历史过长时自动压缩，保留 todo 和完成状态
 - **工具执行报错**：错误信息作为 Observation 返回，让 LLM 自行决策
+
+### 2.5 任务进度跟踪（todo 结构化）
+
+为防止长任务在上下文压缩后丢失进度，系统约定 LLM 在每步输出中携带 `todos` 字段：
+
+```json
+{
+  "thought": "...",
+  "action": "...",
+  "actionInput": { ... },
+  "todos": [
+    {"content": "读取文件", "done": true},
+    {"content": "修改代码", "done": false}
+  ]
+}
+```
+
+**提取策略**（`context.py: extract_todos()`）：
+1. 优先从 `actionInput.todos` 结构化字段提取（新约定）
+2. 文本匹配兜底：从 thought/observation 中提取 `[x]`/`[ ]`/`已完成：`/`TODO:` 标记行
+3. 按 content 去重，同 todo 后出现覆盖前者状态
+
+**system prompt 约束**：`prompts.py: build_system_prompt()` 要求模型在可拆分任务中输出 `todos` 字段，简单单步任务可省略。
+
+### 2.6 LLM 调用与流式输出
+
+| 方法 | 用途 | 特点 |
+|------|------|------|
+| `LLMClient.chat()` | Agent 内核调用（需要完整 JSON） | 非流式，自动重试，返回解析后的 dict |
+| `LLMClient.chat_stream()` | 前端打字效果 | 流式 SSE，逐 token yield，不自动重试 |
+
+- `max_tokens` 参数化（默认 4096，旧值 2048 已废弃）
+- 连接超时 10s + 读取超时 120s 分离
+- 5xx + 网络异常自动重试（指数退避，最多 2 次），4xx 不重试
+
+### 2.7 视觉能力检测
+
+`auth/capability.py` 维护已知视觉模型白名单：
+
+```python
+KNOWN_VISION_MODELS = {
+    "gpt-4o", "gpt-4-turbo", "gpt-4-vision",
+    "claude-3", "claude-3.5",
+    "gemini-1.5", "gemini-pro-vision",
+    "qwen-vl", "qwen2-vl",
+    "glm-4v",          # 智谱 GLM-4V（视觉版）
+    "glm-4-plus-v",
+}
+```
+
+**设计原则**：必须是视觉版本的精确标识，避免子串误匹配。例如 `glm-4-flash` 不是视觉模型（`glm-4v` 才是），已从白名单移除。
 
 ---
 

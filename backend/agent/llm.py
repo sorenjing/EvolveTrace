@@ -1,17 +1,21 @@
 """
 LLM 调用封装：支持文本与图片输入（若模型支持视觉）。
 网络错误 / 5xx 自动重试（指数退避，最多 2 次）。
+支持流式输出（chat_stream）和非流式（chat）两种模式。
 """
 import asyncio
 import json
 import httpx
-from typing import Any
+from typing import Any, AsyncGenerator
 
 from config import LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
 from auth.capability import get_llm_capability
 from logger import get_logger
 
 log = get_logger("agent.llm")
+
+# 默认 max_tokens，可被 chat() 调用参数覆盖
+DEFAULT_MAX_TOKENS = 4096
 
 
 class LLMClient:
@@ -20,32 +24,31 @@ class LLMClient:
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
         self.capability = get_llm_capability(model)
-        self.client = httpx.AsyncClient(timeout=120.0)
+        # 连接超时 10s，读取超时 120s（LLM 生成可能较慢）
+        self.client = httpx.AsyncClient(timeout=httpx.Timeout(120.0, connect=10.0))
 
-    async def chat(self, system_prompt: str, user_prompt: str, image_url: str | None = None) -> dict[str, Any]:
+    async def chat(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        image_url: str | None = None,
+        max_tokens: int = DEFAULT_MAX_TOKENS,
+    ) -> dict[str, Any]:
         """
         调用 LLM，返回解析后的 JSON dict。
         若 image_url 提供且模型支持视觉，则加入图片输入。
         网络错误 / 5xx 自动重试（指数退避，最多 2 次）。
+
+        Args:
+            max_tokens: 生成最大 token 数，默认 4096（覆盖旧硬编码 2048）
         """
-        messages = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-
-        content: list[dict[str, Any]] | str = user_prompt
-        if image_url and self.capability.supports_vision:
-            content = [
-                {"type": "text", "text": user_prompt},
-                {"type": "image_url", "image_url": {"url": image_url}},
-            ]
-
-        messages.append({"role": "user", "content": content})
+        messages = self._build_messages(system_prompt, user_prompt, image_url)
 
         payload = {
             "model": self.model,
             "messages": messages,
             "temperature": 0.3,
-            "max_tokens": 2048,
+            "max_tokens": max_tokens,
         }
 
         headers = {
@@ -89,6 +92,76 @@ class LLMClient:
 
         # 理论上不会到达
         raise last_exc or RuntimeError("LLM 调用失败")
+
+    async def chat_stream(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        image_url: str | None = None,
+        max_tokens: int = DEFAULT_MAX_TOKENS,
+    ) -> AsyncGenerator[str, None]:
+        """
+        流式调用 LLM，逐 token yield 文本片段。
+
+        用于前端 SSE 打字效果。注意：流式模式不自动重试（避免重复输出），
+        网络中断时由调用方决定是否重新发起完整请求。
+
+        Yields:
+            文本片段（delta content）
+        """
+        messages = self._build_messages(system_prompt, user_prompt, image_url)
+
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": 0.3,
+            "max_tokens": max_tokens,
+            "stream": True,
+        }
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+
+        url = f"{self.base_url}/chat/completions"
+        async with self.client.stream("POST", url, headers=headers, json=payload) as resp:
+            resp.raise_for_status()
+            async for line in resp.aiter_lines():
+                if not line.startswith("data: "):
+                    continue
+                data_str = line[6:]
+                if data_str.strip() == "[DONE]":
+                    break
+                try:
+                    chunk = json.loads(data_str)
+                    delta = chunk.get("choices", [{}])[0].get("delta", {})
+                    content = delta.get("content")
+                    if content:
+                        yield content
+                except (json.JSONDecodeError, IndexError, KeyError):
+                    continue
+
+    def _build_messages(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        image_url: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """构建 OpenAI Chat Completions messages 数组。"""
+        messages: list[dict[str, Any]] = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+
+        content: list[dict[str, Any]] | str = user_prompt
+        if image_url and self.capability.supports_vision:
+            content = [
+                {"type": "text", "text": user_prompt},
+                {"type": "image_url", "image_url": {"url": image_url}},
+            ]
+
+        messages.append({"role": "user", "content": content})
+        return messages
 
     def _extract_json(self, text: str) -> dict[str, Any]:
         """从模型输出中提取 JSON（支持嵌套对象）。"""

@@ -14,10 +14,18 @@
 - Timeline 状态色徽章、步骤折叠、长内容折叠
 - 错误边界（ErrorBoundary）全局捕获
 - 响应式布局（移动端适配）
+- **LLM 流式输出**：`LLMClient.chat_stream()` 逐 token yield，支持前端打字效果
+- **todo 结构化字段**：system prompt 约束模型输出 `todos` 数组，上下文压缩后可恢复进度
 
 ### Changed
 - **License**：由 MIT 改为 **PolyForm Noncommercial 1.0.0**（禁止未授权商用）
 - API Key 配置面板增加安全警告提示
+- **LLM max_tokens 参数化**：从硬编码 2048 改为可配置参数（默认 4096）
+- **LLM 超时分级**：连接超时 10s + 读取超时 120s（原统一 120s）
+
+### Fixed
+- **视觉模型误判**：`capability.py` 移除 `glm-4-flash`（非视觉模型），保留 `glm-4v`（视觉版）
+- **todo 提取脆弱**：`extract_todos` 从纯字符串匹配升级为结构化字段优先 + 文本兜底，按内容去重
 
 ### Improved
 - 前端响应式与移动端体验

@@ -22,3 +22,12 @@ REDIS_URL = os.getenv("REDIS_URL", "")
 # 截图保存目录
 SCREENSHOT_DIR = PROJECT_ROOT / "screenshots"
 SCREENSHOT_DIR.mkdir(exist_ok=True)
+
+# 配置优先级：前端请求参数 > 环境变量 > 默认值
+def get_llm_config(api_key: str = "", base_url: str = "", model: str = ""):
+    """获取 LLM 配置，按优先级选择来源"""
+    return {
+        "api_key": api_key or LLM_API_KEY,
+        "base_url": base_url or LLM_BASE_URL,
+        "model": model or LLM_MODEL,
+    }

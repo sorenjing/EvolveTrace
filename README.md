@@ -327,6 +327,81 @@ Agent 修改自身源码时的保护流程：
 
 > 路线图按价值与工作量分阶段推进，优先做「高价值 + 中等工作量」的项。欢迎在 Issue 中讨论优先级或认领任务。
 
+## 面试要点（给求职者）
+
+如果你把 EvolveLab 放在简历上，以下是面试官大概率会问的问题和回答要点：
+
+### 1. 为什么不用 LangChain，而是自己实现 ReAct 循环？
+
+**核心回答**：为了深入理解 Agent 底层机制和获得完全控制权。
+
+- LangChain 把 ReAct 循环、Prompt 模板、工具路由全部封装成黑盒，调用者只需配置参数
+- 自研让我掌握了 Agent 的完整工作流：Prompt 构造 → JSON 强制输出 → 工具路由 → 错误处理 → 死循环检测 → 上下文压缩
+- 实际代码量不大（kernel.py ~130 行），但每一行都理解为什么这么写
+- 比 LangChain 更轻量：仅依赖 httpx（vs LangChain 的 5+ 个包）
+
+**如果面试官追问"那你懂 LangChain 吗"**：
+
+> "我研究过 LangChain 的 Agent 模块。我自研的每一层都对应 LangChain 的一个概念：AgentKernel.run() 对应 AgentExecutor，TOOLS dict 对应 BaseTool，self.history 对应 ConversationBufferMemory，build_system_prompt() 对应 PromptTemplate。因为底层原理已经吃透了，如果需要用 LangChain，我能很快上手。"
+
+**简历上可以这样写**：`LangChain（了解 Agent/Tool/Chain 模块，基于自研 ReAct 实践验证）`
+
+### 2. ReAct 循环是怎么实现的？
+
+**核心回答**：while 循环 + JSON 强制输出 + 工具路由 + 死循环检测。
+
+```
+while step < max_steps:
+    1. 拼 System Prompt + 历史 Thought/Action/Observation
+    2. 调 LLM，要求输出 JSON {thought, action, actionInput}
+    3. 解析 JSON（失败则正则提取 + 容错 fallback）
+    4. action == "final_answer" → 结束
+    5. 从 TOOLS dict 查找工具函数，执行得到 Observation
+    6. 追加到 history，继续循环
+    7. 检测：连续 3 次相同 action+observation → 强制终止
+```
+
+### 3. 安全设计是怎么做的？
+
+**三层命令注入防御**：
+1. 黑名单正则：拦截 `rm -rf /`、`fork bomb` 等
+2. 元字符禁用：禁止 `;` `|` `&` `` ` `` `$` `>` `<` 等 shell 连接符
+3. shlex 白名单精确匹配：用 `shlex.split` 解析后精确匹配白名单，而非 startswith
+
+**路径沙箱**：所有文件操作必须 `resolve()` 后在 `PROJECT_ROOT` 内
+
+**自我修改安全层**：Git 快照 → 修改代码 → 构建验证 → 失败自动回滚
+
+### 4. 工具自举（Agent 给自己创建新工具）是怎么实现的？
+
+1. `create_tool` 接收工具名、描述、参数、Python 代码
+2. AST 安全审查：扫描 `eval`/`exec`/`os.system`/`subprocess` 等危险调用
+3. 审查通过后写入 `tools/custom/{name}.py`
+4. 用 `importlib` 动态 import，注册到 `TOOLS` dict
+5. 下次启动时 `registry.load_all_custom_tools()` 自动扫描加载
+
+### 5. SSE vs WebSocket 为什么选 SSE？
+
+- SSE 是单向推送（服务端→客户端），Agent 执行轨迹天然是单向的
+- SSE 基于 HTTP，天然支持代理、CDN、断线重连
+- 实现简单：不需要 WebSocket 的握手、心跳、帧协议
+- 用 `fetch` + `ReadableStream` 消费，前端代码更简洁
+
+### 6. 上下文压缩是怎么做的？
+
+- 步数超过阈值（8 步）时触发压缩
+- 保留最近 4 步原始细节，之前的步骤压缩为摘要
+- 关键约束：**绝不丢失 todo 和任务完成状态**
+- 每步按工具类型做结构化摘要（文件操作省略内容，命令操作保留输出摘要）
+
+### 7. 还有哪些技术亮点？
+
+- **LLM 指数退避重试**：5xx/网络错误自动重试 2 次（1s/2s）
+- **JSON 解析容错**：栈匹配 `{}` 处理嵌套 JSON，失败则 fallback
+- **会话持久化**：Redis 优先 + 内存降级（REDIS_URL 未配置时自动用内存）
+- **速率限制**：全局 30/min + Agent 10/min，防 LLM 额度滥用
+- **API Key 存前端 localStorage**：不写后端文件，避免 `.env` 泄露
+
 ## 贡献
 
 欢迎 Issue 和 PR！详见 [CONTRIBUTING.md](CONTRIBUTING.md)。

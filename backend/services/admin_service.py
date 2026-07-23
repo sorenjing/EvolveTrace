@@ -38,7 +38,7 @@ def update_whitelist(command_prefix: str, action: str) -> dict[str, Any]:
         perm.remove_whitelist(command_prefix)
     else:
         raise AppError("action 必须是 add 或 remove", code="invalid_action")
-    return {"whitelist": sorted(perm._cmd_whitelist)}
+    return {"whitelist": perm.get_whitelist()}
 
 
 # ---------- LLM 能力探测 ----------
