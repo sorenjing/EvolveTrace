@@ -23,7 +23,15 @@ export function ToolsPanel() {
   }, []);
 
   useEffect(() => {
-    refresh();
+    // 延后到微任务，避免在 effect 内同步触发 setState（eslint react-hooks）
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      void refresh();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [refresh]);
 
   const handleDelete = useCallback(async (name: string) => {

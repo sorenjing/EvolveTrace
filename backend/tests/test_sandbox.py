@@ -59,6 +59,15 @@ class TestCommandInjection:
         allowed, reason = perm.check_command("echo $(whoami)")
         assert not allowed, "$ 是禁用元字符，应被拦截"
 
+    def test_python_c_blocked(self, perm: PermissionCache):
+        """python -c 可执行任意代码，即使 python 在白名单也应拦截。"""
+        allowed, reason = perm.check_command('python -c "print(1)"')
+        assert not allowed, f"python -c 应被拦截: {reason}"
+
+    def test_node_e_blocked(self, perm: PermissionCache):
+        allowed, reason = perm.check_command('node -e "console.log(1)"')
+        assert not allowed, f"node -e 应被拦截: {reason}"
+
     def test_empty_command_blocked(self, perm: PermissionCache):
         allowed, reason = perm.check_command("")
         assert not allowed, "空命令应被拦截"
@@ -76,12 +85,12 @@ class TestPathSandbox:
 
     def test_within_root(self, perm: PermissionCache):
         target = perm.resolve_within_root("backend/main.py", PROJECT_ROOT)
-        assert str(target).startswith(str(PROJECT_ROOT))
+        assert target.is_relative_to(PROJECT_ROOT)
 
     def test_absolute_within_root(self, perm: PermissionCache):
         abs_path = str(PROJECT_ROOT / "backend" / "main.py")
         target = perm.resolve_within_root(abs_path, PROJECT_ROOT)
-        assert target.exists() or str(target).startswith(str(PROJECT_ROOT))
+        assert target.exists() or target.is_relative_to(PROJECT_ROOT)
 
     def test_path_traversal_blocked(self, perm: PermissionCache):
         """../ 路径遍历应被拦截。"""
@@ -92,6 +101,12 @@ class TestPathSandbox:
         """绝对路径越界应被拦截。"""
         with pytest.raises(PermissionError, match="越界"):
             perm.resolve_within_root("/etc/passwd", PROJECT_ROOT)
+
+    def test_prefix_sibling_escape_blocked(self, perm: PermissionCache):
+        """EvolveLab_evil 这类共享前缀的兄弟目录应被拦截。"""
+        sibling = PROJECT_ROOT.parent / f"{PROJECT_ROOT.name}_evil" / "x.txt"
+        with pytest.raises(PermissionError, match="越界"):
+            perm.resolve_within_root(str(sibling), PROJECT_ROOT)
 
 
 # ---------- 角色权限 ----------

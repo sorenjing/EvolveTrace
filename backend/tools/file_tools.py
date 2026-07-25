@@ -12,6 +12,20 @@ from auth.permissions import get_permission_cache
 
 _perm = get_permission_cache()
 
+# 自定义工具目录：禁止 write_file/edit_file 直接写入，须走 create_tool（含 AST 审查）
+_CUSTOM_TOOLS_DIR = (PROJECT_ROOT / "backend" / "tools" / "custom").resolve()
+
+
+def _reject_custom_tools_path(target: Path) -> str | None:
+    """若目标落在 custom/ 工具目录内，返回错误信息。"""
+    try:
+        if target == _CUSTOM_TOOLS_DIR or target.is_relative_to(_CUSTOM_TOOLS_DIR):
+            return "[错误] 禁止直接写入自定义工具目录，请使用 create_tool 创建工具"
+    except AttributeError:
+        if target == _CUSTOM_TOOLS_DIR or _CUSTOM_TOOLS_DIR in target.parents:
+            return "[错误] 禁止直接写入自定义工具目录，请使用 create_tool 创建工具"
+    return None
+
 
 def read_file(path: str) -> str:
     """读取文件内容，支持文本文件。"""
@@ -39,6 +53,9 @@ def write_file(path: str, content: str) -> str:
 
     try:
         target = _perm.resolve_within_root(path, PROJECT_ROOT)
+        blocked = _reject_custom_tools_path(target)
+        if blocked:
+            return blocked
         # 备份（若文件已存在且大小 > 0）
         if target.exists() and target.stat().st_size > 0:
             backup = target.with_suffix(target.suffix + ".bak")
@@ -61,6 +78,9 @@ def edit_file(path: str, search: str, replace: str) -> str:
 
     try:
         target = _perm.resolve_within_root(path, PROJECT_ROOT)
+        blocked = _reject_custom_tools_path(target)
+        if blocked:
+            return blocked
         if not target.exists():
             return f"[错误] 文件不存在: {target}"
 

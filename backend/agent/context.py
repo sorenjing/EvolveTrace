@@ -28,34 +28,37 @@ def extract_todos(history: list[dict[str, Any]]) -> list[dict[str, Any]]:
         obs = h.get("observation", "")
         thought = h.get("thought", "")
 
-        # 来源 1：结构化 todos 字段（新约定，LLM 在 actionInput 中带 todos）
-        action_input = h.get("actionInput") or {}
-        if isinstance(action_input, dict):
-            raw_todos = action_input.get("todos")
-            if isinstance(raw_todos, list):
-                for t in raw_todos:
-                    if not isinstance(t, dict):
-                        continue
-                    content = (t.get("content") or "").strip()
-                    if not content:
-                        continue
-                    done = bool(t.get("done", False))
-                    key = content.lower()
-                    if key in seen_keys:
-                        # 同一 todo 更新状态（后出现的覆盖前面的）
-                        for existing in todos:
-                            if existing["content"].lower() == key:
-                                existing["done"] = done
-                                existing["step"] = h.get("step", 0)
-                                break
-                    else:
-                        seen_keys.add(key)
-                        todos.append({
-                            "step": h.get("step", 0),
-                            "content": content,
-                            "done": done,
-                            "context": h.get("action", ""),
-                        })
+        # 来源 1：结构化 todos（Prompt 约定在 JSON 根级；兼容误放在 actionInput）
+        raw_todos = h.get("todos")
+        if not isinstance(raw_todos, list):
+            action_input = h.get("actionInput") or {}
+            if isinstance(action_input, dict):
+                nested = action_input.get("todos")
+                raw_todos = nested if isinstance(nested, list) else None
+        if isinstance(raw_todos, list):
+            for t in raw_todos:
+                if not isinstance(t, dict):
+                    continue
+                content = (t.get("content") or "").strip()
+                if not content:
+                    continue
+                done = bool(t.get("done", False))
+                key = content.lower()
+                if key in seen_keys:
+                    # 同一 todo 更新状态（后出现的覆盖前面的）
+                    for existing in todos:
+                        if existing["content"].lower() == key:
+                            existing["done"] = done
+                            existing["step"] = h.get("step", 0)
+                            break
+                else:
+                    seen_keys.add(key)
+                    todos.append({
+                        "step": h.get("step", 0),
+                        "content": content,
+                        "done": done,
+                        "context": h.get("action", ""),
+                    })
 
         # 来源 2：文本匹配（兜底，兼容旧格式或未遵循约定的输出）
         text = f"{thought}\n{obs}"

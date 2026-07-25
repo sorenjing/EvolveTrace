@@ -72,6 +72,25 @@ class TestTodoExtraction:
         todos = extract_todos(history)
         assert len(todos) >= 1, "应提取到 TODO 项"
 
+    def test_extract_structured_todos_at_root(self):
+        """结构化 todos 在 history 根级（与 Prompt 约定一致）应被提取。"""
+        history = [
+            {
+                "thought": "拆分任务",
+                "action": "list_files",
+                "observation": "ok",
+                "todos": [
+                    {"content": "读 README", "done": False},
+                    {"content": "列目录", "done": True},
+                ],
+                "step": 1,
+            }
+        ]
+        todos = extract_todos(history)
+        assert len(todos) == 2
+        assert {t["content"] for t in todos} == {"读 README", "列目录"}
+        assert any(t["content"] == "列目录" and t["done"] for t in todos)
+
     def test_extract_todos_from_observation(self):
         history = [
             {"thought": "check", "action": "list_files", "observation": "DONE: 目录已列出"}

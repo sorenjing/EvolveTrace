@@ -123,9 +123,9 @@ async def list_all_tools():
     return tool_service.list_tools()
 
 
-@router.delete("/tools/{name}")
+@router.delete("/tools/{name}", dependencies=[Depends(require_admin)])
 async def delete_custom_tool(name: str):
-    """删除一个自定义工具。"""
+    """删除一个自定义工具（需管理权限；本地 localhost 可直接访问）。"""
     return tool_service.delete_tool(name)
 
 

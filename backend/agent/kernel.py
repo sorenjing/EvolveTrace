@@ -45,6 +45,8 @@ class AgentKernel:
 
     async def run(self) -> AsyncGenerator[AgentEvent, None]:
         """启动 ReAct 循环，逐事件通过 AsyncGenerator 产出。"""
+        # failed=True 表示异常/死循环终止，勿再发虚假 complete
+        failed = False
         try:
             while self.step < self.max_steps and not self.done:
                 self.step += 1
@@ -63,12 +65,20 @@ class AgentKernel:
                 try:
                     parsed = await self.llm.chat(self.system_prompt, user_prompt)
                 except Exception as e:
+                    failed = True
                     yield AgentEvent("error", self.step, {"message": f"LLM 调用失败: {e}"})
                     break
 
                 thought = parsed.get("thought", "")
                 action = parsed.get("action", "")
-                action_input = parsed.get("actionInput", {})
+                # LLM 可能返回 actionInput: null，不能用 .get 默认值兜底
+                raw_input = parsed.get("actionInput")
+                action_input = raw_input if isinstance(raw_input, dict) else {}
+                # Prompt 约定 todos 在 JSON 根级；亦兼容误放在 actionInput 内
+                raw_todos = parsed.get("todos")
+                if not isinstance(raw_todos, list):
+                    nested = action_input.get("todos")
+                    raw_todos = nested if isinstance(nested, list) else None
 
                 yield AgentEvent("thought", self.step, {"content": thought})
                 yield AgentEvent("action", self.step, {"tool": action, "input": action_input})
@@ -76,7 +86,14 @@ class AgentKernel:
                 # 2. 执行工具或结束
                 if action == "final_answer":
                     result = action_input.get("result", "")
-                    self.history.append({"thought": thought, "action": action, "observation": result})
+                    self.history.append({
+                        "thought": thought,
+                        "action": action,
+                        "actionInput": action_input,
+                        "todos": raw_todos,
+                        "observation": result,
+                        "step": self.step,
+                    })
                     self.done = True
                     yield AgentEvent("complete", self.step, {"result": result})
                     break
@@ -85,9 +102,12 @@ class AgentKernel:
                 if tool_fn is None:
                     observation = f"[错误] 未知工具: {action}"
                 else:
-                    # 视觉能力检测：若当前 LLM 不支持视觉，拦截 screenshot
+                    role_cfg = self.perm.get_role_config(self.role)
+                    # 视觉能力 + 角色权限双重拦截 screenshot
                     if action == "screenshot" and not self.allow_screenshot:
                         observation = "[错误] 当前模型不支持视觉输入，无法使用截图工具。"
+                    elif action == "screenshot" and not role_cfg.get("allow_screenshot", False):
+                        observation = "[错误] 当前角色禁止使用截图工具。"
                     else:
                         try:
                             if asyncio.iscoroutinefunction(tool_fn):
@@ -104,20 +124,25 @@ class AgentKernel:
                 self.history.append({
                     "thought": thought,
                     "action": action,
+                    "actionInput": action_input,
+                    "todos": raw_todos,
                     "observation": observation,
+                    "step": self.step,
                 })
 
-                # 3. 死循环检测：连续 3 次相同 action + input
+                # 3. 死循环检测：连续 3 次相同 action + observation
                 if self.step >= 3:
                     last_three = self.history[-3:]
                     if all(
                         h["action"] == action and h.get("observation") == observation
                         for h in last_three
                     ):
+                        failed = True
                         yield AgentEvent("error", self.step, {"message": "检测到死循环，强制终止"})
                         break
 
-            if not self.done:
+            # 仅「跑满步数且未 final_answer」时发 complete；错误/死循环已发 error
+            if not self.done and not failed:
                 yield AgentEvent("complete", self.step, {"result": "达到最大步数限制，任务未明确完成。"})
         finally:
             await self.llm.close()

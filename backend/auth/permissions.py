@@ -138,7 +138,30 @@ class PermissionCache:
             if not allowed:
                 return False, f"命令不在白名单中。当前白名单: {sorted(self._cmd_whitelist)}"
 
+            # 拦截解释器任意代码执行开关（python -c / node -e 等）
+            blocked, block_reason = self._check_dangerous_interpreter_flags(cmd_name, tokens)
+            if blocked:
+                return False, block_reason
+
             return True, "ok"
+
+    @staticmethod
+    def _check_dangerous_interpreter_flags(cmd_name: str, tokens: list[str]) -> tuple[bool, str]:
+        """禁止通过白名单命令名绕过执行任意代码（python -c / node -e 等）。"""
+        dangerous: dict[str, set[str]] = {
+            "python": {"-c"},
+            "python3": {"-c"},
+            "node": {"-e", "--eval", "-p", "--print"},
+            "nodejs": {"-e", "--eval", "-p", "--print"},
+            "npx": {"-e", "--eval"},
+        }
+        flags = dangerous.get(cmd_name)
+        if not flags:
+            return False, ""
+        for tok in tokens[1:]:
+            if tok.lower() in flags:
+                return True, f"禁止使用 {cmd_name} {tok} 执行任意代码"
+        return False, ""
 
     # ---------- 文件边界 ----------
 
@@ -150,8 +173,14 @@ class PermissionCache:
             target_path = root / target_path
         target_path = target_path.resolve()
         root = root.resolve()
-        if not str(target_path).startswith(str(root)):
-            raise PermissionError(f"路径越界: {target_path} 不在 {root} 内")
+        # 用 is_relative_to 避免 EvolveLab_evil 这类前缀逃逸
+        try:
+            if not target_path.is_relative_to(root):
+                raise PermissionError(f"路径越界: {target_path} 不在 {root} 内")
+        except AttributeError:
+            # Python < 3.9 兜底（项目要求 3.10+，此处仅防御）
+            if root not in target_path.parents and target_path != root:
+                raise PermissionError(f"路径越界: {target_path} 不在 {root} 内")
         return target_path
 
 

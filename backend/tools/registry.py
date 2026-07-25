@@ -21,6 +21,13 @@ _lock = threading.Lock()
 def _load_module(file_path: Path) -> Any:
     """从文件路径动态加载 Python 模块。"""
     module_name = f"_custom_tool_{file_path.stem}"
+    # 加载前先做 AST 安全审查，防止绕过 create_tool 的恶意文件被执行
+    from .code_safety import audit_code
+    code = file_path.read_text(encoding="utf-8", errors="replace")
+    is_safe, reasons = audit_code(code)
+    if not is_safe:
+        raise RuntimeError(f"代码安全审查未通过: {'; '.join(reasons)}")
+
     spec = importlib.util.spec_from_file_location(module_name, file_path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"无法加载模块: {file_path}")

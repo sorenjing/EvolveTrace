@@ -70,7 +70,15 @@ def screenshot(save_path: str = "", return_base64: bool = True) -> str:
         img = pyautogui.screenshot()
         if not save_path:
             save_path = f"screenshot_{int(time.time())}.png"
-        target = SCREENSHOT_DIR / save_path
+        # 限制保存路径必须在 SCREENSHOT_DIR 内，防止 ../ 穿越
+        base = SCREENSHOT_DIR.resolve()
+        target = (base / save_path).resolve()
+        try:
+            if not target.is_relative_to(base):
+                return f"[错误] 截图路径越界: {save_path}"
+        except AttributeError:
+            if base not in target.parents and target != base:
+                return f"[错误] 截图路径越界: {save_path}"
         target.parent.mkdir(parents=True, exist_ok=True)
         img.save(target)
 

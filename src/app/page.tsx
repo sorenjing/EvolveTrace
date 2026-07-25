@@ -41,13 +41,19 @@ export default function Home() {
 
   // 用于中断 fetch
   const abortRef = useRef<AbortController | null>(null);
+  // 同步 status，供 SSE 回调判断（避免 complete 覆盖 error）
+  const statusRef = useRef<RunStatus>("idle");
+  statusRef.current = status;
 
   // 将事件聚合到对应 step
   const applyEvent = useCallback((ev: AgentEvent) => {
     if (ev.type === "complete") {
+      // 若已处于 error（死循环/LLM 失败），忽略随后的 complete，避免成功态覆盖失败
+      if (statusRef.current === "error") return;
       const result =
         typeof ev.payload.result === "string" ? ev.payload.result : "";
       setFinalResult(result);
+      statusRef.current = "done";
       setStatus("done");
       return;
     }
@@ -55,6 +61,7 @@ export default function Home() {
       const msg =
         typeof ev.payload.message === "string" ? ev.payload.message : "未知错误";
       setErrorMsg(msg);
+      statusRef.current = "error";
       setStatus("error");
       // 同时把错误填入对应 step，让 Timeline 显示失败状态色
       if (ev.step !== undefined) {
