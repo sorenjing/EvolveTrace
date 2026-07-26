@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EvolveLab - 可视化 AI Agent 实验平台",
-  description: "看清 Agent 的每一步思考，给它装上你想要的任何工具",
+  title: "EvolveLab - Coding Agent 可观测性与安全边界研究项目",
+  description: "研究 Coding Agent 的可观测性、工具扩展与安全边界。",
 };
 
 // 内联脚本：在 HTML 阶段就根据 localStorage 设置主题 class，避免暗色闪烁（FOUC）

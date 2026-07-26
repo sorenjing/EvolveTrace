@@ -14,7 +14,7 @@ export function Header({
       <div className="min-w-0">
         <h1 className="text-xl font-bold tracking-tight">EvolveLab</h1>
         <p className="mt-1 truncate text-xs text-zinc-500 dark:text-zinc-400">
-          可视化 AI Agent 实验平台 · 看清每一步思考
+          Coding Agent 可观测性与安全边界研究项目
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-2">

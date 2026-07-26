@@ -7,8 +7,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 # EvolveLab 项目开发指南
 
 ## 项目定位
-EvolveLab 是一个**白盒 AI Agent 实验平台**，自研 ReAct 内核，不依赖 LangChain/AutoGen。
-核心卖点：Agent 每步思考可见、工具可动态创建、安全沙箱、自我修改能力。
+EvolveLab 是一个**研究型 Coding Agent 源码项目**，自研 ReAct 内核，不依赖 LangChain/AutoGen。
+核心卖点：Agent 过程可观测、工具可动态扩展、命令与文件操作有安全边界、改码流程可验证与回滚。
 
 ## 技术栈
 - 前端: Next.js 16 (App Router) + React 19 + TypeScript + Tailwind CSS v4
@@ -41,8 +41,8 @@ EvolveLab 是一个**白盒 AI Agent 实验平台**，自研 ReAct 内核，不�
 - 前端: 暂无测试（待补充 Playwright E2E）
 - CI: .github/workflows/ci.yml 自动跑 py_compile + pytest + build + lint
 
-## 面试重点（给维护者）
-如果你要面试讲这个项目，重点准备：
+## 维护重点（给贡献者）
+如果你要继续维护这个项目，优先理解：
 1. ReAct 循环实现细节（kernel.py 的 while 循环、JSON 强制输出、死循环检测）
 2. 为什么不用 LangChain（控制力、理解深度、依赖轻量）
 3. 安全设计（三层命令注入防御、路径沙箱、Git 快照回滚）
