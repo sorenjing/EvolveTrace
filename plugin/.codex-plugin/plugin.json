@@ -1,0 +1,7 @@
+{
+  "name": "evolvetrace",
+  "display_name": "EvolveTrace for Codex",
+  "version": "0.1.0",
+  "description": "Local execution audit and observability for Codex.",
+  "hooks": "./hooks/hooks.json"
+}

@@ -17,7 +17,7 @@ from slowapi.errors import RateLimitExceeded
 from api.routes import router
 from exceptions import register_exception_handlers
 
-app = FastAPI(title="EvolveLab Backend", version="0.1.0")
+app = FastAPI(title="EvolveTrace Backend", version="0.1.0")
 register_exception_handlers(app)
 
 # 速率限制：默认每分钟 30 次请求/IP，防止滥用消耗 LLM 额度
