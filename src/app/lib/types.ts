@@ -47,12 +47,15 @@ export const DEFAULT_CONFIG: LlmConfig = {
   model: "glm-4-flash",
 };
 
-const CONFIG_STORAGE_KEY = "evolvelab_llm_config";
+const CONFIG_STORAGE_KEY = "evolvetrace_llm_config";
+const LEGACY_CONFIG_STORAGE_KEY = "evolvelab_llm_config";
 
 export function loadConfig(): LlmConfig {
   if (typeof window === "undefined") return DEFAULT_CONFIG;
   try {
-    const raw = localStorage.getItem(CONFIG_STORAGE_KEY);
+    const raw =
+      localStorage.getItem(CONFIG_STORAGE_KEY) ??
+      localStorage.getItem(LEGACY_CONFIG_STORAGE_KEY);
     if (!raw) return DEFAULT_CONFIG;
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed !== "object" || parsed === null) return DEFAULT_CONFIG;

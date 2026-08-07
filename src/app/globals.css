@@ -11,8 +11,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 .dark {
@@ -23,7 +23,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: ui-sans-serif, system-ui, sans-serif;
 }
 
 /* 让 pre/textarea 滚动条在深色下不刺眼 */

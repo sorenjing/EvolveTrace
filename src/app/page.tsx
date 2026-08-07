@@ -1,260 +1,88 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
-import {
-  BACKEND_URL,
-  type AgentEvent,
-  type TimelineStep,
-  type RunStatus,
-  type LlmConfig,
-  DEFAULT_CONFIG,
-  loadConfig,
-  saveConfig,
-} from "@/app/lib/types";
-import { Header } from "@/app/components/Header";
-import { ConfigPanel } from "@/app/components/ConfigPanel";
-import { ToolsPanel } from "@/app/components/ToolsPanel";
-import { InputArea } from "@/app/components/InputArea";
-import { Timeline } from "@/app/components/Timeline";
-import { TaskTemplates } from "@/app/components/TaskTemplates";
+import { useEffect, useState } from "react";
+import { AuditTimeline } from "@/app/components/AuditTimeline";
+import { EventInspector } from "@/app/components/EventInspector";
+import { ReviewComposer } from "@/app/components/ReviewComposer";
+import { SessionList } from "@/app/components/SessionList";
+import { SessionSummary } from "@/app/components/SessionSummary";
+import { fetchSession, fetchSessions, subscribeToAuditStream } from "@/app/lib/audit-api";
+import type { AuditEvent, AuditSession, AuditSessionSummary } from "@/app/lib/audit-types";
 
 export default function Home() {
-  const [task, setTask] = useState("");
-  const [role, setRole] = useState<string>("standard");
-  const [steps, setSteps] = useState<TimelineStep[]>([]);
-  const [status, setStatus] = useState<RunStatus>("idle");
-  const [finalResult, setFinalResult] = useState<string>("");
-  const [errorMsg, setErrorMsg] = useState<string>("");
+  const [sessions, setSessions] = useState<AuditSessionSummary[]>([]);
+  const [session, setSession] = useState<AuditSession | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<AuditEvent | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const [connected, setConnected] = useState(false);
 
-  // LLM 配置（localStorage 持久化）
-  const [config, setConfig] = useState<LlmConfig>(DEFAULT_CONFIG);
-  const [showConfig, setShowConfig] = useState(false);
-  const [showTools, setShowTools] = useState(false);
-  const configLoaded = useRef(false);
-
-  // 首次挂载从 localStorage 加载配置
   useEffect(() => {
-    if (configLoaded.current) return;
-    configLoaded.current = true;
-    setConfig(loadConfig());
+    void (async () => {
+      try {
+        setError("");
+        const nextSessions = await fetchSessions();
+        setSessions(nextSessions);
+        if (nextSessions.length > 0) await selectSession(nextSessions[0].session_id);
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : "无法连接本地审计服务");
+      }
+    })();
   }, []);
 
-  // 用于中断 fetch
-  const abortRef = useRef<AbortController | null>(null);
-  // 同步 status，供 SSE 回调判断（避免 complete 覆盖 error）
-  const statusRef = useRef<RunStatus>("idle");
-  statusRef.current = status;
-
-  // 将事件聚合到对应 step
-  const applyEvent = useCallback((ev: AgentEvent) => {
-    if (ev.type === "complete") {
-      // 若已处于 error（死循环/LLM 失败），忽略随后的 complete，避免成功态覆盖失败
-      if (statusRef.current === "error") return;
-      const result =
-        typeof ev.payload.result === "string" ? ev.payload.result : "";
-      setFinalResult(result);
-      statusRef.current = "done";
-      setStatus("done");
-      return;
-    }
-    if (ev.type === "error") {
-      const msg =
-        typeof ev.payload.message === "string" ? ev.payload.message : "未知错误";
-      setErrorMsg(msg);
-      statusRef.current = "error";
-      setStatus("error");
-      // 同时把错误填入对应 step，让 Timeline 显示失败状态色
-      if (ev.step !== undefined) {
-        setSteps((prev) => {
-          const idx = prev.findIndex((s) => s.step === ev.step);
-          if (idx === -1) {
-            return [...prev, { step: ev.step, error: msg }];
-          }
-          const copy = [...prev];
-          copy[idx] = { ...copy[idx], error: msg };
-          return copy;
+  useEffect(() => {
+    const close = subscribeToAuditStream(
+      session?.session_id ?? null,
+      (message) => {
+        setConnected(true);
+        setSessions((current) => {
+          const existing = current.find((item) => item.session_id === message.event.session_id);
+          if (!existing) return current;
+          return current.map((item) => item.session_id === message.event.session_id ? { ...item, event_count: item.event_count + 1, tool_call_count: item.tool_call_count + (message.event.tool_name ? 1 : 0), risk_count: item.risk_count + message.risk_findings.length, last_seen: message.event.timestamp } : item);
         });
-      }
-      return;
-    }
-
-    setSteps((prev) => {
-      const idx = prev.findIndex((s) => s.step === ev.step);
-      if (idx === -1) {
-        // 新 step
-        const next: TimelineStep = { step: ev.step };
-        fillStep(next, ev);
-        return [...prev, next];
-      }
-      const copy = [...prev];
-      copy[idx] = { ...copy[idx] };
-      fillStep(copy[idx], ev);
-      return copy;
-    });
-  }, []);
-
-  const runAgent = useCallback(async () => {
-    if (!task.trim() || status === "running") return;
-
-    // 检查 API Key 是否已配置
-    if (!config.apiKey.trim()) {
-      setErrorMsg("请先配置 LLM API Key（点击右上角「设置」按钮）");
-      setShowConfig(true);
-      return;
-    }
-
-    // 重置状态
-    setSteps([]);
-    setFinalResult("");
-    setErrorMsg("");
-    setStatus("running");
-
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    try {
-      const resp = await fetch(`${BACKEND_URL}/api/agent/stream`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          task: task.trim(),
-          role,
-          api_key: config.apiKey,
-          base_url: config.baseUrl,
-          model: config.model,
-        }),
-        signal: controller.signal,
-      });
-
-      if (!resp.ok || !resp.body) {
-        throw new Error(`后端响应异常: HTTP ${resp.status}`);
-      }
-
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        // SSE 事件以空行分隔
-        const parts = buffer.split("\n\n");
-        buffer = parts.pop() ?? "";
-
-        for (const part of parts) {
-          const line = part.trim();
-          if (!line.startsWith("data: ")) continue;
-          const data = line.slice(6);
-          if (data === "[DONE]") {
-            // 流正常结束；若未收到 complete 事件，标记为 done
-            setStatus((s) => (s === "running" ? "done" : s));
-            return;
-          }
-          try {
-            const ev = JSON.parse(data) as AgentEvent;
-            applyEvent(ev);
-          } catch {
-            // 忽略无法解析的行
-          }
+        if (session?.session_id === message.event.session_id) {
+          setSession((current) => current ? { ...current, events: [...current.events, message.event], event_count: current.event_count + 1, tool_call_count: current.tool_call_count + (message.event.tool_name ? 1 : 0), risk_count: current.risk_count + message.risk_findings.length, last_seen: message.event.timestamp } : current);
         }
-      }
-    } catch (e: unknown) {
-      if (e instanceof DOMException && e.name === "AbortError") {
-        setStatus("idle");
-        return;
-      }
-      const msg = e instanceof Error ? e.message : String(e);
-      setErrorMsg(msg);
-      setStatus("error");
-    } finally {
-      abortRef.current = null;
+      },
+      () => setConnected(false),
+    );
+    return close;
+  }, [session?.session_id]);
+
+  async function selectSession(sessionId: string) {
+    try {
+      const nextSession = await fetchSession(sessionId);
+      setSession(nextSession);
+      setSelectedEvent(nextSession.events.at(-1) ?? null);
+      setSelectedId(nextSession.events.at(-1)?.event_id ?? null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "无法读取会话");
     }
-  }, [task, role, status, applyEvent, config]);
-
-  const stopAgent = useCallback(() => {
-    abortRef.current?.abort();
-  }, []);
-
-  const running = status === "running";
+  }
 
   return (
-    <div className="min-h-screen w-full bg-zinc-50 text-zinc-900 dark:bg-black dark:text-zinc-100">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-6 sm:gap-6 sm:py-8">
-        <Header
-          onOpenConfig={() => setShowConfig((v) => !v)}
-          configReady={!!config.apiKey.trim()}
-          onOpenTools={() => setShowTools((v) => !v)}
-        />
-
-        {showConfig && (
-          <ConfigPanel
-            config={config}
-            onChange={setConfig}
-            onSave={() => {
-              saveConfig(config);
-              setShowConfig(false);
-            }}
-          />
-        )}
-
-        {showTools && <ToolsPanel />}
-
-        <InputArea
-          task={task}
-          role={role}
-          running={running}
-          onTaskChange={setTask}
-          onRoleChange={setRole}
-          onRun={runAgent}
-          onStop={stopAgent}
-        />
-
-        {steps.length === 0 && status === "idle" && (
-          <TaskTemplates onPick={setTask} disabled={running} />
-        )}
-
-        {errorMsg && (
-          <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-            <p className="font-semibold">出错</p>
-            <p className="mt-1 whitespace-pre-wrap break-all">{errorMsg}</p>
+    <main className="min-h-screen bg-zinc-50 text-zinc-950 dark:bg-black dark:text-zinc-50">
+      <header className="border-b border-zinc-200 bg-white/90 px-4 py-4 backdrop-blur dark:border-zinc-800 dark:bg-black/80 sm:px-6">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-teal-500" /><h1 className="text-lg font-bold tracking-tight">EvolveTrace</h1></div>
+            <p className="mt-1 text-xs text-zinc-500">Local review and observability for coding agents</p>
           </div>
-        )}
-
-        <Timeline steps={steps} />
-
-        {finalResult && (
-          <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950">
-            <p className="mb-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-              最终结果
-            </p>
-            <p className="whitespace-pre-wrap break-words text-sm text-emerald-900 dark:text-emerald-100">
-              {finalResult}
-            </p>
-          </div>
-        )}
+          <div className="flex items-center gap-3 text-xs text-zinc-500"><span className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-500" : "bg-zinc-300"}`} />{connected ? "实时监听中" : "等待本地事件"}</div>
+        </div>
+      </header>
+      <div className="mx-auto grid min-h-[calc(100vh-77px)] max-w-[1600px] lg:grid-cols-[260px_minmax(360px,1fr)_minmax(300px,0.8fr)]">
+        <SessionList sessions={sessions} selectedId={session?.session_id ?? null} onSelect={(id) => void selectSession(id)} />
+        <section className="min-w-0 border-b border-zinc-200 p-4 dark:border-zinc-800 sm:p-6 lg:border-b-0">
+          {error && <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">{error}</div>}
+          {session ? <><div className="mb-5"><p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-teal-600 dark:text-teal-400">Review workspace</p><h2 className="mt-1 truncate text-xl font-semibold">{session.cwd || session.session_id}</h2><p className="mt-1 text-xs text-zinc-500">按证据复盘 Codex 的执行路径，而不是猜测隐藏思维。</p></div><SessionSummary session={session} /><div className="mt-5"><AuditTimeline events={session.events} selectedId={selectedId} onSelect={(event) => { setSelectedEvent(event); setSelectedId(event.event_id); }} /></div></> : <EmptyState />}
+        </section>
+        <aside className="flex min-h-0 flex-col bg-white dark:bg-zinc-950"><div className="min-h-0 flex-1 overflow-y-auto"><EventInspector event={selectedEvent} /></div><ReviewComposer event={selectedEvent} /></aside>
       </div>
-    </div>
+    </main>
   );
 }
 
-// ---------- 辅助：将事件字段填入 step ----------
-
-function fillStep(step: TimelineStep, ev: AgentEvent): void {
-  switch (ev.type) {
-    case "thought":
-      step.thought = typeof ev.payload.content === "string" ? ev.payload.content : "";
-      break;
-    case "action":
-      step.action = {
-        tool: typeof ev.payload.tool === "string" ? ev.payload.tool : "",
-        input: ev.payload.input,
-      };
-      break;
-    case "observation":
-      step.observation =
-        typeof ev.payload.result === "string" ? ev.payload.result : "";
-      break;
-  }
+function EmptyState() {
+  return <div className="flex min-h-[50vh] flex-col items-center justify-center text-center"><div className="rounded-2xl border border-dashed border-zinc-300 p-8 dark:border-zinc-700"><p className="text-lg font-semibold">等待第一条执行轨迹</p><p className="mt-2 max-w-sm text-sm leading-6 text-zinc-500">启动本地后端并启用 EvolveTrace for Codex，然后执行一个任务。每一步会在这里形成可审查的工程记录。</p></div></div>;
 }

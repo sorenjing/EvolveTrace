@@ -16,6 +16,7 @@ from main import app
 
 def test_audit_api_writes_reads_and_deletes_sessions(tmp_path, monkeypatch):
     monkeypatch.setattr(routes, "audit_service", AuditService(AuditRepository(tmp_path / "audit.db")))
+    app.dependency_overrides[routes.require_loopback] = lambda: None
     client = TestClient(app)
     payload = {
         "event_id": "evt-api-1",
@@ -42,13 +43,16 @@ def test_audit_api_writes_reads_and_deletes_sessions(tmp_path, monkeypatch):
     deleted = client.delete("/api/audit/sessions/session-api")
     assert deleted.status_code == 204
     assert client.get("/api/audit/sessions/session-api").status_code == 404
+    app.dependency_overrides.pop(routes.require_loopback, None)
 
 
 def test_audit_api_rejects_payload_without_required_fields(tmp_path, monkeypatch):
     monkeypatch.setattr(routes, "audit_service", AuditService(AuditRepository(tmp_path / "audit.db")))
+    app.dependency_overrides[routes.require_loopback] = lambda: None
     response = TestClient(app).post("/api/audit/events", json={"tool_name": "Bash"})
 
     assert response.status_code == 422
+    app.dependency_overrides.pop(routes.require_loopback, None)
 
 
 def test_all_audit_routes_reject_non_loopback_clients():
@@ -67,5 +71,13 @@ def test_all_audit_routes_reject_non_loopback_clients():
     with pytest.raises(HTTPException, match="loopback"):
         routes.require_loopback(SimpleNamespace(client=SimpleNamespace(host="10.10.10.10")))
 
-    stream_route = next(route for route in app.routes if route.path == "/api/audit/stream")
-    assert any(dependency.call is routes.require_loopback for dependency in stream_route.dependencies)
+    stream_route = next(
+        route
+        for route in routes.router.routes
+        if getattr(route, "path", None) == "/audit/stream"
+    )
+    assert any(
+        getattr(dependency, "dependency", getattr(dependency, "call", None))
+        is routes.require_loopback
+        for dependency in stream_route.dependencies
+    )

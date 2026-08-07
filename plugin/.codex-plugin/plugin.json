@@ -1,7 +1,25 @@
 {
   "name": "evolvetrace",
-  "display_name": "EvolveTrace for Codex",
   "version": "0.1.0",
   "description": "Local execution audit and observability for Codex.",
-  "hooks": "./hooks/hooks.json"
+  "author": {
+    "name": "EvolveTrace contributors"
+  },
+  "license": "PolyForm-Noncommercial",
+  "keywords": ["codex", "observability", "code-review", "audit"],
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "EvolveTrace for Codex",
+    "shortDescription": "Review coding agent execution locally.",
+    "longDescription": "Inspect Codex tool calls, permissions, changes, failures, and validation evidence without uploading source code.",
+    "developerName": "EvolveTrace contributors",
+    "category": "Developer Tools",
+    "capabilities": ["Read", "Review"],
+    "defaultPrompt": [
+      "Show me the risky steps in this Codex run.",
+      "Help me review the latest tool calls.",
+      "Create a repair prompt for this event."
+    ],
+    "brandColor": "#0f766e"
+  }
 }

@@ -90,5 +90,4 @@ def test_plugin_hooks_use_matcher_groups_and_current_compaction_events():
             assert isinstance(group, dict)
             assert group["matcher"] == ".*"
             assert isinstance(group["hooks"], list)
-            assert "${PLUGIN_ROOT}" not in group["hooks"][0]["command"]
             assert "$" + "{PLUGIN_ROOT}" in group["hooks"][0]["command"]
