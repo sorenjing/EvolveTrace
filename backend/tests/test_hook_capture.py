@@ -69,12 +69,12 @@ def test_hook_capture_returns_zero_when_backend_is_unavailable():
     assert result.returncode == 0
 
 
-def test_plugin_manifest_and_hooks_configuration_exist():
+def test_plugin_manifest_uses_default_hooks_configuration():
     manifest = json.loads((ROOT / "plugin" / ".codex-plugin" / "plugin.json").read_text())
     hooks = json.loads((ROOT / "plugin" / "hooks" / "hooks.json").read_text())
 
     assert manifest["name"] == "evolvetrace"
-    assert "hooks" in manifest
+    assert "hooks" not in manifest
     assert "hooks" in hooks
 
 

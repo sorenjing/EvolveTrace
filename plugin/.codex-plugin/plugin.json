@@ -7,7 +7,6 @@
   },
   "license": "PolyForm-Noncommercial",
   "keywords": ["codex", "observability", "code-review", "audit"],
-  "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "EvolveTrace for Codex",
     "shortDescription": "Review coding agent execution locally.",
