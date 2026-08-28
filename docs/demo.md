@@ -6,7 +6,7 @@
 2. 在第二个终端启动前端：`npm run dev`。
 3. 在第三个终端写入演示数据：`cd backend; venv\Scripts\python.exe scripts\seed_demo.py`。
 4. 打开 `http://localhost:3000` 并刷新页面。
-5. 选择 `demo-evolvetrace-session` 会话，点击时间线中的高风险 Bash 事件。
+5. 选择 `fixture-session` 会话，点击时间线中的高风险 Bash 事件。
 6. 在右侧事件详情核对脱敏后的证据、风险说明和工具输入。
 7. 输入审查意见，例如“先展示 diff，再运行 auth 相关测试”，然后点击“复制修复提示”。
 

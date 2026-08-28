@@ -37,7 +37,7 @@ flowchart LR
 
 `backend/audit/` 负责审计事件模型、脱敏、SQLite 仓储和确定性风险规则。`backend/services/audit_service.py` 聚合事件并向 SSE 发布，`backend/api/routes.py` 只负责 HTTP 转换。
 
-审计接口默认只接受 loopback 请求。事件按会话保存，页面刷新后可以从 SQLite 恢复。
+后端只暴露健康检查和审计接口，默认只接受 loopback 审计请求。事件按会话保存，页面刷新后可以从 SQLite 恢复。
 
 ### 前端
 
@@ -61,4 +61,4 @@ flowchart LR
 
 ## 验证
 
-后端使用 pytest 验证事件协议、脱敏、风险、仓储、API 和插件采集；前端使用 ESLint 和 Next.js production build 验证类型与构建产物。`docs/demo.md` 提供无需真实 Codex 的本地演示。
+后端使用 pytest 验证事件协议、脱敏、风险、仓储、API、插件采集和 fixture 回放；前端使用 ESLint 和 Next.js production build 验证类型与构建产物。`docs/demo.md` 提供无需真实 Codex 的本地演示。

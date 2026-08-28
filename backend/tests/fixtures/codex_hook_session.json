@@ -1,0 +1,66 @@
+[
+  {
+    "event_id": "fixture-001",
+    "session_id": "fixture-session",
+    "turn_id": "fixture-turn",
+    "sequence": 1,
+    "hook_event_name": "UserPromptSubmit",
+    "timestamp": "2026-08-28T00:00:00+00:00",
+    "cwd": "D:/fixture/sample-project",
+    "prompt": "Review the authentication change and run its tests."
+  },
+  {
+    "event_id": "fixture-002",
+    "session_id": "fixture-session",
+    "turn_id": "fixture-turn",
+    "sequence": 2,
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_use_id": "fixture-tool-1",
+    "timestamp": "2026-08-28T00:00:01+00:00",
+    "cwd": "D:/fixture/sample-project",
+    "tool_input": {
+      "command": "git status",
+      "headers": {
+        "Authorization": "Bearer fixture-token"
+      }
+    }
+  },
+  {
+    "event_id": "fixture-003",
+    "session_id": "fixture-session",
+    "turn_id": "fixture-turn",
+    "sequence": 3,
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_use_id": "fixture-tool-2",
+    "timestamp": "2026-08-28T00:00:02+00:00",
+    "cwd": "D:/fixture/sample-project",
+    "tool_input": {
+      "command": "git reset --hard HEAD"
+    },
+    "tool_response": {
+      "exit_code": 0,
+      "stdout": "working tree reset"
+    }
+  },
+  {
+    "event_id": "fixture-004",
+    "session_id": "fixture-session",
+    "turn_id": "fixture-turn",
+    "sequence": 4,
+    "hook_event_name": "PostToolUseFailure",
+    "tool_name": "Bash",
+    "tool_use_id": "fixture-tool-3",
+    "timestamp": "2026-08-28T00:00:03+00:00",
+    "cwd": "D:/fixture/sample-project",
+    "tool_input": {
+      "command": "python -m pytest"
+    },
+    "tool_response": {
+      "exit_code": 1,
+      "stderr": "fixture test failure"
+    },
+    "status": "failed"
+  }
+]

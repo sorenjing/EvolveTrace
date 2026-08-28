@@ -20,9 +20,7 @@ jobs:
           python-version: "3.12"
 
       - name: 安装依赖
-        run: |
-          pip install -r requirements.txt
-          pip install pytest pytest-cov
+        run: pip install -r requirements-dev.txt
 
       - name: 语法检查（compileall）
         run: python -m compileall -q .

@@ -1,6 +1,6 @@
 ---
 name: 功能建议
-about: 为 EvolveLab 提出新功能建议
+about: 为 EvolveTrace 提出新功能建议
 title: "[Feature] "
 labels: enhancement
 assignees: ''

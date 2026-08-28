@@ -1,6 +1,6 @@
 ---
 name: Bug 报告
-about: 报告 EvolveLab 的 Bug
+about: 报告 EvolveTrace 的 Bug
 title: "[Bug] "
 labels: bug
 assignees: ''
@@ -30,7 +30,7 @@ assignees: ''
 - Python 版本：<!-- python --version -->
 - Node 版本：<!-- node --version -->
 - 浏览器（前端问题填）：<!-- Chrome 120 -->
-- LLM 提供商与模型：<!-- 智谱 glm-4-flash -->
+- 后端与插件版本：<!-- 例如 0.1.0 -->
 
 ## 日志 / 截图
 

@@ -4,10 +4,10 @@ services:
     ports:
       - "8001:8001"
     environment:
-      # 为空则不鉴权 / 不持久化（本地开发默认）
-      - AGENT_TOKEN=${AGENT_TOKEN:-}
-      - REDIS_URL=${REDIS_URL:-}
-      - LLM_API_KEY=${LLM_API_KEY:-}
+      - EVOLVETRACE_DB_PATH=/data/audit.db
+      - ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+    volumes:
+      - audit-data:/data
     restart: unless-stopped
 
   frontend:
@@ -17,3 +17,6 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+
+volumes:
+  audit-data:

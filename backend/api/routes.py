@@ -62,4 +62,3 @@ async def stream_audit_events(session_id: str | None = None):
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
-

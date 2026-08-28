@@ -94,12 +94,13 @@ flowchart LR
     F --> G["审查意见 / 修正提示"]
 ```
 
-后端审计模块位于 `backend/audit/`，路由保持薄，存储和风险分析位于服务层。前端审计类型和 API 客户端位于 `src/app/lib/`，页面组件位于 `src/app/components/`。
+后端审计模块位于 `backend/audit/`，HTTP 层只暴露健康检查和 `/api/audit/*`，存储和风险分析位于服务层。前端审计类型和 API 客户端位于 `src/app/lib/`，页面组件位于 `src/app/components/`。
 
 ## 开发与验证
 
 ```powershell
 cd backend
+venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 venv\Scripts\python.exe -m pytest -q
 cd ..
 npm run lint
