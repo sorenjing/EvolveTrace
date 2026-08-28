@@ -14,6 +14,22 @@ import api.routes as routes
 from main import app
 
 
+def test_application_exposes_only_health_and_audit_routes():
+    paths = {"/health"} | {
+        f"/api{route.path}"
+        for route in routes.router.routes
+        if getattr(route, "path", "")
+    }
+
+    assert paths == {
+        "/health",
+        "/api/audit/events",
+        "/api/audit/sessions",
+        "/api/audit/sessions/{session_id}",
+        "/api/audit/stream",
+    }
+
+
 def test_audit_api_writes_reads_and_deletes_sessions(tmp_path, monkeypatch):
     monkeypatch.setattr(routes, "audit_service", AuditService(AuditRepository(tmp_path / "audit.db")))
     app.dependency_overrides[routes.require_loopback] = lambda: None
