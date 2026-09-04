@@ -1,23 +1,23 @@
 {
   "name": "evolvetrace",
-  "version": "0.1.0",
-  "description": "Local execution audit and observability for Codex.",
+  "version": "0.2.0",
+  "description": "Local execution audit and pre-execution safety for Codex.",
   "author": {
     "name": "EvolveTrace contributors"
   },
   "license": "PolyForm-Noncommercial",
-  "keywords": ["codex", "observability", "code-review", "audit"],
+  "keywords": ["codex", "observability", "code-review", "audit", "safety"],
   "interface": {
     "displayName": "EvolveTrace for Codex",
-    "shortDescription": "Review coding agent execution locally.",
-    "longDescription": "Inspect Codex tool calls, permissions, changes, failures, and validation evidence without uploading source code.",
+    "shortDescription": "Review and guard coding-agent execution locally.",
+    "longDescription": "Inspect Codex tool calls, permissions, changes, failures, validation evidence, and high-confidence pre-execution safety blocks without uploading source code.",
     "developerName": "EvolveTrace contributors",
     "category": "Developer Tools",
     "capabilities": ["Read", "Review"],
     "defaultPrompt": [
-      "Show me the risky steps in this Codex run.",
-      "Help me review the latest tool calls.",
-      "Create a repair prompt for this event."
+      "Start EvolveTrace, then use @Browser to open its local dashboard and summarize risky steps.",
+      "Show me the risky steps and Safety Sentinel blocks in this Codex run.",
+      "Help me review the latest tool calls and create a repair prompt for one event."
     ],
     "brandColor": "#0f766e"
   }
