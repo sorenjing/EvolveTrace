@@ -28,6 +28,24 @@ def test_analyze_event_flags_dangerous_commands_with_stable_finding():
     assert findings[0].event_id == "evt-risk"
 
 
+def test_analyze_event_records_a_pre_execution_safety_block():
+    findings = analyze_event(
+        event_with_command(
+            "mkfs.ext4 /dev/sdb",
+            safety={
+                "decision": "deny",
+                "rule_id": "disk_format",
+                "reason": "Disk formatting is blocked.",
+            },
+        )
+    )
+
+    safety_findings = [finding for finding in findings if finding.code == "safety_block"]
+    assert len(safety_findings) == 1
+    assert safety_findings[0].severity == "high"
+    assert safety_findings[0].evidence == "disk_format"
+
+
 def test_analyze_event_flags_permission_denials_and_ignores_safe_commands():
     denied = event_with_command("git push", permission_denied=True)
     safe = event_with_command("git status")
