@@ -1,9 +1,17 @@
 import json
 import os
+from pathlib import Path
 import re
 import sys
 import urllib.request
 from typing import Any
+
+
+HOOKS_DIR = Path(__file__).resolve().parent
+if str(HOOKS_DIR) not in sys.path:
+    sys.path.insert(0, str(HOOKS_DIR))
+
+from safety_policy import apply_safety_decision, codex_hook_output, evaluate_pre_tool_use
 
 
 REDACTED = "[REDACTED]"
@@ -13,7 +21,7 @@ SENSITIVE_KEY_PATTERN = re.compile(
     re.IGNORECASE,
 )
 BEARER_PATTERN = re.compile(r"(?i)(\bbearer\s+)[^\s,;'\\\"]+")
-AUTH_SCHEME_PATTERN = re.compile(r"(?i)\b(Basic|Bearer)\s+[^\s,;'\" ]+")
+AUTH_SCHEME_PATTERN = re.compile(r"(?i)\b(Basic|Bearer)\s+[^\s,;'\"]+")
 HEADER_VALUE_PATTERN = re.compile(
     r"(?i)\b((?:authorization|proxy-authorization|cookie|set-cookie|"
     r"x-[a-z0-9_-]*(?:token|key|secret|auth)[a-z0-9_-]*)\s*:\s*)[^\r\n]+"
@@ -78,10 +86,21 @@ def capture(payload: dict[str, Any], endpoint: str | None = None) -> bool:
     return True
 
 
+def process_payload(payload: dict[str, Any]) -> int:
+    decision = evaluate_pre_tool_use(payload)
+    capture(apply_safety_decision(payload, decision))
+
+    hook_output = codex_hook_output(decision)
+    if hook_output is not None:
+        print(json.dumps(hook_output, ensure_ascii=False))
+    return 0
+
+
 def main() -> int:
     try:
         payload = json.load(sys.stdin)
-        capture(payload)
+        if isinstance(payload, dict):
+            return process_payload(payload)
     except Exception:
         pass
     return 0
