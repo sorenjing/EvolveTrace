@@ -38,6 +38,11 @@ jobs:
           node-version: "20"
           cache: "npm"
 
+      - name: 锁文件预检
+        run: |
+          node -e "const fs = require('fs'); const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8')); if (lock.lockfileVersion < 1) throw new Error('Unsupported lockfileVersion'); console.log('lockfileVersion=' + lock.lockfileVersion)"
+          npm config get package-lock
+
       - name: 安装依赖
         run: npm ci
 
