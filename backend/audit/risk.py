@@ -53,8 +53,26 @@ def _tool_response_failed(response: Any) -> bool:
     return bool(re.search(r"\b(?:error|failed|exit(?:ed)?\s+with\s+code\s+[1-9])\b", text))
 
 
+def _safety_block(event: AuditEvent) -> RiskFinding | None:
+    safety = event.details.get("safety")
+    if not isinstance(safety, dict) or safety.get("decision") != "deny":
+        return None
+    rule_id = str(safety.get("rule_id") or "")
+    return RiskFinding(
+        event_id=event.event_id,
+        code="safety_block",
+        severity="high",
+        message="Safety Sentinel blocked this tool call before execution.",
+        evidence=rule_id,
+    )
+
+
 def analyze_event(event: AuditEvent) -> list[RiskFinding]:
     findings: list[RiskFinding] = []
+    safety_block = _safety_block(event)
+    if safety_block is not None:
+        findings.append(safety_block)
+
     command_text = _flatten_text(event.details)
     for pattern in DANGEROUS_COMMANDS:
         match = pattern.search(command_text)
