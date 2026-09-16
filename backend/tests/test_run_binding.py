@@ -25,6 +25,24 @@ def configured(tmp_path):
     return harness, task, audit
 
 
+def configured_with_receipt(tmp_path):
+    harness, task, audit = configured(tmp_path)
+    harness.ingest_context_receipt({
+        "schema": "context-receipt/v1",
+        "receipt_id": "receipt-1",
+        "task_id": task["task_id"],
+        "context_snapshot_id": task["context_snapshot_id"],
+        "attempt_id": "unassigned",
+        "bundle_id": "ctx_1",
+        "platform": "codex",
+        "adapter": "evolvetrace-http",
+        "status": "delivered",
+        "delivered_source_ids": ["context:sample-app:rendered"],
+        "loaded_skill_ids": [],
+    })
+    return harness, task, audit
+
+
 def test_first_event_creates_run_for_active_repository(tmp_path):
     harness, task, audit = configured(tmp_path)
     harness.activate_task(task["task_id"], "sample-app")
@@ -50,3 +68,14 @@ def test_most_specific_active_repository_wins(tmp_path):
     harness.activate_task(task["task_id"], "sample-app")
     harness.activate_task(sibling["task_id"], "workspace/sample-app")
     assert audit.ingest(payload("specific", r"C:\root\workspace\sample-app"))["run"]["task_id"] == sibling["task_id"]
+
+
+def test_first_bound_hook_acknowledges_delivered_receipt(tmp_path):
+    harness, task, audit = configured_with_receipt(tmp_path)
+    harness.activate_task(task["task_id"], "sample-app")
+
+    result = audit.ingest(payload("receipt-session", r"C:\workspace\sample-app"))
+
+    receipt = harness.list_context_receipts(task["task_id"])[0]
+    assert receipt["status"] == "acknowledged"
+    assert receipt["attempt_id"] == result["run"]["run_id"]
