@@ -28,8 +28,10 @@ def test_application_exposes_health_audit_and_harness_routes():
         "/api/audit/sessions/{session_id}",
         "/api/audit/stream",
         "/api/harness/context-snapshots",
+        "/api/harness/context-receipts",
         "/api/harness/tasks",
         "/api/harness/tasks/{task_id}",
+        "/api/harness/tasks/{task_id}/context-receipts",
         "/api/harness/tasks/{task_id}/activate",
         "/api/harness/runs/unbound",
     }
