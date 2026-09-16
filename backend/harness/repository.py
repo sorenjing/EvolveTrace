@@ -6,7 +6,7 @@ import sqlite3
 import threading
 from typing import Any
 
-from .models import ContextSnapshot, Run, TaskContract
+from .models import ContextReceipt, ContextSnapshot, DELIVERY_LEVELS, Run, TaskContract
 
 
 class HarnessRepository:
@@ -31,6 +31,8 @@ class HarnessRepository:
                 CREATE INDEX IF NOT EXISTS idx_runs_task_started ON runs(task_id, started_at);
                 CREATE TABLE IF NOT EXISTS active_task_leases (repository_path TEXT PRIMARY KEY, task_id TEXT NOT NULL, activated_at TEXT NOT NULL, FOREIGN KEY(task_id) REFERENCES tasks(task_id));
                 CREATE TABLE IF NOT EXISTS unbound_sessions (session_id TEXT PRIMARY KEY, cwd TEXT NOT NULL, first_seen TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS context_receipts (receipt_id TEXT PRIMARY KEY, task_id TEXT NOT NULL, context_snapshot_id TEXT NOT NULL, attempt_id TEXT NOT NULL, bundle_id TEXT NOT NULL, platform TEXT NOT NULL, adapter TEXT NOT NULL, status TEXT NOT NULL, delivered_source_ids_json TEXT NOT NULL, loaded_skill_ids_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, FOREIGN KEY(task_id) REFERENCES tasks(task_id), FOREIGN KEY(context_snapshot_id) REFERENCES context_snapshots(snapshot_id));
+                CREATE INDEX IF NOT EXISTS idx_receipts_task_created ON context_receipts(task_id, created_at);
             """)
 
     def import_context_snapshot(self, bundle: dict[str, Any], source: str = "file-import") -> ContextSnapshot:
@@ -51,6 +53,13 @@ class HarnessRepository:
     def create_task(self, task: TaskContract) -> TaskContract:
         with self._lock, self._connect() as c:
             if task.context_snapshot_id and not c.execute("SELECT 1 FROM context_snapshots WHERE snapshot_id=?", (task.context_snapshot_id,)).fetchone(): raise ValueError("context snapshot does not exist")
+            existing_row = c.execute("SELECT * FROM tasks WHERE task_id=?", (task.task_id,)).fetchone()
+            if existing_row:
+                existing = self._task(existing_row)
+                comparable = lambda value: value.to_dict() | {"created_at": None}
+                if comparable(existing) != comparable(task):
+                    raise ValueError("task_id already exists with different immutable fields")
+                return existing
             c.execute("INSERT INTO tasks VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (task.task_id, task.title, task.goal, json.dumps(task.target_repositories), json.dumps(task.constraints), json.dumps(task.acceptance_criteria), json.dumps(task.open_questions), task.risk_level, task.status, task.context_snapshot_id, task.created_at))
         return task
 
@@ -126,3 +135,84 @@ class HarnessRepository:
     def list_unbound_sessions(self):
         with self._lock, self._connect() as c: rows = c.execute("SELECT * FROM unbound_sessions ORDER BY first_seen DESC, session_id DESC").fetchall()
         return [dict(row) for row in rows]
+
+    def _receipt(self, row) -> ContextReceipt:
+        return ContextReceipt.from_payload({
+            "schema": "context-receipt/v1",
+            "receipt_id": row["receipt_id"],
+            "task_id": row["task_id"],
+            "context_snapshot_id": row["context_snapshot_id"],
+            "attempt_id": row["attempt_id"],
+            "bundle_id": row["bundle_id"],
+            "platform": row["platform"],
+            "adapter": row["adapter"],
+            "status": row["status"],
+            "delivered_source_ids": json.loads(row["delivered_source_ids_json"]),
+            "loaded_skill_ids": json.loads(row["loaded_skill_ids_json"]),
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        })
+
+    def upsert_context_receipt(self, receipt: ContextReceipt) -> ContextReceipt:
+        with self._lock, self._connect() as c:
+            task = c.execute("SELECT context_snapshot_id FROM tasks WHERE task_id=?", (receipt.task_id,)).fetchone()
+            if not task:
+                raise ValueError("receipt task does not exist")
+            if task["context_snapshot_id"] != receipt.context_snapshot_id:
+                raise ValueError("receipt context snapshot must match task")
+            snapshot = c.execute(
+                "SELECT content_json FROM context_snapshots WHERE snapshot_id=?",
+                (receipt.context_snapshot_id,),
+            ).fetchone()
+            snapshot_bundle_id = json.loads(snapshot["content_json"]).get("bundle_id")
+            if snapshot_bundle_id is not None and snapshot_bundle_id != receipt.bundle_id:
+                raise ValueError("receipt bundle_id must match context snapshot")
+            row = c.execute("SELECT * FROM context_receipts WHERE receipt_id=?", (receipt.receipt_id,)).fetchone()
+            if row:
+                existing = self._receipt(row)
+                immutable = lambda value: (
+                    value.receipt_id, value.task_id, value.context_snapshot_id, value.bundle_id,
+                    value.platform, value.adapter, value.delivered_source_ids, value.loaded_skill_ids,
+                )
+                if immutable(existing) != immutable(receipt):
+                    raise ValueError("receipt_id already exists with different immutable fields")
+                current = DELIVERY_LEVELS.index(existing.status)
+                target = DELIVERY_LEVELS.index(receipt.status)
+                if target < current:
+                    raise ValueError("context receipt status cannot regress")
+                if target > current + 1:
+                    raise ValueError("context receipt must advance exactly one level")
+                if target == current:
+                    if existing.attempt_id != receipt.attempt_id:
+                        raise ValueError("receipt attempt cannot change without a status advance")
+                    return existing
+                c.execute(
+                    "UPDATE context_receipts SET attempt_id=?, status=?, updated_at=? WHERE receipt_id=?",
+                    (receipt.attempt_id, receipt.status, receipt.updated_at, receipt.receipt_id),
+                )
+                return receipt
+            c.execute(
+                "INSERT INTO context_receipts VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    receipt.receipt_id, receipt.task_id, receipt.context_snapshot_id,
+                    receipt.attempt_id, receipt.bundle_id, receipt.platform, receipt.adapter,
+                    receipt.status, json.dumps(receipt.delivered_source_ids),
+                    json.dumps(receipt.loaded_skill_ids), receipt.created_at, receipt.updated_at,
+                ),
+            )
+            return receipt
+
+    def list_context_receipts(self, task_id: str) -> list[ContextReceipt]:
+        with self._lock, self._connect() as c:
+            rows = c.execute(
+                "SELECT * FROM context_receipts WHERE task_id=? ORDER BY created_at, receipt_id",
+                (task_id,),
+            ).fetchall()
+        return [self._receipt(row) for row in rows]
+
+    def acknowledge_delivered_receipt(self, task_id: str, run_id: str) -> ContextReceipt | None:
+        receipts = self.list_context_receipts(task_id)
+        delivered = next((item for item in reversed(receipts) if item.status == "delivered"), None)
+        if delivered is None:
+            return None
+        return self.upsert_context_receipt(delivered.advance("acknowledged", attempt_id=run_id))
