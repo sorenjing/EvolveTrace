@@ -25,7 +25,7 @@ RAW_SECRET_PATTERN = re.compile(
 )
 ASSIGNMENT_PATTERN = re.compile(
     r"(?i)\b(api[_-]?key|access[_-]?token|refresh[_-]?token|password|passwd|"
-    r"secret|authorization)\s*([=:])\s*([^\s,;]+)"
+    r"token|secret|authorization)\s*([=:])\s*([^\s,;]+)"
 )
 
 
