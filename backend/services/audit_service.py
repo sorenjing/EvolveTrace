@@ -23,10 +23,12 @@ class AuditService:
         repository: AuditRepository | None = None,
         queue_size: int = 100,
         heartbeat_interval: float = 15.0,
+        run_resolver=None,
     ):
         self.repository = repository or AuditRepository(_default_database_path())
         self.queue_size = queue_size
         self.heartbeat_interval = heartbeat_interval
+        self.run_resolver = run_resolver
         self._subscribers: list[tuple[str | None, asyncio.Queue]] = []
 
     def ingest(self, payload: dict) -> dict:
@@ -45,6 +47,8 @@ class AuditService:
             "risk_findings": [finding.to_dict() for finding in findings],
             "persisted": persisted,
         }
+        if self.run_resolver is not None:
+            result["run"] = self.run_resolver(event.session_id, event.cwd)
         if persisted:
             self._publish(event.session_id, result)
         return result

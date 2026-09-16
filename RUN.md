@@ -1,6 +1,15 @@
 # 运行与部署
 
-EvolveTrace 由本地 FastAPI 审计服务和 Next.js 审查界面组成，不需要模型账号或 API Key。
+EvolveTrace 以一个 FastAPI 本地服务提供 API、SSE 和已构建的工作台，不需要模型账号或 API Key。
+
+## 用户模式（单进程）
+
+```powershell
+./scripts/build_static_ui.ps1
+./start.ps1
+```
+
+访问 `http://127.0.0.1:8001`。`-NoBrowser` 会只打印这个 URL，便于用 Codex Browser 打开。
 
 ## 本地开发
 
@@ -11,7 +20,7 @@ venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 venv\Scripts\python.exe -m uvicorn main:app --host 127.0.0.1 --port 8001
 ```
 
-另开终端：
+开发时可另开终端运行 Next.js 热更新：
 
 ```powershell
 npm install

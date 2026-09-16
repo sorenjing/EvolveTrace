@@ -2,13 +2,16 @@
 
 ## 本地演示
 
-1. 在一个终端启动后端：`cd backend; venv\Scripts\python.exe -m uvicorn main:app --host 127.0.0.1 --port 8001`。
-2. 在第二个终端启动前端：`npm run dev`。
-3. 在第三个终端写入演示数据：`cd backend; venv\Scripts\python.exe scripts\seed_demo.py`。
-4. 打开 `http://localhost:3000` 并刷新页面。
-5. 选择 `fixture-session` 会话，点击时间线中的高风险 Bash 事件。
+1. 运行 `./scripts/build_static_ui.ps1`，再运行 `./start.ps1`。
+2. 在另一个终端写入演示数据：`cd backend; venv\Scripts\python.exe scripts\seed_demo.py`。
+3. 打开 `http://127.0.0.1:8001` 并刷新页面。
+4. 选择 synthetic Task，查看 Context Snapshot、Run 和 `demo-session` 证据。
 6. 在右侧事件详情核对脱敏后的证据、风险说明和工具输入。
 7. 输入审查意见，例如“先展示 diff，再运行 auth 相关测试”，然后点击“复制修复提示”。
+
+## 已实现与路线图
+
+Task & Context（任务契约、`ContextBundle v1`、Run 绑定、任务优先界面和单进程分发）已经实现。确定性 Evaluators 与 Regression Cases 仍是后续路线图。
 
 ## 面试讲解顺序
 

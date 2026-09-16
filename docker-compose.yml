@@ -1,22 +1,14 @@
 services:
-  backend:
-    build: ./backend
+  evolvetrace:
+    build: .
     ports:
       - "8001:8001"
     environment:
       - EVOLVETRACE_DB_PATH=/data/audit.db
-      - ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      - EVOLVETRACE_HARNESS_DB_PATH=/data/harness.db
     volumes:
-      - audit-data:/data
-    restart: unless-stopped
-
-  frontend:
-    build: .
-    ports:
-      - "3000:3000"
-    depends_on:
-      - backend
+      - evolvetrace-data:/data
     restart: unless-stopped
 
 volumes:
-  audit-data:
+  evolvetrace-data:

@@ -26,5 +26,5 @@ def test_replay_restores_one_sanitized_copy_of_each_hook_event(tmp_path):
     assert session is not None
     assert session["event_count"] == len(events)
     assert session["risk_count"] >= 1
-    assert "fixture-token" not in serialized
+    assert "example-value" not in serialized
     assert "[REDACTED]" in serialized

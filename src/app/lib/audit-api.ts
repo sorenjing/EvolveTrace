@@ -3,10 +3,13 @@ import type {
   AuditSessionSummary,
   AuditStreamMessage,
 } from "@/app/lib/audit-types";
-import { BACKEND_URL } from "@/app/lib/types";
+function apiBaseUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_BACKEND_URL;
+  return configured ? configured.replace(/\/$/, "") : typeof window === "undefined" ? "" : window.location.origin;
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${BACKEND_URL}${path}`, {
+  const response = await fetch(`${apiBaseUrl()}${path}`, {
     ...init,
     headers: { Accept: "application/json", ...init?.headers },
   });
@@ -35,7 +38,7 @@ export function subscribeToAuditStream(
   onError: () => void,
 ): () => void {
   const query = sessionId ? `?session_id=${encodeURIComponent(sessionId)}` : "";
-  const source = new EventSource(`${BACKEND_URL}/api/audit/stream${query}`);
+  const source = new EventSource(`${apiBaseUrl()}/api/audit/stream${query}`);
   source.onmessage = (event) => {
     try {
       onMessage(JSON.parse(event.data) as AuditStreamMessage);

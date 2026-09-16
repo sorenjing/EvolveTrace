@@ -1,0 +1,1 @@
+{"schema_version":"context-bundle/v1","project":"sample-app","generated_at":"2026-09-09T00:00:00+00:00","freshness":"current","observed_scope":["sample-app","src/example.ts"],"repositories":[{"name":"sample-app","relative_path":"sample-app"}],"context":{"automatic":"Synthetic project facts","manual":"Synthetic acceptance notes"}}

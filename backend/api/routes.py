@@ -7,10 +7,12 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from fastapi.responses import Response, StreamingResponse
 
 from services.audit_service import AuditService
+from services.harness_service import HarnessService
 
 
 router = APIRouter()
-audit_service = AuditService()
+harness_service = HarnessService()
+audit_service = AuditService(run_resolver=harness_service.resolve_or_create_run)
 
 
 def require_loopback(request: Request) -> None:
@@ -62,3 +64,45 @@ async def stream_audit_events(session_id: str | None = None):
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@router.post("/harness/context-snapshots", status_code=201, dependencies=[Depends(require_loopback)])
+async def import_context_snapshot(payload: dict[str, Any] = Body(...)):
+    try:
+        return harness_service.import_context_snapshot(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/harness/tasks", status_code=201, dependencies=[Depends(require_loopback)])
+async def create_harness_task(payload: dict[str, Any] = Body(...)):
+    try:
+        return harness_service.create_task(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/harness/tasks", dependencies=[Depends(require_loopback)])
+async def list_harness_tasks():
+    return harness_service.list_tasks()
+
+
+@router.get("/harness/tasks/{task_id}", dependencies=[Depends(require_loopback)])
+async def get_harness_task(task_id: str):
+    task = harness_service.get_task(task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="task not found")
+    return task
+
+
+@router.post("/harness/tasks/{task_id}/activate", dependencies=[Depends(require_loopback)])
+async def activate_harness_task(task_id: str, payload: dict[str, Any] = Body(...)):
+    try:
+        return harness_service.activate_task(task_id, str(payload.get("repository_path", "")))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/harness/runs/unbound", dependencies=[Depends(require_loopback)])
+async def list_unbound_runs():
+    return harness_service.list_unbound_runs()

@@ -468,14 +468,14 @@ git commit -m "feat: serve the harness as one local process"
 
 ## Completion Gate
 
-- [ ] AI Context Kit emits valid `ContextBundle v1` through stdout and file output.
-- [ ] EvolveTrace rejects incompatible, oversized, or path-leaking bundles.
-- [ ] A Task with open questions cannot become Ready.
-- [ ] A Codex session in an active target repository becomes a bound Run.
-- [ ] An unmatched session remains reviewable under Unbound Runs.
-- [ ] Existing audit ingestion, persistence, SSE, Safety Sentinel, and session UI remain compatible.
-- [ ] The task-first page shows Task Contract, context freshness, Runs, and audit evidence.
-- [ ] A production build serves UI, API, and SSE from one localhost process.
-- [ ] `start.ps1 -NoBrowser` prints the single service URL for Codex Browser.
-- [ ] All fixtures are synthetic and the privacy scan is clean.
-- [ ] Both repositories pass their complete automated test suites.
+- [x] AI Context Kit emits valid `ContextBundle v1` through stdout and file output.
+- [x] EvolveTrace rejects incompatible, oversized, or path-leaking bundles.
+- [x] A Task with open questions cannot become Ready.
+- [x] A Codex session in an active target repository becomes a bound Run.
+- [x] An unmatched session remains reviewable under Unbound Runs.
+- [x] Existing audit ingestion, persistence, SSE, Safety Sentinel, and session UI remain compatible.
+- [x] The task-first page shows Task Contract, context freshness, Runs, and audit evidence.
+- [x] A production build serves UI, API, and SSE from one localhost process.
+- [x] `start.ps1 -NoBrowser` prints the single service URL for Codex Browser.
+- [x] All fixtures are synthetic and the privacy scan is clean.
+- [x] Both repositories pass their complete automated test suites.

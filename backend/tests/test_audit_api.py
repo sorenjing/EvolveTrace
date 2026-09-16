@@ -11,10 +11,10 @@ from fastapi.testclient import TestClient
 from audit.repository import AuditRepository
 from services.audit_service import AuditService
 import api.routes as routes
-from main import app
+from main import app, create_app
 
 
-def test_application_exposes_only_health_and_audit_routes():
+def test_application_exposes_health_audit_and_harness_routes():
     paths = {"/health"} | {
         f"/api{route.path}"
         for route in routes.router.routes
@@ -27,6 +27,11 @@ def test_application_exposes_only_health_and_audit_routes():
         "/api/audit/sessions",
         "/api/audit/sessions/{session_id}",
         "/api/audit/stream",
+        "/api/harness/context-snapshots",
+        "/api/harness/tasks",
+        "/api/harness/tasks/{task_id}",
+        "/api/harness/tasks/{task_id}/activate",
+        "/api/harness/runs/unbound",
     }
 
 
@@ -97,3 +102,18 @@ def test_all_audit_routes_reject_non_loopback_clients():
         is routes.require_loopback
         for dependency in stream_route.dependencies
     )
+
+
+def test_built_workbench_is_served_from_root(tmp_path):
+    static_ui = tmp_path / "static"; static_ui.mkdir()
+    static_ui.joinpath("index.html").write_text("<h1>EvolveTrace</h1>", encoding="utf-8")
+    response = TestClient(create_app(static_ui)).get("/")
+    assert response.status_code == 200
+    assert "EvolveTrace" in response.text
+
+
+def test_api_routes_win_over_static_fallback(tmp_path):
+    static_ui = tmp_path / "static"; static_ui.mkdir(); static_ui.joinpath("index.html").write_text("ui", encoding="utf-8")
+    response = TestClient(create_app(static_ui)).get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}

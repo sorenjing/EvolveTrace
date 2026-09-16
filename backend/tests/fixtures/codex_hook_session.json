@@ -22,7 +22,7 @@
     "tool_input": {
       "command": "git status",
       "headers": {
-        "Authorization": "Bearer fixture-token"
+        "Authorization": "Bearer example-value"
       }
     }
   },

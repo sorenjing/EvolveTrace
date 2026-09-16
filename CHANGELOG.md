@@ -9,6 +9,8 @@
 ## [Unreleased]
 
 ### Added
+- M0.3 Task & Context：版本化 Context Bundle 导入、不可变快照、Task Contract、Run 绑定与 Unbound Runs
+- 单进程本地工作台：FastAPI 同时服务 API、SSE 和静态界面
 - 任务模板首页（6 个高频模板一键填入）
 - 暗黑模式切换（class 策略，避免 FOUC）
 - Timeline 状态色徽章、步骤折叠、长内容折叠
