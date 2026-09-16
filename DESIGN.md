@@ -78,6 +78,17 @@ flowchart TD
 
 仓库文件始终是事实源。AI Context Kit 是上下文入口，EvolveTrace 是运行和评估入口。
 
+### Context Receipt：上下文与执行之间的可观察连接
+
+`ContextReceipt` 记录某个版本化 Context Bundle 是否被生成、交付并绑定到可观察 Run。它复用现有 Task Contract、Context Snapshot 和 Run，不创建第二套任务或执行状态。等级只能逐级前进：`generated`、`delivered`、`acknowledged`、`evidenced`、`effective`。
+
+- `delivered` 只证明传输完成；
+- `acknowledged` 只证明执行客户端的 Hook 与 Task/Run 成功绑定；
+- `evidenced` 需要可观察输出引用来源或规则标识；
+- `effective` 需要对照或回归证据，不能由单次 Hook 自动推断。
+
+Receipt 只保存任务、快照、Bundle、来源、Skill、平台和 adapter 标识，不保存 prompt、源文件正文、隐藏推理或原始 Hook payload。EvolveTrace 不可用时，项目修改仍以源代码和确定性检查为准，观测缺失不得否定正确工作。
+
 ## 5. 系统架构
 
 ```mermaid
