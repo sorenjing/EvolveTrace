@@ -95,6 +95,22 @@ async def get_harness_task(task_id: str):
     return task
 
 
+@router.post("/harness/context-receipts", status_code=201, dependencies=[Depends(require_loopback)])
+async def ingest_context_receipt(payload: dict[str, Any] = Body(...)):
+    try:
+        return harness_service.ingest_context_receipt(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/harness/tasks/{task_id}/context-receipts", dependencies=[Depends(require_loopback)])
+async def list_context_receipts(task_id: str):
+    try:
+        return harness_service.list_context_receipts(task_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @router.post("/harness/tasks/{task_id}/activate", dependencies=[Depends(require_loopback)])
 async def activate_harness_task(task_id: str, payload: dict[str, Any] = Body(...)):
     try:

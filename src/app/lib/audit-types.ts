@@ -39,4 +39,6 @@ export interface AuditSession extends AuditSessionSummary {
 export interface AuditStreamMessage {
   event: AuditEvent;
   risk_findings: RiskFinding[];
+  run?: Run | null;
 }
+import type { Run } from "@/app/lib/harness-types";

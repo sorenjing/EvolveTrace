@@ -4,7 +4,7 @@
 
 EvolveTrace 把一次 Coding Agent 任务从“给出需求”推进到“结果可验证”：它关联任务契约与上下文快照，采集 Agent 暴露的执行证据，运行确定性评估，并把失败沉淀为可复用的回归案例。
 
-当前版本提供 Codex 执行审查、实时可观测和窄范围的执行前安全保护，并已实现 Task Contract、AI Context Kit `ContextBundle v1` 导入、Run 绑定与本地单进程工作台。它基于 Agent 已公开的事件和验证结果构建证据链，不依赖隐藏思维链，也不上传源代码；评估闭环属于后续阶段。
+当前版本提供 Codex 执行审查、实时可观测和窄范围的执行前安全保护，并已实现 Task Contract、AI Context Kit `ContextBundle v1` 导入、Context Receipt、Run 绑定与本地单进程工作台。它基于 Agent 已公开的事件和验证结果构建证据链，不依赖隐藏思维链，也不上传源代码；评估闭环属于后续阶段。
 
 ## 为什么需要它
 
@@ -52,7 +52,8 @@ flowchart TD
 - 危险命令、权限拒绝、失败调用与修改范围的确定性风险标记
 - Safety Sentinel 执行前阻断
 - 三栏审查工作台与可复制的修正提示
-- Task Contract、Context Snapshot、活动任务 lease、Run 绑定和 Unbound Runs
+- Task Contract、Context Snapshot、Context Receipt、活动任务 lease、Run 绑定和 Unbound Runs
+- `generated → delivered → acknowledged → evidenced → effective` 的单调证据等级；交付或客户端确认不等于模型理解、遵循或有效
 - 任务优先工作台与单进程本地分发
 - `start.ps1` 一键启动并支持 Codex 内置 Browser
 - 后端测试、前端 lint/build 与 GitHub Actions CI

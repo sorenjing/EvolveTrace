@@ -62,3 +62,42 @@ def test_context_import_and_task_crud(tmp_path, monkeypatch):
     assert detail.status_code == 200
     assert detail.json()["context_snapshot"]["freshness"] == "current"
     assert detail.json()["runs"] == []
+
+
+def test_external_task_id_and_receipt_round_trip_are_idempotent(tmp_path, monkeypatch):
+    api = client(tmp_path, monkeypatch)
+    snapshot = api.post("/api/harness/context-snapshots", json=bundle()).json()
+    task_payload = {
+        "task_id": "task-external-1",
+        "title": "Ship harness",
+        "goal": "Bind observable context",
+        "target_repositories": ["sample-app"],
+        "constraints": [],
+        "acceptance_criteria": [],
+        "open_questions": [],
+        "risk_level": "normal",
+        "status": "ready",
+        "context_snapshot_id": snapshot["snapshot_id"],
+    }
+    first_task = api.post("/api/harness/tasks", json=task_payload)
+    replayed_task = api.post("/api/harness/tasks", json=task_payload)
+    assert first_task.status_code == 201
+    assert replayed_task.json()["task_id"] == "task-external-1"
+
+    receipt = {
+        "schema": "context-receipt/v1",
+        "receipt_id": "receipt-1",
+        "task_id": "task-external-1",
+        "context_snapshot_id": snapshot["snapshot_id"],
+        "attempt_id": "unassigned",
+        "bundle_id": "ctx_1",
+        "platform": "codex",
+        "adapter": "evolvetrace-http",
+        "status": "delivered",
+        "delivered_source_ids": ["context:sample-app:rendered"],
+        "loaded_skill_ids": [],
+    }
+    assert api.post("/api/harness/context-receipts", json=receipt).status_code == 201
+    receipts = api.get("/api/harness/tasks/task-external-1/context-receipts")
+    assert receipts.status_code == 200
+    assert receipts.json()[0]["receipt_id"] == "receipt-1"

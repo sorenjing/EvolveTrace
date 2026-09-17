@@ -7,10 +7,13 @@ import json
 from typing import Any, Iterable, Mapping
 from uuid import uuid4
 
+from audit.redaction import redact_value
+
 TASK_STATUSES = frozenset({"draft", "ready", "active", "evaluating", "needs_review", "needs_fix", "accepted"})
 RISK_LEVELS = frozenset({"normal", "high", "destructive"})
 FRESHNESS_VALUES = frozenset({"current", "stale", "missing", "unknown"})
 RUN_STATUSES = frozenset({"running", "completed", "blocked"})
+DELIVERY_LEVELS = ("generated", "delivered", "acknowledged", "evidenced", "effective")
 SCHEMA_VERSION = "context-bundle/v1"
 
 
@@ -118,3 +121,79 @@ class Run:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class ContextReceipt:
+    schema: str
+    receipt_id: str
+    task_id: str
+    context_snapshot_id: str
+    attempt_id: str
+    bundle_id: str
+    platform: str
+    adapter: str
+    status: str
+    delivered_source_ids: tuple[str, ...]
+    loaded_skill_ids: tuple[str, ...]
+    created_at: str
+    updated_at: str
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> "ContextReceipt":
+        allowed = {
+            "schema", "receipt_id", "task_id", "context_snapshot_id", "attempt_id",
+            "bundle_id", "platform", "adapter", "status", "delivered_source_ids",
+            "loaded_skill_ids", "created_at", "updated_at",
+        }
+        unknown = set(payload) - allowed
+        if unknown:
+            raise ValueError(f"context receipt contains unknown fields: {', '.join(sorted(unknown))}")
+        if redact_value(dict(payload)) != dict(payload):
+            raise ValueError("context receipt contains sensitive values")
+        if payload.get("schema") != "context-receipt/v1":
+            raise ValueError("schema must be context-receipt/v1")
+        required = (
+            "receipt_id", "task_id", "context_snapshot_id", "attempt_id", "bundle_id",
+            "platform", "adapter", "status",
+        )
+        values = {name: str(payload.get(name, "")).strip() for name in required}
+        if any(not value for value in values.values()):
+            raise ValueError("context receipt identifiers are required")
+        if values["status"] not in DELIVERY_LEVELS:
+            raise ValueError("invalid context receipt status")
+        sources = _strings(payload.get("delivered_source_ids", []), "delivered_source_ids")
+        if values["status"] != "generated" and not sources:
+            raise ValueError("delivered_source_ids is required after generation")
+        skills = _strings(payload.get("loaded_skill_ids", []), "loaded_skill_ids")
+        created_at = str(payload.get("created_at") or _now())
+        updated_at = str(payload.get("updated_at") or created_at)
+        return cls(
+            "context-receipt/v1",
+            values["receipt_id"], values["task_id"], values["context_snapshot_id"],
+            values["attempt_id"], values["bundle_id"], values["platform"],
+            values["adapter"], values["status"], sources, skills, created_at, updated_at,
+        )
+
+    def advance(self, status: str, *, attempt_id: str | None = None) -> "ContextReceipt":
+        try:
+            current = DELIVERY_LEVELS.index(self.status)
+            target = DELIVERY_LEVELS.index(status)
+        except ValueError as exc:
+            raise ValueError("invalid context receipt status") from exc
+        if target != current + 1:
+            raise ValueError("context receipt must advance exactly one level")
+        return ContextReceipt(
+            **{
+                **asdict(self),
+                "attempt_id": attempt_id or self.attempt_id,
+                "status": status,
+                "updated_at": _now(),
+            }
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        value = asdict(self)
+        value["delivered_source_ids"] = list(self.delivered_source_ids)
+        value["loaded_skill_ids"] = list(self.loaded_skill_ids)
+        return value

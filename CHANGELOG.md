@@ -9,6 +9,8 @@
 ## [Unreleased]
 
 ### Added
+- Context Receipt 持久化、幂等导入、单调证据等级与 Task/Run/Hook 绑定
+- Context Delivery UI，明确区分交付、确认、证据与有效性
 - M0.3 Task & Context：版本化 Context Bundle 导入、不可变快照、Task Contract、Run 绑定与 Unbound Runs
 - 单进程本地工作台：FastAPI 同时服务 API、SSE 和静态界面
 - 任务模板首页（6 个高频模板一键填入）
