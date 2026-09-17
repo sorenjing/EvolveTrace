@@ -1,0 +1,59 @@
+{
+  "context_bundle": {
+    "schema_version": "context-bundle/v1",
+    "project": "example",
+    "generated_at": "2026-09-17T00:00:00+00:00",
+    "freshness": "current",
+    "observed_scope": ["example"],
+    "repositories": [{"relative_path": "example"}],
+    "bundle_id": "ctx-example"
+  },
+  "task": {
+    "task_id": "task-example",
+    "title": "Verify a scoped change",
+    "goal": "Change one file and prove the required verification ran",
+    "target_repositories": ["example"],
+    "constraints": [],
+    "acceptance_criteria": [
+      {
+        "criterion_id": "scope",
+        "type": "path_scope",
+        "required": true,
+        "description": "Changes stay inside the example repository",
+        "config": {"allowed_prefixes": ["example"]}
+      },
+      {
+        "criterion_id": "tests",
+        "type": "command_exit_zero",
+        "required": true,
+        "description": "The required tests pass",
+        "config": {"command": "python -m pytest -q"}
+      }
+    ],
+    "open_questions": [],
+    "risk_level": "normal",
+    "status": "ready"
+  },
+  "first_events": [
+    {
+      "event_id": "change-1",
+      "tool_name": "apply_patch",
+      "details": {"changed_files": ["example/app.py"]}
+    }
+  ],
+  "corrected_events": [
+    {
+      "event_id": "change-2",
+      "tool_name": "apply_patch",
+      "details": {"changed_files": ["example/app.py"]}
+    },
+    {
+      "event_id": "test-2",
+      "tool_name": "Bash",
+      "details": {
+        "tool_input": {"command": "python -m pytest -q"},
+        "tool_response": {"exit_code": 0}
+      }
+    }
+  ]
+}

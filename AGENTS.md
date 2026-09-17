@@ -18,12 +18,14 @@ Read `DESIGN.md` before changing product behavior. Treat future milestones as pl
 
 - `plugin/`: Codex Hook collector with client-side redaction and deterministic PreToolUse safety policy.
 - `backend/audit/`: event model, second-pass redaction, deterministic risk rules, and SQLite repository.
-- `backend/services/audit_service.py`: deduplication, persistence, session queries, and SSE fan-out.
+- `backend/services/audit_service.py`: deduplication, persistence, session queries, SSE fan-out, and Hook-to-Run resolution.
+- `backend/harness/`: implemented Task, Context Snapshot, Context Receipt, Run, Evaluation, and Review domain code.
+- `backend/services/harness_service.py`: task/run orchestration, deterministic evaluation, review, and corrected-run comparison.
 - `backend/api/routes.py`: loopback-only HTTP conversion.
-- `src/app/`: the current session-first Next.js review workbench.
+- `src/app/`: the task-first Next.js workbench with session evidence, criterion results, and review controls.
 - `start.ps1`: local frontend/backend launcher with system-browser and `-NoBrowser` modes.
 
-Task Contracts, Context Snapshots, Evaluators, Review Decisions, Regression Cases, and single-process distribution are roadmap items until their implementation and tests land.
+Task Contracts, Context Snapshots, deterministic freshness/scope/verification evaluators, Review Decisions, reviewed run comparison, and single-process distribution are implemented. A generalized Regression Harness, additional evaluator families, and optional LLM judges remain roadmap items.
 
 ## Target module boundaries
 
@@ -55,7 +57,7 @@ AI Context Kit owns context discovery, freshness, and semantic-memory rendering.
 
 ## Development sequence
 
-Implement milestones in this order: M0.3 Task & Context, M0.4 Evidence-based Evals, M0.5 Regression Harness, M0.6 optional LLM Judge experiments. The active first-milestone plan is `docs/superpowers/plans/2026-09-09-task-context-milestone.md`.
+M0.3 Task & Context and the first M0.4 Evidence-based Evals vertical slice are implemented. Continue with the remaining M0.4 evaluators, M0.5 generalized Regression Harness, then M0.6 optional LLM Judge experiments. The active eval plan is `docs/superpowers/plans/2026-09-17-evidence-eval-vertical-slice.md`.
 
 ## Verification
 

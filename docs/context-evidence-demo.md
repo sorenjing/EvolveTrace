@@ -12,6 +12,11 @@ TaskEnvelope
   -> TaskContract and ContextSnapshot bound
   -> first matching Hook creates a Run
   -> receipt advances delivered -> acknowledged
+  -> completed Run is evaluated against structured criteria
+  -> evidence advances the receipt to evidenced
+  -> human marks the incomplete attempt needs_fix
+  -> corrected Run passes and is accepted
+  -> reviewed comparison advances evidenced -> effective
 ```
 
 Example public-safe identities:
@@ -36,8 +41,8 @@ run_id: 00000000-0000-4000-8000-000000000002
 ## What this does not prove
 
 - A receipt does not prove that a model read, understood, or followed the context.
-- `acknowledged` does not mean `effective`.
-- No controlled comparison has established that this context improved task quality.
+- `acknowledged` does not mean `effective`; a completed comparison is required.
+- The included synthetic comparison proves the workflow mechanics, not a broad causal claim that context improves every task.
 - ChatGPT, Claude, Cursor, and Gemini adapters are not implemented by this demonstration.
 - EvolveTrace is not a source of truth for project state and is not required for source correctness.
 
@@ -64,7 +69,9 @@ The demonstration exports only allowlisted identifiers and timestamps. It exclud
 3. Submit the generated task with `aictx task submit <task-id> --evolvetrace-url http://127.0.0.1:8000`.
 4. Run the task through the configured execution Hook.
 5. Inspect the task's Context Delivery card and verify the bound receipt and Run.
-6. Run the target repository's deterministic checks and privacy scan.
-7. Require human review before accepting any reusable semantic lesson.
+6. Click **运行确定性评估** and record `needs_fix` when required evidence is missing.
+7. Execute the corrected attempt, rerun the same criteria, and record `accepted` only when blocking checks pass.
+8. Submit the two Run IDs to `POST /api/harness/tasks/{task_id}/comparisons`; only this reviewed pair can advance the receipt to `effective`.
+9. Run the privacy scan before exporting any reusable fixture.
 
 The exact commands and schemas are documented in AI Context Kit and EvolveTrace.

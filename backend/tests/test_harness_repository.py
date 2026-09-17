@@ -5,7 +5,7 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from harness.models import ContextSnapshot, TaskContract
+from harness.models import ContextSnapshot, EvaluationResult, ReviewDecision, TaskContract
 from harness.repository import HarnessRepository
 
 
@@ -56,3 +56,29 @@ def test_run_binds_task_snapshot_and_session(tmp_path):
     assert bound.task_id == task.task_id
     assert bound.context_snapshot_id == snapshot.snapshot_id
     assert bound.session_id == "session-1"
+
+
+def test_repository_persists_idempotent_evaluation_and_review(tmp_path):
+    repository = HarnessRepository(tmp_path / "harness.db")
+    snapshot = repository.import_context_snapshot(make_bundle())
+    task = repository.create_task(make_task(context_snapshot_id=snapshot.snapshot_id))
+    run = repository.create_run(task.task_id, snapshot.snapshot_id)
+    result = EvaluationResult.create(
+        task_id=task.task_id, run_id=run.run_id, criterion_id="tests",
+        evaluator_id="verification", evaluator_version="1", status="passed",
+        severity="blocking", summary="passed", evidence_refs=["event-1"],
+        expected="exit 0", actual="exit 0", evaluation_id="eval-1",
+    )
+    assert repository.save_evaluation(result) == result
+    assert repository.save_evaluation(result) == result
+    assert repository.list_evaluations(task.task_id, run.run_id) == [result]
+    conflicting = EvaluationResult.create(**{**result.to_dict(), "status": "failed"})
+    with pytest.raises(ValueError, match="different immutable"):
+        repository.save_evaluation(conflicting)
+    decision = ReviewDecision.create(
+        task_id=task.task_id, run_id=run.run_id, outcome="accepted", note="reviewed",
+        evaluation_ids=[result.evaluation_id], actor="human", decision_id="decision-1",
+    )
+    assert repository.save_review_decision(decision) == decision
+    assert repository.save_review_decision(decision) == decision
+    assert repository.get_review_decision(task.task_id, run.run_id) == decision

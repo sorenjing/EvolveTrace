@@ -79,3 +79,14 @@ def test_first_bound_hook_acknowledges_delivered_receipt(tmp_path):
     receipt = harness.list_context_receipts(task["task_id"])[0]
     assert receipt["status"] == "acknowledged"
     assert receipt["attempt_id"] == result["run"]["run_id"]
+
+
+def test_stop_hook_completes_bound_run(tmp_path):
+    harness, task, audit = configured(tmp_path)
+    harness.activate_task(task["task_id"], "sample-app")
+    audit.ingest(payload("done", "sample-app"))
+    stop = payload("done", "sample-app")
+    stop["event_id"] = "event-stop"
+    stop["hook_event_name"] = "Stop"
+    result = audit.ingest(stop)
+    assert result["run"]["status"] == "completed"

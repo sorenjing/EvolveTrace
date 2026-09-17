@@ -33,6 +33,10 @@ def test_application_exposes_health_audit_and_harness_routes():
         "/api/harness/tasks/{task_id}",
         "/api/harness/tasks/{task_id}/context-receipts",
         "/api/harness/tasks/{task_id}/activate",
+        "/api/harness/tasks/{task_id}/comparisons",
+        "/api/harness/tasks/{task_id}/runs/{run_id}/evaluate",
+        "/api/harness/tasks/{task_id}/runs/{run_id}/evaluations",
+        "/api/harness/tasks/{task_id}/runs/{run_id}/review",
         "/api/harness/runs/unbound",
     }
 

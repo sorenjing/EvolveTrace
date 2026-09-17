@@ -4,7 +4,7 @@
 
 EvolveTrace 把一次 Coding Agent 任务从“给出需求”推进到“结果可验证”：它关联任务契约与上下文快照，采集 Agent 暴露的执行证据，运行确定性评估，并把失败沉淀为可复用的回归案例。
 
-当前版本提供 Codex 执行审查、实时可观测和窄范围的执行前安全保护，并已实现 Task Contract、AI Context Kit `ContextBundle v1` 导入、Context Receipt、Run 绑定与本地单进程工作台。它基于 Agent 已公开的事件和验证结果构建证据链，不依赖隐藏思维链，也不上传源代码；评估闭环属于后续阶段。
+当前版本提供 Codex 执行审查、实时可观测和窄范围的执行前安全保护，并已实现 Task Contract、AI Context Kit `ContextBundle v1` 导入、Context Receipt、Run 绑定，以及首个 Evidence-based Evals 纵向切片。它基于 Agent 已公开的事件和验证结果构建证据链，不依赖隐藏思维链，也不上传源代码。
 
 ## 为什么需要它
 
@@ -55,6 +55,9 @@ flowchart TD
 - Task Contract、Context Snapshot、Context Receipt、活动任务 lease、Run 绑定和 Unbound Runs
 - `generated → delivered → acknowledged → evidenced → effective` 的单调证据等级；交付或客户端确认不等于模型理解、遵循或有效
 - 任务优先工作台与单进程本地分发
+- 结构化 Acceptance Criterion、Context Freshness、Repository Scope 与 Verification 确定性评估
+- 不可变 Evaluation Result、人工 Review Decision，以及 `needs_fix → corrected → accepted` 对比闭环
+- 合成、脱敏的修复前后回归 fixture；单次成功运行不能自动产生 `effective`
 - `start.ps1` 一键启动并支持 Codex 内置 Browser
 - 后端测试、前端 lint/build 与 GitHub Actions CI
 
@@ -87,8 +90,8 @@ flowchart TD
 
 ## 下一阶段
 
-- **M0.4 Evidence-based Evals**：确定性 Evaluator、验收证据和人工 Review Decision
-- **M0.5 Regression Harness**：失败分类、脱敏案例、重放与修复前后对比
+- **M0.4 后续 Evaluators**：Safety、event absence、文件存在性编排与更完整的验收证据覆盖
+- **M0.5 Regression Harness**：失败分类、脱敏案例导入导出与通用重放集合
 - **M0.6 LLM Judge Experiments**：可选 Judge、rubric/version、gold labels 和偏差评估
 
 详细设计见 [DESIGN.md](DESIGN.md)，首个里程碑实施计划见 [Task & Context implementation plan](docs/superpowers/plans/2026-09-09-task-context-milestone.md)。

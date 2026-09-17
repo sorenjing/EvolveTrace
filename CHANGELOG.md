@@ -9,6 +9,9 @@
 ## [Unreleased]
 
 ### Added
+- M0.4 首个 Evidence-based Evals 纵向切片：结构化验收条件、确定性评估、证据引用与人工复核
+- 修复前后 Run 比较与单调 `evidenced → effective` 晋升规则
+- 合成回归 fixture 和公开安全的两次运行演示
 - Context Receipt 持久化、幂等导入、单调证据等级与 Task/Run/Hook 绑定
 - Context Delivery UI，明确区分交付、确认、证据与有效性
 - M0.3 Task & Context：版本化 Context Bundle 导入、不可变快照、Task Contract、Run 绑定与 Unbound Runs

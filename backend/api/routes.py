@@ -122,3 +122,38 @@ async def activate_harness_task(task_id: str, payload: dict[str, Any] = Body(...
 @router.get("/harness/runs/unbound", dependencies=[Depends(require_loopback)])
 async def list_unbound_runs():
     return harness_service.list_unbound_runs()
+
+
+@router.post("/harness/tasks/{task_id}/runs/{run_id}/evaluate", dependencies=[Depends(require_loopback)])
+async def evaluate_harness_run(task_id: str, run_id: str):
+    try:
+        run = harness_service.repository.get_run(run_id)
+        session = audit_service.get_session(run.session_id) if run and run.session_id else None
+        return harness_service.evaluate_run(task_id, run_id, session)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/harness/tasks/{task_id}/runs/{run_id}/evaluations", dependencies=[Depends(require_loopback)])
+async def list_harness_evaluations(task_id: str, run_id: str):
+    return [item.to_dict() for item in harness_service.repository.list_evaluations(task_id, run_id)]
+
+
+@router.post("/harness/tasks/{task_id}/runs/{run_id}/review", status_code=201, dependencies=[Depends(require_loopback)])
+async def review_harness_run(task_id: str, run_id: str, payload: dict[str, Any] = Body(...)):
+    try:
+        return harness_service.record_review(task_id, run_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/harness/tasks/{task_id}/comparisons", dependencies=[Depends(require_loopback)])
+async def compare_harness_runs(task_id: str, payload: dict[str, Any] = Body(...)):
+    try:
+        return harness_service.compare_runs(
+            task_id,
+            str(payload.get("original_run_id", "")),
+            str(payload.get("corrected_run_id", "")),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc

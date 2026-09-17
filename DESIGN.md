@@ -321,9 +321,11 @@ evolvetrace start
 
 第一阶段不引入 Electron 或系统托盘应用。
 
-## 13. 路线图
+## 13. 实施状态与路线图
 
 ### M0.3 — Task & Context
+
+状态：已实现。
 
 - Task Contract 与状态机
 - `ContextBundle v1` 协议和 AI Context Kit 导出
@@ -334,12 +336,16 @@ evolvetrace start
 
 ### M0.4 — Evidence-based Evals
 
+状态：首个纵向切片已实现。已落地结构化验收条件、Context Freshness、Repository Scope、Verification、证据引用、人工 Review Decision 和经复核的修复前后比较；其余 Evaluator 继续迭代。
+
 - Evaluator 插件接口
 - 六类确定性 Evaluator
 - Acceptance Criterion 与证据绑定
 - Review Decision
 
 ### M0.5 — Regression Harness
+
+状态：已提供一条合成回归 fixture 验证 `needs_fix → corrected → accepted`；通用案例导入导出、taxonomy 和集合管理仍在规划中。
 
 - 失败 taxonomy
 - 脱敏导出、导入和 fixture replay

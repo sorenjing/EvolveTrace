@@ -6,7 +6,7 @@ import sqlite3
 import threading
 from typing import Any
 
-from .models import ContextReceipt, ContextSnapshot, DELIVERY_LEVELS, Run, TaskContract
+from .models import ContextReceipt, ContextSnapshot, DELIVERY_LEVELS, EvaluationResult, ReviewDecision, Run, TaskContract
 
 
 class HarnessRepository:
@@ -33,6 +33,8 @@ class HarnessRepository:
                 CREATE TABLE IF NOT EXISTS unbound_sessions (session_id TEXT PRIMARY KEY, cwd TEXT NOT NULL, first_seen TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS context_receipts (receipt_id TEXT PRIMARY KEY, task_id TEXT NOT NULL, context_snapshot_id TEXT NOT NULL, attempt_id TEXT NOT NULL, bundle_id TEXT NOT NULL, platform TEXT NOT NULL, adapter TEXT NOT NULL, status TEXT NOT NULL, delivered_source_ids_json TEXT NOT NULL, loaded_skill_ids_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, FOREIGN KEY(task_id) REFERENCES tasks(task_id), FOREIGN KEY(context_snapshot_id) REFERENCES context_snapshots(snapshot_id));
                 CREATE INDEX IF NOT EXISTS idx_receipts_task_created ON context_receipts(task_id, created_at);
+                CREATE TABLE IF NOT EXISTS evaluations (evaluation_id TEXT PRIMARY KEY, task_id TEXT NOT NULL, run_id TEXT NOT NULL, criterion_id TEXT NOT NULL, evaluator_id TEXT NOT NULL, evaluator_version TEXT NOT NULL, status TEXT NOT NULL, severity TEXT NOT NULL, summary TEXT NOT NULL, evidence_refs_json TEXT NOT NULL, expected TEXT NOT NULL, actual TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(task_id, run_id, criterion_id, evaluator_id, evaluator_version), FOREIGN KEY(task_id) REFERENCES tasks(task_id), FOREIGN KEY(run_id) REFERENCES runs(run_id));
+                CREATE TABLE IF NOT EXISTS review_decisions (decision_id TEXT PRIMARY KEY, task_id TEXT NOT NULL, run_id TEXT NOT NULL, outcome TEXT NOT NULL, note TEXT NOT NULL, evaluation_ids_json TEXT NOT NULL, actor TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(task_id, run_id), FOREIGN KEY(task_id) REFERENCES tasks(task_id), FOREIGN KEY(run_id) REFERENCES runs(run_id));
             """)
 
     def import_context_snapshot(self, bundle: dict[str, Any], source: str = "file-import") -> ContextSnapshot:
@@ -60,7 +62,7 @@ class HarnessRepository:
                 if comparable(existing) != comparable(task):
                     raise ValueError("task_id already exists with different immutable fields")
                 return existing
-            c.execute("INSERT INTO tasks VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (task.task_id, task.title, task.goal, json.dumps(task.target_repositories), json.dumps(task.constraints), json.dumps(task.acceptance_criteria), json.dumps(task.open_questions), task.risk_level, task.status, task.context_snapshot_id, task.created_at))
+            c.execute("INSERT INTO tasks VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (task.task_id, task.title, task.goal, json.dumps(task.target_repositories), json.dumps(task.constraints), json.dumps(task.to_dict()["acceptance_criteria"]), json.dumps(task.open_questions), task.risk_level, task.status, task.context_snapshot_id, task.created_at))
         return task
 
     def _task(self, row):
@@ -73,6 +75,13 @@ class HarnessRepository:
     def list_tasks(self):
         with self._lock, self._connect() as c: rows = c.execute("SELECT * FROM tasks ORDER BY created_at DESC, task_id DESC").fetchall()
         return [self._task(row) for row in rows]
+
+    def set_task_status(self, task_id: str, status: str):
+        with self._lock, self._connect() as c:
+            if not c.execute("SELECT 1 FROM tasks WHERE task_id=?", (task_id,)).fetchone():
+                raise ValueError("task not found")
+            c.execute("UPDATE tasks SET status=? WHERE task_id=?", (status, task_id))
+        return self.get_task(task_id)
 
     def create_run(self, task_id, context_snapshot_id, *, adapter="codex-hooks", cwd=""):
         task = self.get_task(task_id)
@@ -87,6 +96,14 @@ class HarnessRepository:
     def get_run(self, run_id):
         with self._lock, self._connect() as c: row = c.execute("SELECT * FROM runs WHERE run_id=?", (run_id,)).fetchone()
         return self._run(row) if row else None
+    def set_run_status(self, run_id: str, status: str):
+        if status not in {"running", "completed", "blocked"}:
+            raise ValueError("invalid run status")
+        with self._lock, self._connect() as c:
+            if not c.execute("SELECT 1 FROM runs WHERE run_id=?", (run_id,)).fetchone():
+                raise ValueError("run does not exist")
+            c.execute("UPDATE runs SET status=? WHERE run_id=?", (status, run_id))
+        return self.get_run(run_id)
     def bind_session(self, run_id, session_id, cwd):
         with self._lock, self._connect() as c:
             row = c.execute("SELECT * FROM runs WHERE run_id=?", (run_id,)).fetchone()
@@ -216,3 +233,47 @@ class HarnessRepository:
         if delivered is None:
             return None
         return self.upsert_context_receipt(delivered.advance("acknowledged", attempt_id=run_id))
+
+    def _evaluation(self, row) -> EvaluationResult:
+        return EvaluationResult.create(
+            evaluation_id=row["evaluation_id"], task_id=row["task_id"], run_id=row["run_id"],
+            criterion_id=row["criterion_id"], evaluator_id=row["evaluator_id"],
+            evaluator_version=row["evaluator_version"], status=row["status"], severity=row["severity"],
+            summary=row["summary"], evidence_refs=json.loads(row["evidence_refs_json"]),
+            expected=row["expected"], actual=row["actual"], created_at=row["created_at"],
+        )
+
+    def save_evaluation(self, result: EvaluationResult) -> EvaluationResult:
+        with self._lock, self._connect() as c:
+            row = c.execute("SELECT * FROM evaluations WHERE task_id=? AND run_id=? AND criterion_id=? AND evaluator_id=? AND evaluator_version=?", (result.task_id, result.run_id, result.criterion_id, result.evaluator_id, result.evaluator_version)).fetchone()
+            if row:
+                existing = self._evaluation(row)
+                if existing != result:
+                    raise ValueError("evaluation already exists with different immutable fields")
+                return existing
+            c.execute("INSERT INTO evaluations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (result.evaluation_id, result.task_id, result.run_id, result.criterion_id, result.evaluator_id, result.evaluator_version, result.status, result.severity, result.summary, json.dumps(result.evidence_refs), result.expected, result.actual, result.created_at))
+        return result
+
+    def list_evaluations(self, task_id: str, run_id: str) -> list[EvaluationResult]:
+        with self._lock, self._connect() as c:
+            rows = c.execute("SELECT * FROM evaluations WHERE task_id=? AND run_id=? ORDER BY created_at, evaluation_id", (task_id, run_id)).fetchall()
+        return [self._evaluation(row) for row in rows]
+
+    def _decision(self, row) -> ReviewDecision:
+        return ReviewDecision.create(decision_id=row["decision_id"], task_id=row["task_id"], run_id=row["run_id"], outcome=row["outcome"], note=row["note"], evaluation_ids=json.loads(row["evaluation_ids_json"]), actor=row["actor"], created_at=row["created_at"])
+
+    def save_review_decision(self, decision: ReviewDecision) -> ReviewDecision:
+        with self._lock, self._connect() as c:
+            row = c.execute("SELECT * FROM review_decisions WHERE task_id=? AND run_id=?", (decision.task_id, decision.run_id)).fetchone()
+            if row:
+                existing = self._decision(row)
+                if existing != decision:
+                    raise ValueError("review decision already exists with different immutable fields")
+                return existing
+            c.execute("INSERT INTO review_decisions VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (decision.decision_id, decision.task_id, decision.run_id, decision.outcome, decision.note, json.dumps(decision.evaluation_ids), decision.actor, decision.created_at))
+        return decision
+
+    def get_review_decision(self, task_id: str, run_id: str) -> ReviewDecision | None:
+        with self._lock, self._connect() as c:
+            row = c.execute("SELECT * FROM review_decisions WHERE task_id=? AND run_id=?", (task_id, run_id)).fetchone()
+        return self._decision(row) if row else None

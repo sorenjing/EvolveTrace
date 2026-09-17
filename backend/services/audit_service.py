@@ -48,7 +48,7 @@ class AuditService:
             "persisted": persisted,
         }
         if self.run_resolver is not None:
-            result["run"] = self.run_resolver(event.session_id, event.cwd)
+            result["run"] = self.run_resolver(event.session_id, event.cwd, event.event_type)
         if persisted:
             self._publish(event.session_id, result)
         return result
