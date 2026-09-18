@@ -1,8 +1,8 @@
-# EvolveTrace — AI Development Harness 设计方案
+# EvolveTrace — Coding Agent Evidence & Regression Harness 设计方案
 
 ## 1. 产品定位
 
-EvolveTrace 是一个面向个人多仓库开发的本地优先 AI Development Harness。它把需求、上下文、Agent 执行轨迹、确定性评估和人工复核组织为一条可验证的工程链路。
+EvolveTrace 是一个面向个人多仓库开发的本地优先 Coding Agent Evidence & Regression Harness。它把任务契约、上下文版本、可观察执行、确定性评估和人工复核组织为一条可验证的工程链路，并将失败沉淀为可重放的回归案例。
 
 一句话定义：
 
