@@ -101,3 +101,23 @@ def test_external_task_id_and_receipt_round_trip_are_idempotent(tmp_path, monkey
     receipts = api.get("/api/harness/tasks/task-external-1/context-receipts")
     assert receipts.status_code == 200
     assert receipts.json()[0]["receipt_id"] == "receipt-1"
+
+
+def test_execution_profile_api_round_trip(tmp_path, monkeypatch):
+    api = client(tmp_path, monkeypatch)
+    payload = {
+        "schema": "execution-profile/v1",
+        "profile_id": "codex-local",
+        "platform": "codex",
+        "harness": "codex-work",
+        "adapter": "openai-plugin",
+        "adapter_version": "1.0.0",
+        "provider": "openai",
+        "model": None,
+        "capabilities": ["mcp", "skills"],
+        "policy_profile": "local-reviewed",
+    }
+    assert api.post("/api/harness/execution-profiles", json=payload).status_code == 201
+    response = api.get("/api/harness/execution-profiles/codex-local")
+    assert response.status_code == 200
+    assert response.json()["model"] is None

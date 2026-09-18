@@ -9,7 +9,7 @@ from typing import Any
 
 from harness.context_bundle import validate_context_bundle
 from harness.evaluators import evaluate_context_freshness, evaluate_repository_scope, evaluate_verification
-from harness.models import ContextReceipt, ReviewDecision, TaskContract
+from harness.models import ContextReceipt, ExecutionProfile, ReviewDecision, TaskContract
 from harness.repository import HarnessRepository
 
 
@@ -44,6 +44,15 @@ class HarnessService:
 
     def ingest_context_receipt(self, payload: dict[str, Any]):
         return self.repository.upsert_context_receipt(ContextReceipt.from_payload(payload)).to_dict()
+
+    def ingest_execution_profile(self, payload: dict[str, Any]):
+        return self.repository.upsert_execution_profile(
+            ExecutionProfile.from_payload(payload)
+        ).to_dict()
+
+    def get_execution_profile(self, profile_id: str):
+        profile = self.repository.get_execution_profile(profile_id)
+        return profile.to_dict() if profile else None
 
     def list_context_receipts(self, task_id: str):
         if self.repository.get_task(task_id) is None:

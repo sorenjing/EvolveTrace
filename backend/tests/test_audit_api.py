@@ -29,6 +29,8 @@ def test_application_exposes_health_audit_and_harness_routes():
         "/api/audit/stream",
         "/api/harness/context-snapshots",
         "/api/harness/context-receipts",
+        "/api/harness/execution-profiles",
+        "/api/harness/execution-profiles/{profile_id}",
         "/api/harness/tasks",
         "/api/harness/tasks/{task_id}",
         "/api/harness/tasks/{task_id}/context-receipts",

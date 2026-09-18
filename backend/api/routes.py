@@ -103,6 +103,22 @@ async def ingest_context_receipt(payload: dict[str, Any] = Body(...)):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
+@router.post("/harness/execution-profiles", status_code=201, dependencies=[Depends(require_loopback)])
+async def ingest_execution_profile(payload: dict[str, Any] = Body(...)):
+    try:
+        return harness_service.ingest_execution_profile(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/harness/execution-profiles/{profile_id}", dependencies=[Depends(require_loopback)])
+async def get_execution_profile(profile_id: str):
+    profile = harness_service.get_execution_profile(profile_id)
+    if profile is None:
+        raise HTTPException(status_code=404, detail="execution profile not found")
+    return profile
+
+
 @router.get("/harness/tasks/{task_id}/context-receipts", dependencies=[Depends(require_loopback)])
 async def list_context_receipts(task_id: str):
     try:

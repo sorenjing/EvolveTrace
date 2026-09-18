@@ -50,6 +50,54 @@ def _relative_path(value: str) -> str:
 
 
 @dataclass(frozen=True)
+class ExecutionProfile:
+    schema: str
+    profile_id: str
+    platform: str
+    harness: str
+    adapter: str
+    adapter_version: str
+    provider: str | None
+    model: str | None
+    capabilities: tuple[str, ...]
+    policy_profile: str
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> "ExecutionProfile":
+        allowed = {
+            "schema", "profile_id", "platform", "harness", "adapter",
+            "adapter_version", "provider", "model", "capabilities", "policy_profile",
+        }
+        unknown = set(payload) - allowed
+        if unknown:
+            raise ValueError(f"execution profile contains unknown fields: {', '.join(sorted(unknown))}")
+        if redact_value(dict(payload)) != dict(payload):
+            raise ValueError("execution profile contains sensitive values")
+        if payload.get("schema") != "execution-profile/v1":
+            raise ValueError("schema must be execution-profile/v1")
+        required = ("profile_id", "platform", "harness", "adapter", "adapter_version", "policy_profile")
+        values = {name: str(payload.get(name, "")).strip() for name in required}
+        if any(not value for value in values.values()):
+            raise ValueError("execution profile identifiers are required")
+        raw_capabilities = payload.get("capabilities", [])
+        if not isinstance(raw_capabilities, list):
+            raise ValueError("capabilities must be a list")
+        capabilities = tuple(sorted(set(_strings(raw_capabilities, "capabilities"))))
+        provider = str(payload["provider"]).strip() if payload.get("provider") else None
+        model = str(payload["model"]).strip() if payload.get("model") else None
+        return cls(
+            "execution-profile/v1", values["profile_id"], values["platform"],
+            values["harness"], values["adapter"], values["adapter_version"],
+            provider, model, capabilities, values["policy_profile"],
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        value = asdict(self)
+        value["capabilities"] = list(self.capabilities)
+        return value
+
+
+@dataclass(frozen=True)
 class AcceptanceCriterion:
     criterion_id: str
     type: str
@@ -265,6 +313,7 @@ class ContextReceipt:
     status: str
     delivered_source_ids: tuple[str, ...]
     loaded_skill_ids: tuple[str, ...]
+    execution_profile_id: str | None
     created_at: str
     updated_at: str
 
@@ -273,7 +322,7 @@ class ContextReceipt:
         allowed = {
             "schema", "receipt_id", "task_id", "context_snapshot_id", "attempt_id",
             "bundle_id", "platform", "adapter", "status", "delivered_source_ids",
-            "loaded_skill_ids", "created_at", "updated_at",
+            "loaded_skill_ids", "execution_profile_id", "created_at", "updated_at",
         }
         unknown = set(payload) - allowed
         if unknown:
@@ -295,13 +344,18 @@ class ContextReceipt:
         if values["status"] != "generated" and not sources:
             raise ValueError("delivered_source_ids is required after generation")
         skills = _strings(payload.get("loaded_skill_ids", []), "loaded_skill_ids")
+        execution_profile_id = (
+            str(payload["execution_profile_id"]).strip()
+            if payload.get("execution_profile_id") else None
+        )
         created_at = str(payload.get("created_at") or _now())
         updated_at = str(payload.get("updated_at") or created_at)
         return cls(
             "context-receipt/v1",
             values["receipt_id"], values["task_id"], values["context_snapshot_id"],
             values["attempt_id"], values["bundle_id"], values["platform"],
-            values["adapter"], values["status"], sources, skills, created_at, updated_at,
+            values["adapter"], values["status"], sources, skills, execution_profile_id,
+            created_at, updated_at,
         )
 
     def advance(self, status: str, *, attempt_id: str | None = None) -> "ContextReceipt":

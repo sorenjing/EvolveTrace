@@ -6,7 +6,7 @@ import sqlite3
 import threading
 from typing import Any
 
-from .models import ContextReceipt, ContextSnapshot, DELIVERY_LEVELS, EvaluationResult, ReviewDecision, Run, TaskContract
+from .models import ContextReceipt, ContextSnapshot, DELIVERY_LEVELS, EvaluationResult, ExecutionProfile, ReviewDecision, Run, TaskContract
 
 
 class HarnessRepository:
@@ -31,11 +31,43 @@ class HarnessRepository:
                 CREATE INDEX IF NOT EXISTS idx_runs_task_started ON runs(task_id, started_at);
                 CREATE TABLE IF NOT EXISTS active_task_leases (repository_path TEXT PRIMARY KEY, task_id TEXT NOT NULL, activated_at TEXT NOT NULL, FOREIGN KEY(task_id) REFERENCES tasks(task_id));
                 CREATE TABLE IF NOT EXISTS unbound_sessions (session_id TEXT PRIMARY KEY, cwd TEXT NOT NULL, first_seen TEXT NOT NULL);
-                CREATE TABLE IF NOT EXISTS context_receipts (receipt_id TEXT PRIMARY KEY, task_id TEXT NOT NULL, context_snapshot_id TEXT NOT NULL, attempt_id TEXT NOT NULL, bundle_id TEXT NOT NULL, platform TEXT NOT NULL, adapter TEXT NOT NULL, status TEXT NOT NULL, delivered_source_ids_json TEXT NOT NULL, loaded_skill_ids_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, FOREIGN KEY(task_id) REFERENCES tasks(task_id), FOREIGN KEY(context_snapshot_id) REFERENCES context_snapshots(snapshot_id));
+                CREATE TABLE IF NOT EXISTS context_receipts (receipt_id TEXT PRIMARY KEY, task_id TEXT NOT NULL, context_snapshot_id TEXT NOT NULL, attempt_id TEXT NOT NULL, bundle_id TEXT NOT NULL, platform TEXT NOT NULL, adapter TEXT NOT NULL, status TEXT NOT NULL, delivered_source_ids_json TEXT NOT NULL, loaded_skill_ids_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, execution_profile_id TEXT, FOREIGN KEY(task_id) REFERENCES tasks(task_id), FOREIGN KEY(context_snapshot_id) REFERENCES context_snapshots(snapshot_id));
                 CREATE INDEX IF NOT EXISTS idx_receipts_task_created ON context_receipts(task_id, created_at);
+                CREATE TABLE IF NOT EXISTS execution_profiles (profile_id TEXT PRIMARY KEY, profile_json TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS evaluations (evaluation_id TEXT PRIMARY KEY, task_id TEXT NOT NULL, run_id TEXT NOT NULL, criterion_id TEXT NOT NULL, evaluator_id TEXT NOT NULL, evaluator_version TEXT NOT NULL, status TEXT NOT NULL, severity TEXT NOT NULL, summary TEXT NOT NULL, evidence_refs_json TEXT NOT NULL, expected TEXT NOT NULL, actual TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(task_id, run_id, criterion_id, evaluator_id, evaluator_version), FOREIGN KEY(task_id) REFERENCES tasks(task_id), FOREIGN KEY(run_id) REFERENCES runs(run_id));
                 CREATE TABLE IF NOT EXISTS review_decisions (decision_id TEXT PRIMARY KEY, task_id TEXT NOT NULL, run_id TEXT NOT NULL, outcome TEXT NOT NULL, note TEXT NOT NULL, evaluation_ids_json TEXT NOT NULL, actor TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(task_id, run_id), FOREIGN KEY(task_id) REFERENCES tasks(task_id), FOREIGN KEY(run_id) REFERENCES runs(run_id));
             """)
+            columns = {
+                row["name"] for row in c.execute("PRAGMA table_info(context_receipts)")
+            }
+            if "execution_profile_id" not in columns:
+                c.execute("ALTER TABLE context_receipts ADD COLUMN execution_profile_id TEXT")
+
+    def upsert_execution_profile(self, profile: ExecutionProfile) -> ExecutionProfile:
+        rendered = json.dumps(profile.to_dict(), ensure_ascii=False, sort_keys=True)
+        with self._lock, self._connect() as c:
+            row = c.execute(
+                "SELECT profile_json FROM execution_profiles WHERE profile_id=?",
+                (profile.profile_id,),
+            ).fetchone()
+            if row:
+                existing = ExecutionProfile.from_payload(json.loads(row["profile_json"]))
+                if existing != profile:
+                    raise ValueError("execution profile is immutable")
+                return existing
+            c.execute(
+                "INSERT INTO execution_profiles VALUES (?, ?)",
+                (profile.profile_id, rendered),
+            )
+        return profile
+
+    def get_execution_profile(self, profile_id: str) -> ExecutionProfile | None:
+        with self._lock, self._connect() as c:
+            row = c.execute(
+                "SELECT profile_json FROM execution_profiles WHERE profile_id=?",
+                (profile_id,),
+            ).fetchone()
+        return ExecutionProfile.from_payload(json.loads(row["profile_json"])) if row else None
 
     def import_context_snapshot(self, bundle: dict[str, Any], source: str = "file-import") -> ContextSnapshot:
         snapshot = ContextSnapshot.from_bundle(bundle, source=source)
@@ -166,6 +198,7 @@ class HarnessRepository:
             "status": row["status"],
             "delivered_source_ids": json.loads(row["delivered_source_ids_json"]),
             "loaded_skill_ids": json.loads(row["loaded_skill_ids_json"]),
+            "execution_profile_id": row["execution_profile_id"],
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
         })
@@ -184,12 +217,20 @@ class HarnessRepository:
             snapshot_bundle_id = json.loads(snapshot["content_json"]).get("bundle_id")
             if snapshot_bundle_id is not None and snapshot_bundle_id != receipt.bundle_id:
                 raise ValueError("receipt bundle_id must match context snapshot")
+            if receipt.execution_profile_id is not None:
+                profile = c.execute(
+                    "SELECT 1 FROM execution_profiles WHERE profile_id=?",
+                    (receipt.execution_profile_id,),
+                ).fetchone()
+                if profile is None:
+                    raise ValueError("execution profile does not exist")
             row = c.execute("SELECT * FROM context_receipts WHERE receipt_id=?", (receipt.receipt_id,)).fetchone()
             if row:
                 existing = self._receipt(row)
                 immutable = lambda value: (
                     value.receipt_id, value.task_id, value.context_snapshot_id, value.bundle_id,
                     value.platform, value.adapter, value.delivered_source_ids, value.loaded_skill_ids,
+                    value.execution_profile_id,
                 )
                 if immutable(existing) != immutable(receipt):
                     raise ValueError("receipt_id already exists with different immutable fields")
@@ -209,12 +250,13 @@ class HarnessRepository:
                 )
                 return receipt
             c.execute(
-                "INSERT INTO context_receipts VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO context_receipts (receipt_id, task_id, context_snapshot_id, attempt_id, bundle_id, platform, adapter, status, delivered_source_ids_json, loaded_skill_ids_json, created_at, updated_at, execution_profile_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     receipt.receipt_id, receipt.task_id, receipt.context_snapshot_id,
                     receipt.attempt_id, receipt.bundle_id, receipt.platform, receipt.adapter,
                     receipt.status, json.dumps(receipt.delivered_source_ids),
                     json.dumps(receipt.loaded_skill_ids), receipt.created_at, receipt.updated_at,
+                    receipt.execution_profile_id,
                 ),
             )
             return receipt

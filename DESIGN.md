@@ -89,6 +89,18 @@ flowchart TD
 
 Receipt 只保存任务、快照、Bundle、来源、Skill、平台和 adapter 标识，不保存 prompt、源文件正文、隐藏推理或原始 Hook payload。EvolveTrace 不可用时，项目修改仍以源代码和确定性检查为准，观测缺失不得否定正确工作。
 
+### ExecutionProfile：执行环境快照
+
+`ExecutionProfile v1` 记录一次执行所使用的平台、Harness、Adapter 版本、可选
+provider/model、能力集合和 policy profile。它是运行证据，不是知识标签，也不进入
+ContextBundle 正文。
+
+- Profile 以 `profile_id` 幂等写入，已存在的内容不可原地修改；
+- ContextReceipt 可以选择关联一个已登记的 Profile；
+- 老 Receipt 不要求 Profile，保持向后兼容；
+- 不保存 prompt、response、凭据、本机路径或私人源内容；
+- 不从单次成功推断某个模型“有效”，`effective` 仍要求对照或回归证据。
+
 ## 5. 系统架构
 
 ```mermaid

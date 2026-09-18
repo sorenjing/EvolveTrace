@@ -102,3 +102,35 @@ def test_receipt_bundle_id_must_match_bound_snapshot(tmp_path) -> None:
 
     with pytest.raises(ValueError, match="bundle_id"):
         repository.upsert_context_receipt(ContextReceipt.from_payload(payload))
+
+
+def test_receipt_can_bind_a_known_execution_profile(tmp_path) -> None:
+    from harness.models import ExecutionProfile
+
+    repository, snapshot, _ = _configured(tmp_path)
+    repository.upsert_execution_profile(
+        ExecutionProfile.from_payload(
+            {
+                "schema": "execution-profile/v1",
+                "profile_id": "codex-local",
+                "platform": "codex",
+                "harness": "codex-work",
+                "adapter": "openai-plugin",
+                "adapter_version": "1.0.0",
+                "provider": "openai",
+                "model": None,
+                "capabilities": ["mcp", "skills"],
+                "policy_profile": "local-reviewed",
+            }
+        )
+    )
+    payload = _payload(snapshot.snapshot_id)
+    payload["execution_profile_id"] = "codex-local"
+    saved = repository.upsert_context_receipt(ContextReceipt.from_payload(payload))
+    assert saved.execution_profile_id == "codex-local"
+
+    unknown = _payload(snapshot.snapshot_id)
+    unknown["receipt_id"] = "receipt-unknown"
+    unknown["execution_profile_id"] = "missing"
+    with pytest.raises(ValueError, match="execution profile"):
+        repository.upsert_context_receipt(ContextReceipt.from_payload(unknown))
