@@ -1,8 +1,8 @@
 # EvolveTrace
 
-**A local-first AI development harness for context, evidence, and eval-driven workflows.**
+**A local-first evidence, evaluation, and regression harness for coding agents.**
 
-EvolveTrace 把一次 Coding Agent 任务从“给出需求”推进到“结果可验证”：它关联任务契约与上下文快照，采集 Agent 暴露的执行证据，运行确定性评估，并把失败沉淀为可复用的回归案例。
+EvolveTrace 是面向 Coding Agent 的本地优先执行证据与回归 Harness：它将任务契约、上下文版本、可观察执行、确定性评估和人工复核绑定成可验证证据链，并把失败沉淀为可重放的 Regression Case。
 
 当前版本提供 Codex 执行审查、实时可观测和窄范围的执行前安全保护，并已实现 Task Contract、AI Context Kit `ContextBundle v1` 导入、Context Receipt、Run 绑定，以及首个 Evidence-based Evals 纵向切片。它基于 Agent 已公开的事件和验证结果构建证据链，不依赖隐藏思维链，也不上传源代码。
 
