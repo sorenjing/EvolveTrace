@@ -8,7 +8,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## Product boundary
 
-EvolveTrace is a local-first AI development harness for context, evidence, and eval-driven workflows. It binds a small Task Contract and a versioned project-context snapshot to evidence exposed by Coding Agent adapters, runs deterministic evaluators, and keeps the final review decision with the human.
+EvolveTrace is a local-first evidence, evaluation, and regression harness for coding agents. It binds a small Task Contract and a versioned project-context snapshot to observable evidence exposed by Coding Agent adapters, runs deterministic evaluators, keeps the final review decision with the human, and turns reviewed failures into reusable regression cases.
 
 It does not run an Agent, expose hidden chain of thought, upload source code, replace repository inspection, or claim to be a complete sandbox. Team collaboration, cloud sync, RAG, general-purpose requirements management, and multi-agent orchestration remain out of scope.
 
