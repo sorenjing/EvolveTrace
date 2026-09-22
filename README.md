@@ -75,7 +75,7 @@ flowchart TD
 ./start.ps1 -NoBrowser
 ```
 
-然后让 Codex 打开 `http://127.0.0.1:8001`。首次使用先运行 `./scripts/build_static_ui.ps1`；完整环境配置和演示流程见 [RUN.md](RUN.md) 与 [docs/demo.md](docs/demo.md)。
+然后让 Codex 打开 `http://127.0.0.1:8001`。首次使用先运行 `./scripts/build_static_ui.ps1`；完整环境配置、日常使用和观测排障分别见 [RUN.md](RUN.md)、[中文使用手册](docs/usage.md) 与 [观测手册](docs/observability.md)。
 
 ## Safety Sentinel 边界
 

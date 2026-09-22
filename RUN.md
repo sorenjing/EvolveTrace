@@ -2,6 +2,8 @@
 
 EvolveTrace 以一个 FastAPI 本地服务提供 API、SSE 和已构建的工作台，不需要模型账号或 API Key。
 
+日常操作见 [中文使用手册](docs/usage.md)，服务、Hook、Run 和 Evaluation 的分层检查见 [观测手册](docs/observability.md)。
+
 ## 用户模式（单进程）
 
 ```powershell
