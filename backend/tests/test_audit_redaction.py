@@ -81,3 +81,15 @@ def test_audit_event_requires_session_and_event_type():
 
     with pytest.raises(ValueError, match="event type"):
         AuditEvent.from_hook({"session_id": "session-1"})
+
+
+def test_backend_redacts_core_fields_before_persistence():
+    event = AuditEvent.from_hook({
+        "session_id": "session-1",
+        "hook_event_name": "PreToolUse",
+        "cwd": "D:/sample?token=synthetic-secret",
+        "tool_name": "Bash api_key=synthetic-secret",
+    })
+    serialized = str(event.to_dict())
+    assert "synthetic-secret" not in serialized
+    assert "[REDACTED]" in serialized

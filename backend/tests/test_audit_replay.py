@@ -12,6 +12,13 @@ from services.audit_service import AuditService
 FIXTURE = Path(__file__).parent / "fixtures" / "codex_hook_session.json"
 
 
+def test_replay_fixture_uses_only_configured_hook_events():
+    root = Path(__file__).resolve().parents[2]
+    configured = set(json.loads((root / "plugin" / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"])
+    events = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    assert {event["hook_event_name"] for event in events} <= configured
+
+
 def test_replay_restores_one_sanitized_copy_of_each_hook_event(tmp_path):
     events = json.loads(FIXTURE.read_text(encoding="utf-8"))
     service = AuditService(AuditRepository(tmp_path / "audit.db"))

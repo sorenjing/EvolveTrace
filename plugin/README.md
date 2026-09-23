@@ -7,3 +7,4 @@ Most hook collection is best-effort: malformed input, a stopped backend, or a ne
 Start the dashboard with <code>./start.ps1</code>. In ChatGPT desktop Codex, use <code>./start.ps1 -NoBrowser</code> and ask <code>@Browser</code> to open <code>http://127.0.0.1:8001</code> for an in-app review workflow. Port 3000 is only for Next.js hot-reload development. The local audit database is stored outside the repository by default.
 
 See the [usage guide](../docs/usage.md) and [observability guide](../docs/observability.md) for setup, evidence checks, and troubleshooting.
+The [Hook event contract](../docs/hook-event-contract.md) lists the packaged event names, stored fields, and evidence limits.

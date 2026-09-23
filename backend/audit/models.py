@@ -28,6 +28,12 @@ PATCH_FILE_PATTERN = re.compile(
 )
 
 
+def _safe_identity(value: str) -> str:
+    if redact_value(value) == value:
+        return value
+    return "redacted-" + hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
 def _stable_event_id(payload: dict[str, Any], event_type: str) -> str | None:
     tool_use_id = str(payload.get("tool_use_id") or "").strip()
     session_id = str(payload.get("session_id") or "").strip()
@@ -71,21 +77,21 @@ class AuditEvent:
         if not isinstance(payload, dict):
             raise ValueError("hook payload must be an object")
 
-        session_id = str(payload.get("session_id") or "").strip()
+        session_id = _safe_identity(str(payload.get("session_id") or "").strip())
         if not session_id:
             raise ValueError("session_id is required")
 
-        event_type = str(
+        event_type = str(redact_value(str(
             payload.get("hook_event_name") or payload.get("event_type") or payload.get("type") or ""
-        ).strip()
+        ))).strip()
         if not event_type:
             raise ValueError("event type is required")
 
-        timestamp = str(
+        timestamp = str(redact_value(str(
             payload.get("timestamp")
             or payload.get("created_at")
             or datetime.now(timezone.utc).isoformat()
-        )
+        )))
         sequence = payload.get("sequence", 0)
         try:
             sequence = int(sequence)
@@ -102,19 +108,19 @@ class AuditEvent:
         if changed_files and "changed_files" not in details:
             details["changed_files"] = changed_files
         return cls(
-            event_id=str(
+            event_id=_safe_identity(str(
                 payload.get("event_id")
                 or payload.get("id")
                 or _stable_event_id(payload, event_type)
                 or uuid4()
-            ),
+            )),
             session_id=session_id,
             event_type=event_type,
             timestamp=timestamp,
-            turn_id=str(payload.get("turn_id") or ""),
+            turn_id=_safe_identity(str(payload.get("turn_id") or "")),
             sequence=sequence,
-            cwd=str(payload.get("cwd") or payload.get("project_path") or ""),
-            tool_name=tool_name,
+            cwd=str(redact_value(str(payload.get("cwd") or payload.get("project_path") or ""))),
+            tool_name=str(redact_value(tool_name)),
             details=details,
         )
 
