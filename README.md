@@ -104,10 +104,13 @@ Commands:
 - `aictx locate --manifest <path> --start <path> --json`: resolve a Personal AI Pack workspace and Portfolio through explicit paths, environment variables, a machine-local override, or bounded discovery.
 - `aictx export chatgpt-project <project>`: render a portable context file for upload to a matching ChatGPT Project.
 - `aictx export harness <project> --format json --output -`: print a versioned, local `ContextBundle v1` for an AI development harness.
+
 - `aictx publish github <project>`: write a deterministic, commit-ready bundle and index to `.ai/published` for explicit review.
 - `aictx task prepare <project> --intent <text> --platform codex`: create a v1 task-bound envelope, bundle, receipt, and handoff under `.ai/tasks/`.
 - `aictx task prepare <project> --intent <text> --contract examples/task-contract-v2.json`: create a v2 envelope with reviewed repository scope, constraints, and structured acceptance criteria.
 - `aictx task submit <task-id> --evolvetrace-url http://127.0.0.1:8000`: send those contracts to an optional loopback EvolveTrace instance.
+
+For a repeatable comparison with ordinary repository search, see the [ContextBundle evaluation method](docs/context-bundle-evaluation.md). A generated bundle alone does not establish task efficiency.
 
 Use `--workspace PATH` from outside the workspace. Mutating commands support `--dry-run`.
 
