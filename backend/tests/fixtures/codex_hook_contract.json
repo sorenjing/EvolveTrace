@@ -1,0 +1,8 @@
+{
+  "session_id": "synthetic-session",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "curl -H 'Authorization: Bearer synthetic-secret' 'https://example.test/api?token=query-secret'"
+  }
+}
