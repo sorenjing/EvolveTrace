@@ -160,3 +160,21 @@ def test_plugin_hooks_use_matcher_groups_and_current_compaction_events():
             assert group["matcher"] == ".*"
             assert isinstance(group["hooks"], list)
             assert "$" + "{PLUGIN_ROOT}" in group["hooks"][0]["command"]
+
+
+def test_synthetic_hook_contract_redacts_before_transport(monkeypatch):
+    capture_event = load_capture_module()
+    payload = json.loads(
+        (ROOT / "backend" / "tests" / "fixtures" / "codex_hook_contract.json").read_text()
+    )
+    captured = {}
+
+    def fake_urlopen(request, timeout):
+        captured["body"] = request.data.decode("utf-8")
+        return object()
+
+    monkeypatch.setattr(capture_event.urllib.request, "urlopen", fake_urlopen)
+    assert capture_event.capture(payload)
+    assert "synthetic-secret" not in captured["body"]
+    assert "query-secret" not in captured["body"]
+    assert json.loads(captured["body"])["hook_event_name"] == "PreToolUse"
