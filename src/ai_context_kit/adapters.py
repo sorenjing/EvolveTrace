@@ -21,11 +21,12 @@ def _instructions(tool: str, *, cursor: bool = False) -> str:
 
 Before broad repository analysis:
 
-1. Read `.ai/GLOBAL.md` and `.ai/WORKSPACE.md`.
-2. Load only the current project's `.ai/projects/<project>.md` file.
-3. Run `aictx status` and inspect source only when that project is stale or the task requires it.
-4. Preserve managed markers. Record semantic memory only inside the manual block.
-5. Store decisions and current state, not source copies or chat transcripts.
+1. Find the nearest ancestor containing `.aictx.toml`; use that directory as the workspace root, even when working in a nested repository.
+2. Read the workspace root's `.ai/GLOBAL.md` and `.ai/WORKSPACE.md`.
+3. Load only the current project's `.ai/projects/<project>.md` file from that root.
+4. Run `aictx status --workspace <workspace-root>` and inspect source only when that project is stale or the task requires it.
+5. Preserve managed markers. Record semantic memory only inside the manual block.
+6. Store decisions and current state, not source copies or chat transcripts.
 """
 
 
