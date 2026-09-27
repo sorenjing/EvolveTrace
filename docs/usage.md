@@ -94,7 +94,7 @@ aictx task submit <task-id> --evolvetrace-url http://127.0.0.1:8001
 1. 选择 Task，确认目标、仓库范围、约束和验收条件。
 2. 检查 Context Snapshot 与 Context Receipt 的来源和 freshness。
 3. 检查 Run 是否绑定到正确 Session。
-4. 按时间线核对工具调用、修改、失败、权限和风险事件。
+4. 在“执行流程”按顺序查看每一步。一次工具调用的开始与完成事件会合并为一步；点击后分别阅读右侧的“工具输入”和“工具输出”，长内容可在面板内滚动。未采集到完成事件时会明确标记，不能据此断定工具仍在运行。风险提示与其他采集字段也在右侧。
 5. 运行确定性 Evaluation，逐项核对 evidence refs。
 6. 由人记录 `accepted` 或 `needs_fix`，不要把命令退出码直接等同于最终接受。
 7. 修正后比较两个 Run；只有经过复核的对比才可能把 receipt 推进到 `effective`。
