@@ -90,7 +90,7 @@ def inspect_repository(path: Path) -> RepositoryContext:
 def evaluate_freshness(context_commit: str | None, repository: RepositoryContext) -> RepositoryFreshness:
     """Assess a saved context against local HEAD and cached upstream refs."""
     reasons: list[str] = []
-    if repository.error or not context_commit or not repository.head_commit:
+    if not context_commit or not repository.head_commit:
         local = "unknown"
         reasons.append("repository_or_context_commit_unavailable")
     elif context_commit != repository.head_commit:

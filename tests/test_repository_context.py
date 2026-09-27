@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 from pathlib import Path
 import subprocess
 
@@ -122,3 +123,32 @@ def test_bundle_preserves_context_source_commit_after_head_moves(tmp_path: Path)
     assert record["source"]["commit"] == baseline
     assert record["head_commit"] != baseline
     assert record["context_freshness"]["local"] == "potentially_stale"
+
+
+def test_head_change_stays_stale_when_status_is_unavailable(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    init(repo)
+    first = commit(repo, "one")
+    commit(repo, "two")
+    unavailable = replace(inspect_repository(repo), dirty=None, error="status_unavailable")
+    assert evaluate_freshness(first, unavailable).local == "potentially_stale"
+    assert evaluate_freshness(unavailable.head_commit, unavailable).local == "unknown"
+
+
+def test_legacy_state_has_unknown_git_provenance(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    repo = workspace / "demo"
+    init(repo)
+    (repo / "pyproject.toml").write_text('[project]\nname="demo"\n', encoding="utf-8")
+    git(repo, "add", "pyproject.toml")
+    git(repo, "commit", "-m", "initial")
+    assert main(["init", "--workspace", str(workspace)]) == 0
+    state_path = workspace / ".ai/state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["projects"]["demo"].pop("git_commit")
+    state["projects"]["demo"].pop("git_branch")
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+    record = build_harness_bundle(workspace, "demo")["repositories"][0]
+    assert record["source"]["commit"] is None
+    assert record["context_freshness"]["local"] == "unknown"

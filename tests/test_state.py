@@ -1,8 +1,12 @@
 from pathlib import Path
+import json
+
+import pytest
 
 from ai_context_kit.models import Project, ProjectFacts
 from ai_context_kit.state import (
     ProjectState,
+    StateError,
     WorkspaceState,
     classify_projects,
     fingerprint_facts,
@@ -61,3 +65,13 @@ def test_classifies_new_current_stale_and_missing(tmp_path: Path) -> None:
         "gone": "missing"
     }
 
+
+
+def test_rejects_invalid_git_provenance_in_state(tmp_path: Path) -> None:
+    write_state(tmp_path, WorkspaceState({"demo": ProjectState(".", "abc", "abc")}))
+    path = tmp_path / ".ai/state.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["projects"]["demo"]["git_commit"] = 123
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(StateError, match="Git fields"):
+        load_state(tmp_path, strict=True)

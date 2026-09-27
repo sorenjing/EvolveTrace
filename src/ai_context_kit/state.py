@@ -70,16 +70,21 @@ def load_state(root: Path, *, strict: bool = False) -> WorkspaceState:
         raw_projects = data.get("projects")
         if not isinstance(raw_projects, dict):
             raise StateError("state projects must be an object")
-        projects = {
-            name: ProjectState(
+        projects = {}
+        for name, value in raw_projects.items():
+            commit = value.get("git_commit")
+            branch = value.get("git_branch")
+            if (commit is not None and not isinstance(commit, str)) or (
+                branch is not None and not isinstance(branch, str)
+            ):
+                raise StateError("state Git fields must be strings or null")
+            projects[name] = ProjectState(
                 str(value["path"]),
                 str(value["fingerprint"]),
                 str(value["rendered_fingerprint"]),
-                value.get("git_commit"),
-                value.get("git_branch"),
+                commit,
+                branch,
             )
-            for name, value in raw_projects.items()
-        }
         if not all(isinstance(name, str) for name in projects):
             raise StateError("state project names must be strings")
     except (OSError, json.JSONDecodeError, KeyError, TypeError, StateError) as exc:
