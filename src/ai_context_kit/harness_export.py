@@ -10,6 +10,7 @@ from .config import ConfigError, load_config
 from .discovery import discover_projects
 from .facts import extract_facts
 from .render import _automatic, _manual_content, slugify
+from .repository_context import evaluate_freshness
 from .state import classify_projects, load_state
 from .task_contracts import TaskEnvelope, TaskEnvelopeV2, canonical_digest
 
@@ -61,7 +62,8 @@ def build_harness_bundle(
     global_path = root / ".ai" / "GLOBAL.md"
     project_memory = memory_path.read_text(encoding="utf-8") if memory_path.exists() else None
     global_context = global_path.read_text(encoding="utf-8") if global_path.exists() else ""
-    freshness_states = classify_projects(selected_facts, load_state(root))
+    state = load_state(root)
+    freshness_states = classify_projects(selected_facts, state)
     freshness = freshness_states[facts.project.name]
     timestamp = generated_at or datetime.now(timezone.utc)
     if timestamp.tzinfo is None:
@@ -89,13 +91,34 @@ def build_harness_bundle(
             }
         )
 
+    repositories = []
+    for item in selected_facts:
+        record: dict[str, object] = {"name": item.project.name, "relative_path": _relative_path(item.project.relative_path)}
+        if item.repository is not None:
+            previous = state.projects.get(item.project.name)
+            record["source"] = {
+                "type": "git",
+                "repository": item.repository.repository_name,
+                "branch": previous.git_branch if previous else None,
+                "commit": previous.git_commit if previous else None,
+                "path": _relative_path(item.project.relative_path),
+            }
+            record["head_commit"] = item.repository.head_commit
+            record["context_freshness"] = evaluate_freshness(
+                previous.git_commit if previous else None, item.repository
+            ).to_dict()
+            record["upstream"] = item.repository.upstream
+            record["ahead"] = item.repository.ahead
+            record["behind"] = item.repository.behind
+        repositories.append(record)
+
     bundle: dict[str, object] = {
         "schema_version": SCHEMA_VERSION,
         "project": facts.project.name,
         "generated_at": timestamp.isoformat(),
         "freshness": freshness,
         "observed_scope": [f"{item.project.relative_path}/{path.as_posix()}" for item in selected_facts for path in item.scanned_files],
-        "repositories": [{"name": item.project.name, "relative_path": _relative_path(item.project.relative_path)} for item in selected_facts],
+        "repositories": repositories,
         "context": {
             "automatic": _automatic(facts).strip(),
             "manual": _manual_content(project_memory).strip(),

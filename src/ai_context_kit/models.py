@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from .repository_context import RepositoryContext
+
 
 @dataclass(frozen=True)
 class Project:
@@ -25,4 +27,5 @@ class ProjectFacts:
     git_head: str | None
     git_dirty: bool | None
     scanned_files: tuple[Path, ...]
+    repository: RepositoryContext | None = None
 

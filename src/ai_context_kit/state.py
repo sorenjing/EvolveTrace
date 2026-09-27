@@ -24,6 +24,8 @@ class ProjectState:
     path: str
     fingerprint: str
     rendered_fingerprint: str
+    git_commit: str | None = None
+    git_branch: str | None = None
 
 
 @dataclass(frozen=True)
@@ -73,6 +75,8 @@ def load_state(root: Path, *, strict: bool = False) -> WorkspaceState:
                 str(value["path"]),
                 str(value["fingerprint"]),
                 str(value["rendered_fingerprint"]),
+                value.get("git_commit"),
+                value.get("git_branch"),
             )
             for name, value in raw_projects.items()
         }
@@ -108,6 +112,8 @@ def write_state(root: Path, state: WorkspaceState) -> None:
                 "path": value.path,
                 "fingerprint": value.fingerprint,
                 "rendered_fingerprint": value.rendered_fingerprint,
+                "git_commit": value.git_commit,
+                "git_branch": value.git_branch,
             }
             for name, value in sorted(state.projects.items())
         },
