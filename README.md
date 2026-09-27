@@ -101,13 +101,17 @@ Commands:
 - `aictx status`: report `new`, `stale`, `current`, or `missing` projects. `current` means the observed inputs match the last render; it does not guarantee that every project fact is complete or correct.
 - `aictx update [project]`: refresh all projects or one selected project.
 - `aictx check`: validate project-memory markers and adapter presence.
+- `aictx repo inspect [path] [--json] [--context-commit SHA]`: inspect local Git state and compare a context commit with HEAD and cached upstream refs. This command never fetches or changes the repository.
 - `aictx locate --manifest <path> --start <path> --json`: resolve a Personal AI Pack workspace and Portfolio through explicit paths, environment variables, a machine-local override, or bounded discovery.
 - `aictx export chatgpt-project <project>`: render a portable context file for upload to a matching ChatGPT Project.
 - `aictx export harness <project> --format json --output -`: print a versioned, local `ContextBundle v1` for an AI development harness.
+
 - `aictx publish github <project>`: write a deterministic, commit-ready bundle and index to `.ai/published` for explicit review.
 - `aictx task prepare <project> --intent <text> --platform codex`: create a v1 task-bound envelope, bundle, receipt, and handoff under `.ai/tasks/`.
 - `aictx task prepare <project> --intent <text> --contract examples/task-contract-v2.json`: create a v2 envelope with reviewed repository scope, constraints, and structured acceptance criteria.
 - `aictx task submit <task-id> --evolvetrace-url http://127.0.0.1:8000`: send those contracts to an optional loopback EvolveTrace instance.
+
+For a repeatable comparison with ordinary repository search, see the [ContextBundle evaluation method](docs/context-bundle-evaluation.md). A generated bundle alone does not establish task efficiency.
 
 Use `--workspace PATH` from outside the workspace. Mutating commands support `--dry-run`.
 
@@ -258,3 +262,20 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Security issues should follow [SECURITY.
 ## License
 
 MIT
+
+## Git repository context
+
+`aictx repo inspect . --json` returns the repository root, branch (or detached
+HEAD), commit, working-tree counts, upstream, and ahead/behind counts. The
+upstream comparison uses only local cached refs; it does not check the live
+remote. Use `--context-commit SHA` to assess a context entry created at that
+commit. A changed HEAD or dirty working tree makes local context potentially
+stale. A behind upstream ref makes remote freshness potentially stale without
+invalidating local context. Missing commits, unavailable status, and absent
+upstreams yield `unknown` rather than a false freshness claim.
+
+When available, `ContextBundle v1` repository records include a Git source
+with the repository, branch, commit, and workspace-relative path. The local
+freshness comparison uses the commit saved when project context was last
+updated. Existing `freshness` still describes the bounded observation
+fingerprint; inspect source code directly when the task requires it.

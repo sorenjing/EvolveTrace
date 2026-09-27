@@ -24,6 +24,8 @@ class ProjectState:
     path: str
     fingerprint: str
     rendered_fingerprint: str
+    git_commit: str | None = None
+    git_branch: str | None = None
 
 
 @dataclass(frozen=True)
@@ -68,14 +70,21 @@ def load_state(root: Path, *, strict: bool = False) -> WorkspaceState:
         raw_projects = data.get("projects")
         if not isinstance(raw_projects, dict):
             raise StateError("state projects must be an object")
-        projects = {
-            name: ProjectState(
+        projects = {}
+        for name, value in raw_projects.items():
+            commit = value.get("git_commit")
+            branch = value.get("git_branch")
+            if (commit is not None and not isinstance(commit, str)) or (
+                branch is not None and not isinstance(branch, str)
+            ):
+                raise StateError("state Git fields must be strings or null")
+            projects[name] = ProjectState(
                 str(value["path"]),
                 str(value["fingerprint"]),
                 str(value["rendered_fingerprint"]),
+                commit,
+                branch,
             )
-            for name, value in raw_projects.items()
-        }
         if not all(isinstance(name, str) for name in projects):
             raise StateError("state project names must be strings")
     except (OSError, json.JSONDecodeError, KeyError, TypeError, StateError) as exc:
@@ -108,6 +117,8 @@ def write_state(root: Path, state: WorkspaceState) -> None:
                 "path": value.path,
                 "fingerprint": value.fingerprint,
                 "rendered_fingerprint": value.rendered_fingerprint,
+                "git_commit": value.git_commit,
+                "git_branch": value.git_branch,
             }
             for name, value in sorted(state.projects.items())
         },

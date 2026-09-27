@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-import subprocess
 import tomllib
 
 from .config import Config
 from .models import Project, ProjectFacts
+from .repository_context import inspect_repository
 
 
 MANIFEST_TECHNOLOGIES = {
@@ -52,22 +52,6 @@ def _readme_description(text: str) -> str | None:
         if stripped and not stripped.startswith("#"):
             return stripped
     return None
-
-
-def _git(path: Path, *args: str) -> str | None:
-    try:
-        result = subprocess.run(
-            ["git", "-C", str(path), *args],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=3,
-            check=False,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return None
-    return result.stdout.strip() if result.returncode == 0 else None
 
 
 def extract_facts(project: Project, config: Config) -> ProjectFacts:
@@ -114,10 +98,7 @@ def extract_facts(project: Project, config: Config) -> ProjectFacts:
             and child.name != ".git"
         )
     )
-    branch = _git(project.path, "branch", "--show-current")
-    head = _git(project.path, "rev-parse", "HEAD")
-    status = _git(project.path, "status", "--porcelain")
-    dirty = None if status is None else bool(status)
+    repository = inspect_repository(project.path)
 
     return ProjectFacts(
         project=project,
@@ -125,8 +106,9 @@ def extract_facts(project: Project, config: Config) -> ProjectFacts:
         technologies=tuple(sorted(technologies)),
         commands=tuple(sorted(commands)),
         directories=directories,
-        git_branch=branch or None,
-        git_head=head or None,
-        git_dirty=dirty,
+        git_branch=repository.branch if repository.path == project.path else None,
+        git_head=repository.head_commit if repository.path == project.path else None,
+        git_dirty=repository.dirty if repository.path == project.path else None,
         scanned_files=tuple(sorted(scanned, key=lambda path: path.as_posix())),
+        repository=repository if repository.path == project.path and repository.error != "not_git_repository" else None,
     )

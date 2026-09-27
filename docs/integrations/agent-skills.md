@@ -25,6 +25,13 @@ Likewise, Agent Skills should not duplicate the context store. A Skill can instr
 
 This is runtime composition, not agent orchestration. Sharing context across tools does not by itself coordinate parallel agents, assign tasks, resolve concurrent edits, or merge their results.
 
+## Framework boundary
+
+Core discovery, freshness, and semantic memory remain framework-independent and
+offline-first. A framework such as LangChain may consume a versioned
+ContextBundle through a replaceable adapter, but its memory APIs do not own the
+`.ai/` store or define the core context contract.
+
 ## Authority and freshness
 
 The layers have different authority:
