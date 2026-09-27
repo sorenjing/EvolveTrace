@@ -120,3 +120,18 @@ directory symlinks or recursively scan a home directory without a bound.
 The generated Markdown files are bootstrap/fallback instructions. A capable runtime
 should normally invoke the installed Skill and MCP surface. In particular, generating
 a ChatGPT entrypoint does not deploy HTTPS MCP or register a ChatGPT connection.
+
+
+## Local session hint
+
+The plugin bundles a `SessionStart` hook for Codex. When Codex has loaded and
+trusted that hook, it checks only whether the session directory has an
+`.aictx.toml` in its ancestor chain. It then tells the agent to use the
+manage-context Skill. The hook does not read, copy, or inject `.ai/` memory
+bodies and does not write files or access the network.
+
+Installing the plugin alone does not activate an untrusted hook. Review and
+trust its definition in Codex before relying on the startup hint. The Skill
+still loads only the selected project's memory and checks freshness; the
+agent must actually follow that instruction. Use a new session inside a
+nested project to verify the handoff.

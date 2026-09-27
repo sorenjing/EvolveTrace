@@ -1,0 +1,19 @@
+{
+  "description": "Remind Codex to load explicitly configured shared context.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python ${PLUGIN_ROOT}/hooks/session_start.py",
+            "statusMessage": "Checking for shared context workspace",
+            "additionalContextLimit": 300,
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  }
+}

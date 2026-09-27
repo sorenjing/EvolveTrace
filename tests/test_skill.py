@@ -64,3 +64,11 @@ def test_python_package_includes_the_canonical_skill() -> None:
     pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
 
     assert '"skills/manage-ai-context" = "share/ai-context-kit/skills/manage-ai-context"' in pyproject
+
+
+def test_plugin_session_hook_only_prompts_for_context_loading() -> None:
+    configuration = json.loads((ROOT / "hooks/hooks.json").read_text(encoding="utf-8"))
+    entry = configuration["hooks"]["SessionStart"][0]
+    assert entry["matcher"] == "startup|resume|compact"
+    assert entry["hooks"][0]["command"] == "python ${PLUGIN_ROOT}/hooks/session_start.py"
+    assert entry["hooks"][0]["additionalContextLimit"] <= 500
