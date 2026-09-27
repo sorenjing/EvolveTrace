@@ -15,6 +15,7 @@ def test_renders_all_supported_ai_entry_files() -> None:
         ".cursor/rules/ai-context.mdc",
     }
     assert all(".ai/WORKSPACE.md" in contents for contents in adapters.values())
+    assert all("nearest ancestor" in contents for contents in adapters.values())
 
 
 def test_refuses_to_overwrite_unrecognized_entry_file(tmp_path: Path) -> None:

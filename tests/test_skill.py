@@ -13,6 +13,7 @@ def test_skill_has_valid_trigger_and_cli_workflow() -> None:
     for command in ("aictx init", "aictx status", "aictx update", "aictx check"):
         assert command in text
     assert "TODO" not in text
+    assert "nearest ancestor" in text
 
 
 def test_skill_routes_unknown_workspaces_through_bounded_locate() -> None:
