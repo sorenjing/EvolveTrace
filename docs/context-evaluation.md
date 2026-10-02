@@ -6,6 +6,10 @@ evaluation procedure, not a claim of measured productivity gains. Do not use
 private repository names, code, prompts, or transcript excerpts in public
 fixtures.
 
+The [ContextBundle evaluation method](context-bundle-evaluation.md) defines
+the comparison measures and interpretation. The steps below describe how to
+prepare and record each local attempt.
+
 ## Prepare
 
 1. Write one concrete task and its acceptance checks before either run. List
