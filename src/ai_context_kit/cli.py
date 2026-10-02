@@ -18,6 +18,7 @@ from .locking import workspace_write_lock
 from .pack_install import PackInstaller
 from .personal_pack import PersonalAIPack
 from .publish import publish_bundle
+from .repository_context import evaluate_freshness, inspect_repository
 from .render import (
     MarkerError,
     render_chatgpt_project_context,
@@ -120,6 +121,12 @@ def _parser() -> argparse.ArgumentParser:
     submit.add_argument("task_id")
     submit.add_argument("--evolvetrace-url", required=True)
     submit.add_argument("--workspace", type=Path)
+    repo = subparsers.add_parser("repo", description="Inspect read-only Git context.")
+    repo_commands = repo.add_subparsers(dest="repo_command", required=True)
+    inspect = repo_commands.add_parser("inspect")
+    inspect.add_argument("path", nargs="?", type=Path, default=Path.cwd())
+    inspect.add_argument("--context-commit")
+    inspect.add_argument("--json", action="store_true")
     return parser
 
 
@@ -196,7 +203,7 @@ def _update(root: Path, selected: str | None, *, dry_run: bool) -> None:
         _write_if_changed(target, rendered, dry_run=dry_run)
         fingerprint = fingerprint_facts(item)
         new_projects[item.project.name] = ProjectState(
-            item.project.relative_path, fingerprint, fingerprint
+            item.project.relative_path, fingerprint, fingerprint, item.git_head, item.git_branch
         )
     _write_if_changed(root / ".ai/WORKSPACE.md", render_workspace(facts), dry_run=dry_run)
     if not dry_run:
@@ -269,6 +276,24 @@ def _print_discovery(result: DiscoveryResult, *, as_json: bool) -> None:
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
+        if args.command == "repo":
+            repository = inspect_repository(args.path)
+            freshness = evaluate_freshness(args.context_commit, repository)
+            if args.json:
+                print(json.dumps({"repository": repository.to_dict(), "context_freshness": freshness.to_dict()}, sort_keys=True))
+            else:
+                print(f"Repository: {repository.repository_name}")
+                print(f"Branch: {repository.branch or ('detached HEAD' if repository.head_commit else 'unborn')}")
+                print(f"HEAD: {repository.head_commit or 'none'}")
+                print(f"Working tree: {'unknown' if repository.dirty is None else 'dirty' if repository.dirty else 'clean'}")
+                print(f"Upstream: {repository.upstream or 'none'}")
+                print(f"Ahead: {repository.ahead if repository.ahead is not None else 'unknown'}")
+                print(f"Behind: {repository.behind if repository.behind is not None else 'unknown'}")
+                print(f"Context local: {freshness.local}")
+                print(f"Context remote (cached ref): {freshness.remote}")
+                if repository.error:
+                    print(f"Inspection: {repository.error}")
+            return 2 if repository.error == "not_git_repository" else 0
         if args.command == "setup":
             pack = PersonalAIPack.load(args.manifest)
             print(f"personal AI pack is valid: {pack.pack_id}")

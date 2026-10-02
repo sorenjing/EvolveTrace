@@ -7,12 +7,14 @@ description: Use when Codex needs to initialize, load, refresh, validate, compac
 
 Use `aictx` for deterministic project discovery, bounded metadata observations, and observed-input change detection. Keep one `.ai/` context store per workspace and keep AI-specific entry files thin. Treat current repository files as authoritative.
 
+Before reading or initializing context, find the nearest ancestor of the current directory containing `.aictx.toml`. Treat that directory as the workspace root. When starting inside a nested repository, read the root's `.ai/GLOBAL.md` and `.ai/WORKSPACE.md`, then only the selected project memory. Do not initialize another `.ai/` inside the nested repository.
+
 ## Choose the operation
 
 | Situation | Action |
 |---|---|
-| No `.aictx.toml` exists | Run `aictx init --workspace <root> --dry-run`, review, then run without `--dry-run` |
-| Starting or switching work | Read `.ai/GLOBAL.md`, `.ai/WORKSPACE.md`, then only the selected project memory; run `aictx status` |
+| No `.aictx.toml` exists in the current directory or its ancestors | Run `aictx init --workspace <root> --dry-run`, review, then run without `--dry-run` |
+| Starting or switching work | Find the nearest ancestor workspace; read its `.ai/GLOBAL.md`, `.ai/WORKSPACE.md`, then only the selected project memory; run `aictx status --workspace <workspace-root>` |
 | A project is new or stale | Run `aictx update <project> --dry-run`, review, then apply |
 | Markers or entry files seem damaged | Run `aictx check`; do not repair by overwriting |
 | Memory is verbose or outdated | Compact only the manual block; preserve decisions, constraints, commands, current state, and known issues |

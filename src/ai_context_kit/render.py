@@ -36,9 +36,10 @@ def _automatic(facts: ProjectFacts) -> str:
         lines.append(f"- Description: {facts.description}")
     if facts.technologies:
         lines.append(f"- Technologies: {', '.join(facts.technologies)}")
-    if facts.git_branch:
-        status = "dirty" if facts.git_dirty else "clean"
-        lines.append(f"- Git: `{facts.git_branch}` ({status})")
+    if facts.git_head:
+        status = "unknown" if facts.git_dirty is None else "dirty" if facts.git_dirty else "clean"
+        lines.append(f"- Git: `{facts.git_branch or 'detached HEAD'}` ({status})")
+        lines.append(f"- Git HEAD: `{facts.git_head}`")
     if facts.directories:
         lines.append(f"- Directories: {', '.join(f'`{name}`' for name in facts.directories)}")
     if facts.commands:
