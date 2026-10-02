@@ -1,9 +1,7 @@
-# Hook evidence contract
+# Hook evidence validation procedure
 
-EvolveTrace records only fields delivered to its configured Codex hooks. The
-configured event names are in `plugin/hooks/hooks.json`; the collector accepts
-a JSON object with a nonempty `session_id` and an event name in
-`hook_event_name` (or the compatibility fields `event_type` / `type`). The
+The [Hook event contract](hook-event-contract.md) defines the packaged events,
+accepted identity fields, redaction boundary, and evidence limits. The
 synthetic `PreToolUse` example at
 `backend/tests/fixtures/codex_hook_contract.json` exercises client-side
 redaction before the HTTP request is constructed. It is a test fixture, not a

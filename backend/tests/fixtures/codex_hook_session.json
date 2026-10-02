@@ -49,7 +49,7 @@
     "session_id": "fixture-session",
     "turn_id": "fixture-turn",
     "sequence": 4,
-    "hook_event_name": "PostToolUseFailure",
+    "hook_event_name": "PostToolUse",
     "tool_name": "Bash",
     "tool_use_id": "fixture-tool-3",
     "timestamp": "2026-08-28T00:00:03+00:00",

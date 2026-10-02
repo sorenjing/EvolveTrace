@@ -1,0 +1,11 @@
+# Hook event contract and limits
+
+The packaged local configuration is [`plugin/hooks/hooks.json`](../plugin/hooks/hooks.json). It registers `SessionStart`, `SessionEnd`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PermissionRequest`, `Stop`, `SubagentStart`, `SubagentStop`, `PreCompact`, and `PostCompact`. The synthetic replay fixture uses only event names in that file. Registration in this repository does not establish that a particular Codex installation loaded the plugin or emitted each event; check a live local session with the [observability guide](observability.md).
+
+The collector accepts a JSON object with a nonempty `session_id` and `hook_event_name` (or `event_type`/`type`). It forwards the sanitized payload to the loopback API. The backend requires the same identity fields, normalizes `event_id`, `timestamp`, `turn_id`, `sequence`, `cwd`, and `tool_name`, and stores remaining allowed fields as redacted details. `event_id` may come from the payload, be derived from `session_id` and `tool_use_id`, or be generated. Missing optional fields therefore do not prove an action did not occur. `tool_input` and `tool_response` are observable Hook fields when provided by the client, not an agent's hidden reasoning.
+
+The collector masks sensitive keys and common credential patterns before transport. The backend applies its own redaction before persistence. The synthetic tests cover bearer/basic headers, cookies, query credentials, JWT-shaped strings, and common provider tokens. Pattern redaction is not a guarantee for arbitrary secrets or personal data embedded in free text. Use synthetic fixtures only and review any proposed public event sample.
+
+Malformed events and an unavailable backend normally leave the agent task running and create an evidence gap. A high-confidence `PreToolUse` Bash denial is emitted locally even if the backend cannot receive its audit record. Hook names and payload fields can change across Codex versions; recheck the installed plugin, a live sanitized sample, and the client documentation before extending the contract. EvolveTrace neither captures a complete thought process nor provides an operating-system sandbox.
+
+The [evidence validation procedure](hook-evidence-contract.md) gives a synthetic transport test and a version-specific live check.
