@@ -1,6 +1,8 @@
 from pathlib import Path
 import subprocess
 
+import pytest
+
 from ai_context_kit.personal_pack import PersonalAIPack
 from ai_context_kit.workspace_discovery import resolve_workspace
 from test_personal_pack import valid_pack_v2, write_pack
@@ -129,7 +131,12 @@ def test_external_symlink_is_not_followed(tmp_path: Path) -> None:
     start.mkdir()
     (start / ".aictx.toml").write_text("version = 1\n", encoding="utf-8")
     external = portfolio(tmp_path / "external" / "private-portfolio")
-    (start / "private-portfolio").symlink_to(external, target_is_directory=True)
+    try:
+        (start / "private-portfolio").symlink_to(external, target_is_directory=True)
+    except OSError as exc:
+        if getattr(exc, "winerror", None) == 1314:
+            pytest.skip("Creating directory symlinks requires Windows privilege")
+        raise
 
     result = resolve_workspace(start=start, pack=pack(tmp_path), environ={})
 
