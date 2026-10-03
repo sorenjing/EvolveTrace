@@ -1,6 +1,6 @@
 # 贡献指南
 
-感谢你对 EvolveLab 的兴趣！这是一个个人维护的开源项目，欢迎通过 Issue 和 PR 参与建设。
+感谢你对 EvolveTrace 的兴趣！这是一个个人维护的开源项目，欢迎通过 Issue 和 PR 参与建设。
 
 > 在贡献之前，请先阅读 [README](README.md) 了解项目定位，阅读 [RUN.md](RUN.md) 在本地跑起来，阅读 [DESIGN.md](DESIGN.md) 了解架构。
 
@@ -8,21 +8,20 @@
 
 ## 行为准则
 
-请保持友善与尊重。对新手友好——这是一个**研究型 Coding Agent 源码项目**，目标用户包含学习者和想理解 Agent 机制的开发者。任何形式的歧视、攻击、骚扰言行都不被接受。
+请保持友善与尊重。EvolveTrace 面向需要审查 Coding Agent 执行证据、评估结果和人工复核的开发者。任何形式的歧视、攻击、骚扰言行都不被接受。
 
 ---
 
 ## 开发环境
 
-```bash
-# 后端
+```powershell
+# 后端（在仓库根目录）
 cd backend
 python -m venv venv
-.\venv\Scripts\activate        # Windows  | source venv/bin/activate  # macOS/Linux
-pip install -r requirements.txt
-uvicorn main:app --port 8001 --reload
+venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+venv\Scripts\python.exe -m uvicorn main:app --host 127.0.0.1 --port 8001
 
-# 前端
+# 前端（另开终端，在仓库根目录）
 npm install
 npm run dev
 ```
@@ -69,21 +68,16 @@ npm run dev
 
 **必做**：
 
-```bash
-# 后端语法检查
+```powershell
+# 后端测试
 cd backend
-python -m py_compile $(Get-ChildItem -Recurse -Include *.py | Select-Object -ExpandProperty FullName)
-# macOS/Linux: python -m py_compile $(find . -name "*.py")
+venv\Scripts\python.exe -m pytest -q
 
-# 前端构建
+# 前端静态检查与构建
 cd ..
+npm run lint
 npm run build
 ```
-
-**鼓励做**：
-
-- 后端：`pytest`（如果有测试）
-- 前端：`npm run lint`
 
 ### Commit 信息规范
 
@@ -104,7 +98,7 @@ npm run build
 ```
 feat: 新增 Timeline 步骤折叠功能
 fix: 修复暗黑模式切换后水合警告
-docs: 补充非商用许可证说明
+docs: 补充 Apache 2.0 许可证说明
 refactor: 抽离 services 层
 ```
 
@@ -127,7 +121,7 @@ refactor: 抽离 services 层
 
 ## License
 
-提交的代码将在 [PolyForm Noncommercial License 1.0.0](LICENSE) 下发布。提交 PR 即表示你同意该许可。
+提交的代码将在 [Apache License 2.0](LICENSE) 下发布。提交 PR 即表示你同意该许可。
 
 ---
 
@@ -137,7 +131,7 @@ refactor: 抽离 services 层
 - **范围控制**：保持项目精简，避免引入过重依赖
 - **不接收的 PR**：
   - 引入大型框架（如 Django、Express）替换现有技术栈
-  - 与项目定位（可观测性、工具扩展、安全边界）不符的功能
+  - 将项目扩展成 Agent Runtime、通用业务 Workflow 或云端协作平台的功能
   - 大幅改动现有 API 协议但不提供迁移方案的
 
 再次感谢你的贡献！

@@ -25,7 +25,7 @@
 - **todo 结构化字段**：system prompt 约束模型输出 `todos` 数组，上下文压缩后可恢复进度
 
 ### Changed
-- **License**：由 MIT 改为 **PolyForm Noncommercial 1.0.0**（禁止未授权商用）
+- **License**：当前版本改为 **Apache License 2.0**，允许个人和商业使用；赞助自愿
 - API Key 配置面板增加安全警告提示
 - **LLM max_tokens 参数化**：从硬编码 2048 改为可配置参数（默认 4096）
 - **LLM 超时分级**：连接超时 10s + 读取超时 120s（原统一 120s）

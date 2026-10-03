@@ -2,7 +2,7 @@ services:
   evolvetrace:
     build: .
     ports:
-      - "8001:8001"
+      - "127.0.0.1:8001:8001"
     environment:
       - EVOLVETRACE_DB_PATH=/data/audit.db
       - EVOLVETRACE_HARNESS_DB_PATH=/data/harness.db

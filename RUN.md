@@ -37,7 +37,7 @@ npm run dev
 docker compose up --build
 ```
 
-审计数据库写入 Docker volume。可通过 `ALLOWED_ORIGINS` 调整本地前端来源；不要把后端端口暴露到不可信网络。
+审计数据库写入 Docker volume。Compose 默认仅在 `127.0.0.1:8001` 发布服务；可通过 `ALLOWED_ORIGINS` 调整本地前端来源。
 
 ## 演示数据
 

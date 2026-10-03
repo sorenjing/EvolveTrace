@@ -120,4 +120,4 @@ npm run build
 
 ## License
 
-本项目沿用仓库中的 PolyForm Noncommercial License，详见 [LICENSE](LICENSE)。
+本项目采用 [Apache License 2.0](LICENSE)，允许个人和商业使用。若项目对你的业务有帮助，欢迎自愿支持后续开发；赞助不是使用条件。
