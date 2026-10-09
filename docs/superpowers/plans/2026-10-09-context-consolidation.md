@@ -28,15 +28,21 @@
 
 ## Tasks
 
-- [ ] Establish clean test baselines in explicit temporary directories.
-- [ ] Import committed context tree and overlay reviewed local runtime fixes, with source history retained.
-- [ ] Add archive behavior tests; observe failure, implement allowlisted builder and unified manifest/hooks, verify extracted context hook.
-- [ ] Update component installation, root usage/design, CI/release workflow and licensing notices.
-- [ ] Build wheel and archive; run both suites, frontend checks and website verification.
-- [ ] Review the staged tree and create a local merge commit with both original parents, excluding pre-existing unrelated changes.
-- [ ] Verify original histories, CLI migration and final Git state; report pending remote transition.
+- [x] Establish clean test baselines in explicit temporary directories.
+- [x] Import committed context tree and overlay reviewed local runtime fixes, with source history retained.
+- [x] Add archive behavior tests; observe failure, implement allowlisted builder and unified manifest/hooks, verify extracted context hook.
+- [x] Update component installation, root usage/design, CI/release workflow and licensing notices.
+- [x] Build wheel and archive; run both suites, frontend checks and website verification.
+- [x] Review the staged tree and create a local merge commit with both original parents, excluding pre-existing unrelated changes.
+- [x] Verify original histories, CLI migration and final Git state; document pending remote transition.
 
 ## Execution notes
 
 - Remote metadata confirmed the application repository is `sorenjing/EvolveTrace`; the local legacy URL redirects from `evolvingAI`.
 - Initial pytest runs could not access the system pytest temporary directory. Repeat with migration-owned basetemp paths; do not treat setup errors as product regressions.
+- Local merge commit: `468e4eba7163e8b08aefb2ffe48cec951b1b1e0a`, with the original EvolveTrace and ai-context-kit commits as parents. Both histories are ancestors; pre-existing website and other working-tree changes remain outside the commit.
+- Context suite: 154 passed, 2 skipped. Backend suite: 81 passed. Unified plugin archive tests: 2 passed, 1 skipped. Skips require Windows symlink privileges; the backend retains its existing Starlette/httpx deprecation warning.
+- Frontend lint and production build passed. Context wheel/sdist and the unified plugin archive built successfully. An isolated installation verified the wheel imports and packaged canonical Skill without the old editable checkout. The public website build verified 12 pages, 224 local links and its source archive.
+- Independent review found no actionable Critical or Important issue. Existing historical Markdown whitespace and test fixtures were preserved rather than globally rewritten.
+- The local `aictx.cmd` launcher now loads `EvolveTrace/context`; `aictx --version` reports 0.2.0. Migration-owned test directories and the temporary wheel installation were removed after verification; deliverable archives remain in `dist/`.
+- Local origin now uses `https://github.com/sorenjing/EvolveTrace.git`. No remote push, repository archival, package release, marketplace update or unified-plugin host activation has been performed. These remain the release steps in `docs/consolidation.md`.
