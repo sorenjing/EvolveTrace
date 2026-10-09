@@ -7,6 +7,27 @@ on:
     branches: [master]
 
 jobs:
+  context:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.11", "3.12", "3.13"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install context development dependencies
+        run: python -m pip install -e "./context[dev]"
+      - name: Context and unified plugin tests
+        run: python -m pytest context/tests tests -q
+      - name: Build independently installable context package
+        run: python -m build context --outdir dist/context
+      - name: Build unified plugin archive
+        run: python scripts/build_plugin_archive.py
+
   backend:
     runs-on: ubuntu-latest
     defaults:

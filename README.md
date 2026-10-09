@@ -1,5 +1,19 @@
 # EvolveTrace
 
+## 上下文与执行证据，共用一个项目
+
+AI Context Kit 现在位于本仓库的 [`context/`](context/)，继续提供独立的 `aictx` CLI。安装、统一插件、任务绑定与 GitHub 迁移步骤见[合并使用指南](docs/consolidation.md)。
+
+```powershell
+python -m pip install ./context
+python scripts/build_plugin_archive.py
+```
+
+插件归档为 `dist/evolvetrace-plugin.zip`，同时提供上下文加载和执行事件采集。`plugin/` 保留 audit-only 接入。上下文组件保留 MIT 许可证，应用使用 Apache-2.0，详见 [NOTICE](NOTICE)。
+
+源码维护入口统一后，后端仍通过版本化 ContextBundle 接收上下文，独立 CLI 使用方式保持兼容。自动对话提取与语义检索仍需后续设计。
+
+
 **A local-first evidence, evaluation, and regression harness for coding agents.**
 
 EvolveTrace 是面向 Coding Agent 的本地优先执行证据与回归 Harness：它将任务契约、上下文版本、可观察执行、确定性评估和人工复核绑定成可验证证据链，并把失败沉淀为可重放的 Regression Case。

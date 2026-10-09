@@ -1,0 +1,10 @@
+version = 1
+max_file_bytes = 1048576
+
+[discovery]
+include = ["projects"]
+exclude = [".git", ".ai", "node_modules", ".venv", "dist", "build", "target"]
+
+[projects]
+"projects/example" = "Example"
+

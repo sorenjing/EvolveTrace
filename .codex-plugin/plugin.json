@@ -1,0 +1,25 @@
+{
+  "name": "evolvetrace",
+  "version": "0.3.0",
+  "description": "Local project context delivery and coding-agent execution evidence.",
+  "author": {"name": "EvolveTrace contributors"},
+  "homepage": "https://github.com/sorenjing/EvolveTrace#readme",
+  "repository": "https://github.com/sorenjing/EvolveTrace",
+  "license": "Apache-2.0",
+  "skills": "./context/skills/",
+  "keywords": ["context", "memory", "observability", "audit", "evaluation"],
+  "interface": {
+    "displayName": "EvolveTrace",
+    "shortDescription": "Load project context and review agent execution locally.",
+    "longDescription": "Load bounded project context with aictx, then inspect observable tool calls, validation evidence and task review in the local workbench.",
+    "developerName": "EvolveTrace contributors",
+    "category": "Developer Tools",
+    "capabilities": ["Read", "Write", "Review"],
+    "defaultPrompt": [
+      "Load the current project's context and show its freshness and gaps.",
+      "Prepare a task with context, then review its execution in EvolveTrace.",
+      "Show the available execution evidence and verification results."
+    ],
+    "brandColor": "#0f766e"
+  }
+}

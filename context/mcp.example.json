@@ -1,0 +1,12 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "ai-context-kit": {
+      "type": "streamable-http",
+      "url": "https://YOUR_STABLE_HOST/mcp",
+      "env": {
+        "AICTX_PACK_STATE": "/explicit/path/to/.aictx-pack/state.json"
+      }
+    }
+  }
+}

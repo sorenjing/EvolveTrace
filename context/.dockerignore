@@ -1,0 +1,8 @@
+.git
+.github
+.ai
+.venv
+__pycache__
+build
+dist
+tests

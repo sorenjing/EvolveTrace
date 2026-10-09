@@ -1,0 +1,15 @@
+.worktrees/
+.superpowers/
+.aictx.local.toml
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+dist/
+build/
+*.egg-info/
+.website-runtime/
+/website/node_modules/
+/website/dist/

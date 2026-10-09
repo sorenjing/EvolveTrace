@@ -1,0 +1,47 @@
+name: Context component release
+
+on:
+  push:
+    tags:
+      - "context-v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install build
+      - run: python -m build context --outdir dist/context
+      - name: Smoke-test wheel and component tag
+        shell: bash
+        run: |
+          python -m venv .smoke
+          .smoke/bin/python -m pip install dist/context/*.whl
+          test "$(.smoke/bin/aictx --version)" = "aictx ${GITHUB_REF_NAME#context-v}"
+          .smoke/bin/aictx --help >/dev/null
+      - uses: actions/upload-artifact@v4
+        with:
+          name: context-python-package
+          path: dist/context/*
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: context-python-package
+          path: dist/context
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/context/

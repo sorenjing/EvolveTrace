@@ -1,0 +1,42 @@
+{
+  "target_repositories": [
+    "projects/example-api",
+    "projects/example-ui"
+  ],
+  "constraints": [
+    "Preserve the existing public API",
+    "Do not modify files outside the selected repositories"
+  ],
+  "acceptance_criteria": [
+    {
+      "criterion_id": "repository-scope",
+      "type": "path_scope",
+      "required": true,
+      "description": "All changes stay inside the selected repositories",
+      "config": {
+        "allowed_prefixes": [
+          "projects/example-api",
+          "projects/example-ui"
+        ]
+      }
+    },
+    {
+      "criterion_id": "api-tests",
+      "type": "command_exit_zero",
+      "required": true,
+      "description": "The API test suite passes",
+      "config": {
+        "command": "python -m pytest -q"
+      }
+    },
+    {
+      "criterion_id": "ui-tests",
+      "type": "command_exit_zero",
+      "required": true,
+      "description": "The UI test suite passes",
+      "config": {
+        "command": "npm test"
+      }
+    }
+  ]
+}
