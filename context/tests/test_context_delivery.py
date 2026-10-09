@@ -203,7 +203,9 @@ def test_windows_reparse_memory_is_rejected_even_without_is_junction(tmp_path, c
 
     def reparse_lstat(self):
         if self == tmp_path / ".ai/projects":
-            return SimpleNamespace(st_file_attributes=0x400)
+            # Path.is_symlink() also reads st_mode on Python 3.11-3.13.
+            return SimpleNamespace(st_mode=original_lstat(self).st_mode,
+                                   st_file_attributes=0x400)
         return original_lstat(self)
 
     monkeypatch.setattr(Path, "lstat", reparse_lstat)
