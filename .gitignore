@@ -94,3 +94,6 @@ coverage.xml
 
 # ---------- Docker / 部署 ----------
 docker-compose.override.yml
+.website-runtime/
+/website/node_modules/
+/website/dist/

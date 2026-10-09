@@ -1,0 +1,15 @@
+{
+  "name": "evolvetrace-public-site",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "node build.mjs && node verify.mjs",
+    "dev": "node serve.mjs",
+    "check": "node verify.mjs"
+  },
+  "dependencies": {
+    "markdown-it": "14.3.2",
+    "markdown-it-anchor": "9.2.0"
+  }
+}

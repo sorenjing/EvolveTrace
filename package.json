@@ -5,7 +5,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "site:build": "npm --prefix website run build",
+    "site:preview": "npm --prefix website run dev"
   },
   "dependencies": {
     "next": "16.2.9",

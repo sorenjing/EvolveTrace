@@ -13,6 +13,13 @@ python scripts/build_plugin_archive.py
 
 源码维护入口统一后，后端仍通过版本化 ContextBundle 接收上下文，独立 CLI 使用方式保持兼容。自动对话提取与语义检索仍需后续设计。
 
+## 项目官网
+
+[打开 EvolveTrace 官网](https://sorenjing-evolvetrace.uas857030604.chatgpt.site) · [下载源码](https://sorenjing-evolvetrace.uas857030604.chatgpt.site/download.html)
+
+官网源码位于 [website/](website/README.md)，包含首页、快速开始、文档、带版本与校验值的源码下载，以及更新记录。官网仅提供公开介绍和下载；实际工具继续在本机运行，可选远程能力按项目文档单独部署。
+
+构建官网：`npm --prefix website ci`，再运行 `npm run site:build`。本地预览：`npm run site:preview`。构建产物 `website/dist/` 可以迁移到其他静态托管平台。
 
 **A local-first evidence, evaluation, and regression harness for coding agents.**
 
@@ -90,6 +97,10 @@ flowchart TD
 ```
 
 然后让 Codex 打开 `http://127.0.0.1:8001`。首次使用先运行 `./scripts/build_static_ui.ps1`；完整环境配置、日常使用和观测排障分别见 [RUN.md](RUN.md)、[中文使用手册](docs/usage.md) 与 [观测手册](docs/observability.md)。
+
+## 效果验证
+
+采集覆盖、风险规则和人工审查收益的指标及对照步骤见[效果验证指南](docs/effectiveness.md)。服务健康和事件数量不等于审查效果。
 
 ## Safety Sentinel 边界
 
