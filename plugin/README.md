@@ -1,5 +1,7 @@
 # EvolveTrace for Codex
 
+This directory is the audit-only compatibility plugin. For combined context loading and execution capture, use the repository-root unified plugin archive described in [the consolidation guide](../docs/consolidation.md). Enable one capture installation at a time.
+
 EvolveTrace captures supported Codex hook events, redacts sensitive values, and sends the resulting audit event to the local FastAPI service at <http://127.0.0.1:8001/api/audit/events>.
 
 Most hook collection is best-effort: malformed input, a stopped backend, or a network timeout exits with code 0 so it never blocks a normal Codex task. For PreToolUse Bash calls, Safety Sentinel first evaluates a small set of high-confidence destructive patterns. A blocked call emits Codex's documented denial JSON and is denied even when the local backend is unavailable; the sanitized denial record is still sent to the backend whenever it is reachable.

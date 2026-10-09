@@ -1,0 +1,32 @@
+{
+  "schema": "personal-ai-pack/v2",
+  "id": "example-personal-ai",
+  "version": 2,
+  "profile": {"visibility": "private", "authority": "portfolio"},
+  "sources": {
+    "portfolio": {"repository": "example/private-portfolio", "registry": "registry.yaml"},
+    "context": {"provider": "ai-context-kit"}
+  },
+  "platforms": {
+    "codex": {"enabled": true, "adapter": "codex-plugin"},
+    "chatgpt": {"enabled": true, "adapter": "openai-plugin"}
+  },
+  "entrypoints": {
+    "common": {"authority": "portfolio", "minimum_context": true},
+    "local": {
+      "discovery": {
+        "strategy": "bounded",
+        "max_depth": 3,
+        "workspace_env": "AICTX_WORKSPACE_ROOT",
+        "portfolio_env": "AICTX_PORTFOLIO_ROOT"
+      }
+    },
+    "codex": {"enabled": true},
+    "chatgpt": {"enabled": true}
+  },
+  "policies": {
+    "publish_private_sources": false,
+    "capture_prompt_content": false,
+    "accept_memory_automatically": false
+  }
+}

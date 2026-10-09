@@ -1,0 +1,19 @@
+{
+  "description": "Load bounded shared context and record metadata-only usage evidence.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|compact|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${PLUGIN_ROOT}/hooks/session_start.py\"",
+            "statusMessage": "Loading shared context and recording usage",
+            "additionalContextLimit": 20000,
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}

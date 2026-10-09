@@ -1,1 +1,9 @@
-Copyright 2026 sorenjing and EvolveTrace contributors.
+EvolveTrace includes the AI Context Kit context component under context/.
+
+EvolveTrace application and unified plugin composition: Apache License 2.0.
+AI Context Kit component, its Skill and context-loading hook: MIT License.
+
+The component originated in https://github.com/sorenjing/ai-context-kit.
+Its original license is retained in context/LICENSE; the application's
+license is retained in LICENSE. Consolidation does not relicense the MIT
+component or remove its existing license conditions.

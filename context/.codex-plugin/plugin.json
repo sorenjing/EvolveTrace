@@ -1,0 +1,29 @@
+{
+  "name": "ai-context-kit",
+  "version": "0.2.0",
+  "description": "Auditable project context shared across AI coding tools",
+  "author": {
+    "name": "sorenjing",
+    "url": "https://github.com/sorenjing"
+  },
+  "homepage": "https://github.com/sorenjing/EvolveTrace/tree/master/context#readme",
+  "repository": "https://github.com/sorenjing/EvolveTrace",
+  "license": "MIT",
+  "keywords": ["context", "memory", "codex", "chatgpt", "agent-skills"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "AI Context Kit",
+    "shortDescription": "Maintain auditable shared project context",
+    "longDescription": "Generate, validate, and use compact project context across Codex, ChatGPT, Claude, Gemini, and Cursor.",
+    "developerName": "sorenjing",
+    "category": "Developer Tools",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://github.com/sorenjing/EvolveTrace/tree/master/context",
+    "defaultPrompt": [
+      "Initialize shared context for this workspace.",
+      "Check which project context is stale.",
+      "Load the context for the current project."
+    ],
+    "brandColor": "#2563EB"
+  }
+}

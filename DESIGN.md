@@ -70,6 +70,8 @@ flowchart TD
 
 ## 4. 三层职责边界
 
+AI Context Kit 的实现现位于同一仓库的 `context/`，保留独立 CLI 和模块职责。源码归属统一不改变 ContextBundle 接口、上下文来源权威或执行证据的判定标准。统一插件位于仓库根目录，旧 `plugin/` 仍提供 audit-only 兼容接入。
+
 | 系统 | 所有权 | 输出给 EvolveTrace 的内容 |
 | --- | --- | --- |
 | AI Context Kit | 项目发现、受限事实观察、freshness、人工语义记忆 | `ContextBundle v1` |

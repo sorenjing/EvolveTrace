@@ -5,7 +5,7 @@
   "author": {
     "name": "EvolveTrace contributors"
   },
-  "license": "PolyForm-Noncommercial",
+  "license": "Apache-2.0",
   "keywords": ["codex", "observability", "code-review", "audit", "safety"],
   "interface": {
     "displayName": "EvolveTrace for Codex",

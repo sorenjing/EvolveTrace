@@ -1,0 +1,4 @@
+interface:
+  display_name: "Manage AI Context"
+  short_description: "Maintain compact shared AI project memory"
+  default_prompt: "Use $manage-ai-context to initialize or refresh this workspace context safely."
