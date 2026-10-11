@@ -24,7 +24,7 @@ class InFlightLimit:
     @contextmanager
     def slot(self) -> Iterator[None]:
         if not self._semaphore.acquire(timeout=self.timeout):
-            raise RuntimeError("AI Context Kit is busy; retry shortly")
+            raise RuntimeError("EvolveTrace Context is busy; retry shortly")
         try:
             yield
         finally:

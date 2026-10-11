@@ -1,10 +1,10 @@
-# AI Context Kit 自测手册
+# EvolveTrace Context 自测手册
 
 这份手册用于回答两个问题：CLI 是否能正常运行，以及指定工作区是否需要维护。默认自测是只读的，不执行初始化、更新、安装或删除。
 
 ## 一键只读检查
 
-从 AI Context Kit 仓库运行：
+从 EvolveTrace 的 `context/` 目录运行：
 
 ```powershell
 ./scripts/self-check.ps1 -Workspace <工作区路径>
@@ -58,7 +58,7 @@ aictx check --workspace <工作区路径>
 
 ### 3. 项目源码开发
 
-在 AI Context Kit 仓库中运行：
+在 EvolveTrace 的 `context/` 目录中运行：
 
 ```powershell
 .venv\Scripts\python.exe -m pytest -q

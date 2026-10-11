@@ -1,6 +1,6 @@
 # Runtime concurrency and process model
 
-AI Context Kit has two runtime shapes with different concurrency requirements: a local mutating CLI and a remote read-only MCP service. They deliberately do not share one scaling strategy.
+EvolveTrace Context has two runtime shapes with different concurrency requirements: a local mutating CLI and a remote read-only MCP service. They deliberately do not share one scaling strategy.
 
 ## Local CLI: serialize mutations
 

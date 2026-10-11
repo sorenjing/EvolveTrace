@@ -1,7 +1,7 @@
 # Evaluate context delivery on a real task
 
 Use the same bounded repository task twice: once with ordinary repository
-inspection and once with an AI Context Kit task bundle. This is a local
+inspection and once with an EvolveTrace Context task bundle. This is a local
 evaluation procedure, not a claim of measured productivity gains. Do not use
 private repository names, code, prompts, or transcript excerpts in public
 fixtures.

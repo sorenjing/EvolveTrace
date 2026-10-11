@@ -74,4 +74,4 @@ The demonstration exports only allowlisted identifiers and timestamps. It exclud
 8. Submit the two Run IDs to `POST /api/harness/tasks/{task_id}/comparisons`; only this reviewed pair can advance the receipt to `effective`.
 9. Run the privacy scan before exporting any reusable fixture.
 
-The exact commands and schemas are documented in AI Context Kit and EvolveTrace.
+The exact commands and schemas are documented in EvolveTrace Context and EvolveTrace.

@@ -26,9 +26,9 @@ def main() -> None:
                     return
             except (OSError, ValueError, subprocess.TimeoutExpired):
                 pass
-            print(json.dumps({"systemMessage": "AI Context Kit: CLI failed or is outdated. Upgrade the CLI; no context was confirmed returned."}))
+            print(json.dumps({"systemMessage": "EvolveTrace Context: CLI failed or is outdated. Upgrade the CLI; no context was confirmed returned."}))
         else:
-            print(json.dumps({"systemMessage": "AI Context Kit: CLI unavailable. Install aictx and ensure it is on PATH; no context was loaded."}))
+            print(json.dumps({"systemMessage": "EvolveTrace Context: CLI unavailable. Install aictx and ensure it is on PATH; no context was loaded."}))
         return
     session_start()
 

@@ -40,7 +40,7 @@ EvolveTrace 保留现有 Codex Hooks、Safety Sentinel、SQLite、SSE 和审查�
 2. **Deterministic first**：可以用确定性规则判断的内容不交给 LLM。
 3. **Human owns the decision**：高风险、低置信度和语义争议由人类最终确认。
 4. **Local first**：服务、数据库、上下文和回归案例默认保存在本机。
-5. **Explicit boundaries**：EvolveTrace 不复制 AI Context Kit 的发现逻辑，也不接管 Coding Agent。
+5. **Explicit boundaries**：EvolveTrace 不复制 EvolveTrace Context 的发现逻辑，也不接管 Coding Agent。
 6. **Failures become assets**：失败不是一条日志，而是可脱敏、可重放、可比较的 regression case。
 7. **Current and planned stay separate**：公开文档必须明确哪些能力已经实现、哪些仍处于路线图。
 
@@ -60,7 +60,7 @@ flowchart TD
 
 标准流程：
 
-1. 从 AI Context Kit 导出目标项目的版本化上下文快照。
+1. 从 EvolveTrace Context 导出目标项目的版本化上下文快照。
 2. 创建 Task Contract，明确目标仓库、约束、验收标准和未决问题。
 3. 人工确认任务进入 Ready 状态。
 4. Codex 等 Agent 独立执行；EvolveTrace Hooks 采集公开可用的执行证据。
@@ -70,15 +70,15 @@ flowchart TD
 
 ## 4. 三层职责边界
 
-AI Context Kit 的实现现位于同一仓库的 `context/`，保留独立 CLI 和模块职责。源码归属统一不改变 ContextBundle 接口、上下文来源权威或执行证据的判定标准。统一插件位于仓库根目录，旧 `plugin/` 仍提供 audit-only 兼容接入。
+EvolveTrace Context 的实现现位于同一仓库的 `context/`，保留独立 CLI 和模块职责。源码归属统一不改变 ContextBundle 接口、上下文来源权威或执行证据的判定标准。统一插件位于仓库根目录，旧 `plugin/` 仍提供 audit-only 兼容接入。
 
 | 系统 | 所有权 | 输出给 EvolveTrace 的内容 |
 | --- | --- | --- |
-| AI Context Kit | 项目发现、受限事实观察、freshness、人工语义记忆 | `ContextBundle v1` |
+| EvolveTrace Context | 项目发现、受限事实观察、freshness、人工语义记忆 | `ContextBundle v1` |
 | Agent Skills | 工作方法、行为约束和可复用步骤 | Agent 执行时使用，不由 EvolveTrace 存储或解释 |
 | EvolveTrace | Task、Run、Evidence、Evaluation、Review、Regression | 可验证运行记录 |
 
-仓库文件始终是事实源。AI Context Kit 是上下文入口，EvolveTrace 是运行和评估入口。
+仓库文件始终是事实源。EvolveTrace Context 是上下文入口，EvolveTrace 是运行和评估入口。
 
 ### Context Receipt：上下文与执行之间的可观察连接
 
@@ -117,7 +117,7 @@ flowchart TD
 
 ### 5.1 Context Adapter
 
-Context Adapter 只消费稳定的版本化输出，不读取 AI Context Kit 的内部 Python 模块或私有数据库结构。目标命令为：
+Context Adapter 只消费稳定的版本化输出，不读取 EvolveTrace Context 的内部 Python 模块或私有数据库结构。目标命令为：
 
 ```text
 aictx export harness <project> --format json --output -
@@ -179,7 +179,7 @@ Evaluator 使用统一接口，输入为 Task Contract、Context Snapshot、Run 
 | --- | --- |
 | `snapshot_id` | 本地稳定标识 |
 | `schema_version` | 首版固定为 `context-bundle/v1` |
-| `project` | AI Context Kit 项目标识 |
+| `project` | EvolveTrace Context 项目标识 |
 | `generated_at` | 生成时间 |
 | `freshness` | `current`、`stale`、`missing` 或 `unknown` |
 | `observed_scope` | 自动事实的受限观察范围 |
@@ -342,7 +342,7 @@ evolvetrace start
 状态：已实现。
 
 - Task Contract 与状态机
-- `ContextBundle v1` 协议和 AI Context Kit 导出
+- `ContextBundle v1` 协议和 EvolveTrace Context 导出
 - Context Snapshot 导入、摘要与 freshness
 - Session-to-Run 绑定和 Unbound Runs
 - Task-first 基础页面
@@ -377,7 +377,7 @@ evolvetrace start
 
 首个完整 Demo 必须证明：
 
-1. 从 AI Context Kit 导入两个关联仓库的上下文。
+1. 从 EvolveTrace Context 导入两个关联仓库的上下文。
 2. 创建包含目标、约束和可验证验收标准的 Task。
 3. Codex 完成一次真实修改，EvolveTrace 自动关联 Run。
 4. 确定性 Evaluator 发现至少一个范围或验证问题。

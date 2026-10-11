@@ -1,6 +1,12 @@
 # 合并后的安装、使用与远程迁移
 
-EvolveTrace 的 `context/` 维护 AI Context Kit 上下文组件；`backend/` 与 `src/` 维护执行证据和审查工作台。`aictx` 仍可独立使用，后端仍通过版本化 JSON 接收上下文。Marlow 保持独立。
+EvolveTrace 的 `context/` 维护 EvolveTrace Context 上下文组件；`backend/` 与 `src/` 维护执行证据和审查工作台。`aictx` 仍可独立使用，后端仍通过版本化 JSON 接收上下文。Marlow 保持独立。
+
+## 名称与兼容性
+
+对外产品名称为 EvolveTrace，上下文组件名称为 EvolveTrace Context。原 AI Context Kit 已成为该组件的历史来源，不再作为并列产品安装。
+
+现有 Python 包名 `ai-context-kit`、模块名 `ai_context_kit`、CLI `aictx`、旧独立插件标识及 `aictx` 受管标记保持兼容。旧版本记录和 MIT 版权声明仍保留原名称，来源说明见 [NOTICE](../NOTICE)。
 
 ## 本地安装
 
@@ -29,7 +35,7 @@ CLI 仍只观察规定范围的元数据、加载选定项目记忆。自动筛�
 python scripts/build_plugin_archive.py
 ```
 
-输出 `dist/evolvetrace-plugin.zip`。上传该文件，启用统一 EvolveTrace 插件，再停用以前单独安装的 AI Context Kit 和 audit-only EvolveTrace 插件，避免重复加载与采集。首次安装先保留旧安装作为回退，确认新插件可用后再卸载旧插件。
+输出 `dist/evolvetrace-plugin.zip`。上传该文件，启用统一 EvolveTrace 插件，再停用以前单独安装的 AI Context Kit（`ai-context-kit`）和 audit-only EvolveTrace 插件，避免重复加载与采集。首次安装先保留旧安装作为回退，确认新插件可用后再卸载旧插件。
 
 ZIP 根目录直接包含 `.codex-plugin/plugin.json`，并同时包含上下文 Skill、SessionStart 加载器和原有审计 Hook。插件不包含后端、Python CLI、私人工作区记忆或数据库；CLI 和本地服务需要分别安装、运行。
 

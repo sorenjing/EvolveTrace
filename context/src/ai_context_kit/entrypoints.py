@@ -67,7 +67,7 @@ description: Load the smallest source-traceable context bundle needed for a proj
 
 # Manage AI Context
 
-Read `{COMMON_PATH}`. Resolve the target project, request the minimum bounded context through AI Context Kit, do not guess missing authorities, and report the bundle and sources used. Never request the full private portfolio by default.
+Read `{COMMON_PATH}`. Resolve the target project, request the minimum bounded context through EvolveTrace Context, do not guess missing authorities, and report the bundle and sources used. Never request the full private portfolio by default.
 """
 
 

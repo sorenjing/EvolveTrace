@@ -14,8 +14,8 @@ The download page provides a versioned source ZIP, full commit SHA, size and SHA
 
 ## Hosting and migration
 
-Set `WEBSITE_BASE=/repository-name/` when building for a subpath; default is `/`. Set `COMPANION_SITE_URL` to link to the other project's website; otherwise that link opens its GitHub repository. Run `npm --prefix website run check` to verify local links and download hashes.
+Set `WEBSITE_BASE=/repository-name/` when building for a subpath; default is `/`. The context component link opens `EvolveTrace/context`; `COMPANION_SITE_URL` remains an optional link override for compatible hosting setups. Run `npm --prefix website run check` to verify local links and download hashes.
 
 Sites receives a separate generated-only checkout at the shared workspace's `.sites-hosting/evolvetrace-site/`. Its hosting identity stays there and is not needed by this portable source website. Publishing must use that same Site identity on subsequent updates.
 
-These two project websites are public. Private interview and knowledge reading sites keep their existing audience.
+The website contains public product documentation and versioned source downloads.

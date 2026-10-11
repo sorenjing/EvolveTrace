@@ -12,7 +12,7 @@
   "keywords": ["context", "memory", "codex", "chatgpt", "agent-skills"],
   "skills": "./skills/",
   "interface": {
-    "displayName": "AI Context Kit",
+    "displayName": "EvolveTrace Context",
     "shortDescription": "Maintain auditable shared project context",
     "longDescription": "Generate, validate, and use compact project context across Codex, ChatGPT, Claude, Gemini, and Cursor.",
     "developerName": "sorenjing",

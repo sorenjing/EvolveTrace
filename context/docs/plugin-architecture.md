@@ -2,7 +2,7 @@
 
 # Plugin architecture and web roadmap
 
-AI Context Kit is evolving from a local CLI with a bundled Skill into a plugin-backed context system that can serve both coding agents and ChatGPT. The local repository remains the source of truth. Plugin packaging improves discovery and workflow guidance; it does not by itself make local files reachable from a web session.
+EvolveTrace Context is evolving from a local CLI with a bundled Skill into a plugin-backed context system that can serve both coding agents and ChatGPT. The local repository remains the source of truth. Plugin packaging improves discovery and workflow guidance; it does not by itself make local files reachable from a web session.
 
 ## Product boundary
 
@@ -25,7 +25,7 @@ flowchart TD
     C --> B[ContextBundle v1]
     B --> G[GitHub-backed MVP]
     B --> S[Optional sync service]
-    P[AI Context Kit plugin] --> K[Manage-context Skill]
+    P[EvolveTrace Context plugin] --> K[Manage-context Skill]
     P --> M[Remote MCP tools]
     M --> G
     M --> S
@@ -94,7 +94,7 @@ This stage must preserve:
 
 ## Why this split
 
-Keeping collection local makes observation deterministic and auditable. Keeping the Skill thin avoids duplicating CLI behavior in prompts. Adding remote access only behind an explicit exported bundle gives web clients useful context without turning AI Context Kit into an unrestricted source-code crawler or prematurely operating a multi-tenant storage service.
+Keeping collection local makes observation deterministic and auditable. Keeping the Skill thin avoids duplicating CLI behavior in prompts. Adding remote access only behind an explicit exported bundle gives web clients useful context without turning EvolveTrace Context into an unrestricted source-code crawler or prematurely operating a multi-tenant storage service.
 
 ## Personal AI Pack boundary
 
