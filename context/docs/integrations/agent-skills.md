@@ -5,7 +5,7 @@ AI coding environments commonly combine three independent inputs:
 | Layer | Responsibility |
 |---|---|
 | Project rules | Repository-specific constraints, contribution guidance, commands, architecture, and ownership. These commonly live in `AGENTS.md`, `CONTRIBUTING.md`, or equivalent files. |
-| AI Context Kit | Shared workspace context: project discovery, deterministic observations, input-change detection, semantic memory, and thin adapters for coding tools. |
+| EvolveTrace Context | Shared workspace context: project discovery, deterministic observations, input-change detection, semantic memory, and thin adapters for coding tools. |
 | Agent Skills | Reusable behaviors and workflows that apply across projects, such as review procedures, release checks, or safety practices. |
 
 At runtime, the coding agent combines these layers with the task prompt:
@@ -15,13 +15,13 @@ task prompt + project rules + shared context + reusable skills
   -> coding agent
 ```
 
-AI Context Kit owns neither repository policy nor reusable behavior. Repository files remain authoritative; the context layer makes a bounded set of project observations and selected semantic memory available through one shared entry point.
+EvolveTrace Context owns neither repository policy nor reusable behavior. Repository files remain authoritative; the context layer makes a bounded set of project observations and selected semantic memory available through one shared entry point.
 
 ## Composition, not a dependency
 
-Agent Skills are optional. AI Context Kit has no dependency on a particular Skill repository, Skill manager, remote service, or personal configuration. It remains useful with project rules alone and can coexist with any compatible skill-discovery mechanism.
+Agent Skills are optional. EvolveTrace Context has no dependency on a particular Skill repository, Skill manager, remote service, or personal configuration. It remains useful with project rules alone and can coexist with any compatible skill-discovery mechanism.
 
-Likewise, Agent Skills should not duplicate the context store. A Skill can instruct an agent to read workspace context and run `aictx` when relevant, while AI Context Kit continues to own discovery, observed-input fingerprints, and managed context files.
+Likewise, Agent Skills should not duplicate the context store. A Skill can instruct an agent to read workspace context and run `aictx` when relevant, while EvolveTrace Context continues to own discovery, observed-input fingerprints, and managed context files.
 
 This is runtime composition, not agent orchestration. Sharing context across tools does not by itself coordinate parallel agents, assign tasks, resolve concurrent edits, or merge their results.
 

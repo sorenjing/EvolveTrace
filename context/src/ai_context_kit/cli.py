@@ -1,4 +1,4 @@
-"""Command-line workflows for AI Context Kit."""
+"""Command-line workflows for EvolveTrace Context."""
 
 from __future__ import annotations
 

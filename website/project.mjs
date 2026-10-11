@@ -31,13 +31,20 @@ const project = {
   "available": "Codex 事件采集、脱敏与本地存储、Task / Context / Run 绑定、确定性评估、人工复核，以及修正前后的 Run 对比。",
   "planned": "更多评估器、通用 Regression Case 导入导出与重放，以及经过单独设计的可选 LLM Judge。",
   "companion": {
-    "title": "AI Context Kit",
-    "repository": "https://github.com/sorenjing/ai-context-kit",
-    "text": "AI Context Kit 准备可追踪的项目上下文和任务契约；EvolveTrace 接收版本化的 JSON 交接，记录随后发生的执行与复核。"
+    "title": "EvolveTrace Context",
+    "repository": "https://github.com/sorenjing/EvolveTrace/tree/master/context",
+    "text": "EvolveTrace Context 准备可追踪的项目上下文和任务契约；执行审查组件接收版本化的 JSON 交接，记录随后发生的执行与复核。两者在同一仓库维护。"
   },
   "diagram": "<div class=\"diagram\" aria-label=\"任务证据链示意\"><div class=\"diagram-label\"><span>RUN / EVIDENCE</span><span>工作流示意</span></div><p class=\"diagram-title\">一次任务，五个可核对的环节</p><div class=\"evidence-row\"><span class=\"step-number\">01</span><div>Task Contract<small>目标 · 范围 · 验收条件</small></div><span class=\"state\">契约</span></div><div class=\"evidence-row\"><span class=\"step-number\">02</span><div>Context Snapshot<small>来源版本 · freshness</small></div><span class=\"state\">上下文</span></div><div class=\"evidence-row\"><span class=\"step-number\">03</span><div>Observable Events<small>工具输入输出 · 修改 · 风险</small></div><span class=\"state\">证据</span></div><div class=\"evidence-row\"><span class=\"step-number\">04</span><div>Deterministic Evals<small>逐项结果 · evidence refs</small></div><span class=\"state\">评估</span></div><div class=\"evidence-row\"><span class=\"step-number\">05</span><div>Human Review<small>接受 · 修正 · 对比</small></div><span class=\"state\">复核</span></div></div>",
-  "quickStart": "# 在本机运行 EvolveTrace\n\n## 1. 下载并解压\n\n从[下载页](download.html)获取源码 ZIP，解压后在仓库根目录打开 PowerShell。建议使用 Python 3.11+、Node.js 22+。需要安装 Codex Hook 时，使用支持本地插件的客户端。\n\n## 2. 准备后端环境\n\n```powershell\ncd backend\npython -m venv venv\nvenv\\Scripts\\python.exe -m pip install -r requirements-dev.txt\ncd ..\n```\n\n## 3. 构建工作台\n\n```powershell\n./scripts/build_static_ui.ps1\n```\n\n该步骤安装前端依赖并生成由后端提供的静态工作台。\n\n## 4. 启动本地服务\n\n```powershell\n./start.ps1\n```\n\n打开 `http://127.0.0.1:8001`。在 Codex 内置浏览器中使用时，运行 `./start.ps1 -NoBrowser`，再打开同一地址。\n\n## 5. 接入真实执行\n\n按[使用手册](docs/usage.html)安装并启用 `plugin/` 中的本地 Codex Hook，然后确认事件进入工作台。遇到没有事件、任务未绑定或验证证据缺失时，查看[观测与排障](docs/observability.html)。\n\n## 与 AI Context Kit 配合\n\n```powershell\naictx task prepare <项目名> --intent \"本次任务目标\" --platform codex\naictx task submit <task-id> --evolvetrace-url http://127.0.0.1:8001\n```\n\n## 运行边界\n\n这个官网提供介绍、文档和下载，不会连接你本地的 Hook、工作区或数据库。实际审查服务默认只监听本机；普通事件采集失败不会补发，缺失事件不能证明某个动作没有发生。",
+  "quickStart": "# 在本机运行 EvolveTrace\n\n## 1. 下载并解压\n\n从[下载页](download.html)获取源码 ZIP，解压后在仓库根目录打开 PowerShell。建议使用 Python 3.11+、Node.js 22+。需要安装 Codex Hook 时，使用支持本地插件的客户端。\n\n## 2. 准备后端环境\n\n```powershell\ncd backend\npython -m venv venv\nvenv\\Scripts\\python.exe -m pip install -r requirements-dev.txt\ncd ..\n```\n\n## 3. 构建工作台\n\n```powershell\n./scripts/build_static_ui.ps1\n```\n\n该步骤安装前端依赖并生成由后端提供的静态工作台。\n\n## 4. 启动本地服务\n\n```powershell\n./start.ps1\n```\n\n打开 `http://127.0.0.1:8001`。在 Codex 内置浏览器中使用时，运行 `./start.ps1 -NoBrowser`，再打开同一地址。\n\n## 5. 接入真实执行\n\n按[使用手册](docs/usage.html)安装并启用仓库根目录的统一 EvolveTrace 插件（见[合并使用指南](docs/consolidation.html)），然后确认事件进入工作台。遇到没有事件、任务未绑定或验证证据缺失时，查看[观测与排障](docs/observability.html)。\n\n## 使用 EvolveTrace Context\n\n先在仓库根目录安装上下文 CLI：\n\n```powershell\npython -m pip install ./context\n\naictx task prepare <项目名> --intent \"本次任务目标\" --platform codex\naictx task submit <task-id> --evolvetrace-url http://127.0.0.1:8001\n```\n\n## 运行边界\n\n这个官网提供介绍、文档和下载，不会连接你本地的 Hook、工作区或数据库。实际审查服务默认只监听本机；普通事件采集失败不会补发，缺失事件不能证明某个动作没有发生。",
   "documents": [
+    {
+      "source": "docs/consolidation.md",
+      "slug": "consolidation",
+      "title": "上下文与统一插件安装",
+      "group": "INSTALL",
+      "description": "安装 Context CLI、统一插件以及旧版本迁移。"
+    },
     {
       "source": "README.md",
       "slug": "overview",

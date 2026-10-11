@@ -63,7 +63,16 @@ npm run dev
 
 ## 接入 Codex Hook
 
-仓库的 `plugin/` 是带生命周期 Hooks 的 Codex 插件包。使用支持本地插件的 Codex 客户端安装并启用该目录，并确认 `plugin/hooks/hooks.json` 随插件一起部署到本机执行环境。官方插件说明强调：仅在网页端安装不会把本地 Hook 脚本部署到执行机器，Hook 必须在本地可用。参见 [OpenAI 插件架构](https://developers.openai.com/plugins/concepts/plugins)。
+日常安装使用仓库根目录的统一插件，它同时加载 EvolveTrace Context 和采集执行事件。先在仓库根目录安装 CLI 并生成插件 ZIP：
+
+```powershell
+python -m pip install ./context
+python scripts/build_plugin_archive.py
+```
+
+在支持本地插件的 Codex 客户端上传 `dist/evolvetrace-plugin.zip`，或通过插件市场安装仓库根目录；启用后审核并信任 Hook，再开启新的项目会话。CLI 可用 `/hooks` 核查当前定义和信任状态。安装或启用插件本身不会自动信任 Hook，网页安装也不会把脚本部署到本机。参见 [官方 Hook 文档](https://learn.chatgpt.com/docs/hooks) 和[合并安装指南](consolidation.md)。
+
+部署内容包括根目录 `hooks/hooks.json`、`context/hooks/session_start.py` 与 `plugin/hooks/`。旧 `plugin/` 只提供 audit-only 兼容接入，不加载上下文；切换统一插件后停用旧插件，避免重复采集。
 
 插件会把支持的 Codex Hook 事件脱敏后发送到：
 
@@ -73,9 +82,9 @@ http://127.0.0.1:8001/api/audit/events
 
 普通采集是 best-effort：后端未启动或请求失败不会阻断正常任务。少数高置信度危险命令由插件本地的 Safety Sentinel 在 `PreToolUse` 阶段判断，因此不依赖后端可用性。
 
-## 使用 AI Context Kit 创建任务证据链
+## 使用 EvolveTrace Context 创建任务证据链
 
-先让 AI Context Kit 为目标项目准备有范围的任务合同：
+先让 EvolveTrace Context 为目标项目准备有范围的任务合同：
 
 ```powershell
 aictx task prepare <项目名> --intent "本次任务目标" --platform codex

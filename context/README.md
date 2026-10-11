@@ -1,18 +1,18 @@
-# AI Context Kit
+# EvolveTrace Context
 
-The independently installable context component of EvolveTrace. Source, development and unified plugin packaging are maintained in this monorepo. See [installation and migration](../docs/consolidation.md).
+The independently installable context component of EvolveTrace. Source, development and unified plugin packaging are maintained in this monorepo. See [installation and migration](../docs/consolidation.md). The Python distribution `ai-context-kit`, module `ai_context_kit`, CLI `aictx`, legacy plugin identifier and managed markers retain their compatibility names; the original license and attribution remain in [LICENSE](LICENSE) and [NOTICE](../NOTICE).
 
-From the monorepo root: `python -m pip install ./context`. Inside this directory: `python -m pip install .`. Remote subdirectory installation requires an already-published consolidation commit.
+From the monorepo root: `python -m pip install ./context`. Inside this directory: `python -m pip install .`. For remote installation, pin a published EvolveTrace commit and select `#subdirectory=context`.
 
 [![CI](https://github.com/sorenjing/EvolveTrace/actions/workflows/ci.yml/badge.svg)](https://github.com/sorenjing/EvolveTrace/actions/workflows/ci.yml) [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/) [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 **Auditable project context shared across AI coding tools.**
 
-AI Context Kit maintains compact project observations that Codex, Claude, Gemini, and Cursor can read from the same workspace. It discovers nested projects, records facts from a bounded set of metadata, and detects when those observed inputs change.
+EvolveTrace Context maintains compact project observations that Codex, Claude, Gemini, and Cursor can read from the same workspace. It discovers nested projects, records facts from a bounded set of metadata, and detects when those observed inputs change.
 
 No model API, cloud service, or vector database is required. The result is a small, reviewable `.ai/` directory that can be version-controlled and shared.
 
-The repository and its current files remain authoritative. AI Context Kit provides a reusable observation and memory layer; it does not replace source inspection or project rules.
+The repository and its current files remain authoritative. EvolveTrace Context provides a reusable observation and memory layer; it does not replace source inspection or project rules.
 
 For a reproducible comparison against ordinary repository inspection, see the
 [context delivery evaluation procedure](docs/context-evaluation.md). It records
@@ -26,7 +26,7 @@ AI assistants usually keep instructions at the project level, while related proj
 - every tool repeats the same repository discovery;
 - useful decisions stay trapped in one project folder or one assistant session.
 
-AI Context Kit gives the workspace one shared context entry point. The CLI owns deterministic observations and change detection; people and their assistants own the short semantic memory that explains goals, decisions, constraints, and current state.
+EvolveTrace Context gives the workspace one shared context entry point. The CLI owns deterministic observations and change detection; people and their assistants own the short semantic memory that explains goals, decisions, constraints, and current state.
 
 ## What you get
 
@@ -41,7 +41,7 @@ AI Context Kit gives the workspace one shared context entry point. The CLI owns 
 
 ## How it fits with agent skills
 
-AI Context Kit is the **shared context layer**. It can be used alongside reusable Agent Skills and repository-local rules without depending on either one. See [Agent Skills integration](docs/integrations/agent-skills.md) for the runtime composition and responsibility boundaries.
+EvolveTrace Context is the **shared context layer**. It can be used alongside reusable Agent Skills and repository-local rules without depending on either one. See [Agent Skills integration](docs/integrations/agent-skills.md) for the runtime composition and responsibility boundaries.
 
 ## Plugin and web access
 
@@ -55,7 +55,7 @@ Local writers and the remote reader use different resource controls. See [Runtim
 
 ## Install
 
-AI Context Kit requires Python 3.11 or newer.
+EvolveTrace Context requires Python 3.11 or newer.
 
 Before the first PyPI release, install directly from the repository:
 
@@ -174,7 +174,7 @@ installer does not register those platform-side connections.
 
 ## Use with ChatGPT Projects
 
-AI Context Kit can generate a compact project handoff for ChatGPT Projects:
+EvolveTrace Context can generate a compact project handoff for ChatGPT Projects:
 
 ```bash
 aictx export chatgpt-project my-project
@@ -188,7 +188,7 @@ ChatGPT Projects organize shared chats, files, instructions, and sources; ChatGP
 
 ## Use with EvolveTrace
 
-EvolveTrace consumes a stable JSON handoff rather than AI Context Kit internals or human-facing Markdown:
+EvolveTrace consumes a stable JSON handoff rather than EvolveTrace Context internals or human-facing Markdown:
 
 ```bash
 aictx export harness my-project --format json --output -
@@ -212,7 +212,7 @@ aictx task submit <task-id> \
 
 The v2 contract is validated before any task artifact is written. Repository paths must be workspace-relative, criterion IDs must be unique, and criterion configuration must match its type. The selected repositories are exported in one bounded Context Bundle, and the EvolveTrace client transports the constraints and criteria unchanged.
 
-AI Context Kit authors, validates, and delivers this contract; it does not execute checks or claim that a criterion passed. EvolveTrace owns observable execution evidence, deterministic evaluation, and the human review decision. Existing task artifacts without `--contract` remain `task-envelope/v1` and retain their legacy submission behavior.
+EvolveTrace Context authors, validates, and delivers this contract; it does not execute checks or claim that a criterion passed. EvolveTrace owns observable execution evidence, deterministic evaluation, and the human review decision. Existing task artifacts without `--contract` remain `task-envelope/v1` and retain their legacy submission behavior.
 
 ## Context ownership
 
@@ -228,7 +228,7 @@ Human or AI-maintained semantic memory
 <!-- aictx:manual:end -->
 ```
 
-Malformed markers are an error. An existing `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, or Cursor rule without the AI Context Kit marker is never overwritten.
+Malformed markers are an error. An existing `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, or Cursor rule without the EvolveTrace Context marker is never overwritten.
 
 ## Privacy and limitations
 
@@ -244,7 +244,7 @@ Install the repository as a plugin, or copy/link `skills/manage-ai-context` into
 
 ## 中文快速开始
 
-AI Context Kit 在本地维护一套 `.ai/` 共享上下文，让 Codex、Claude、Gemini 和 Cursor 不必反复分析同一批项目。它不会调用模型 API，也不会读取普通源代码正文。
+EvolveTrace Context 在本地维护一套 `.ai/` 共享上下文，让 Codex、Claude、Gemini 和 Cursor 不必反复分析同一批项目。它不会调用模型 API，也不会读取普通源代码正文。
 
 完整说明见 [中文使用手册](docs/zh-CN/usage.md)；需要判断 CLI 和工作区是否健康时，使用 [中文自测手册](docs/zh-CN/self-check.md)。
 判断上下文是否实际减少准备与纠正负担，使用[效果验证指南](docs/zh-CN/effectiveness.md)，分别核查交付、可观察使用和任务收益。

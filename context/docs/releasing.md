@@ -1,6 +1,6 @@
 # Release process
 
-AI Context Kit uses a tag-gated Trusted Publishing workflow. Do not create a version tag until every prerequisite below is complete.
+EvolveTrace Context uses a tag-gated Trusted Publishing workflow. Do not create a version tag until every prerequisite below is complete.
 
 ## One-time repository setup
 

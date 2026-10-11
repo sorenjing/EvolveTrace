@@ -47,7 +47,8 @@ def test_loads_selected_context_and_records_hook_receipt(tmp_path: Path) -> None
     assert "Shared preference" in context
     assert "Selected decision" in context
     assert "Private other project" not in context
-    assert "AI Context Kit" in output["systemMessage"]
+    assert output["systemMessage"].startswith("EvolveTrace Context:")
+    assert context.startswith("EvolveTrace Context |")
     receipt = json.loads((root / ".ai/usage.json").read_text(encoding="utf-8"))["events"][-1]
     assert receipt["trigger"] == "SessionStart:startup"
     assert receipt["status"] == "returned"

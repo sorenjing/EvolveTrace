@@ -2,7 +2,7 @@
 
 ## 上下文与执行证据，共用一个项目
 
-AI Context Kit 现在位于本仓库的 [`context/`](context/)，继续提供独立的 `aictx` CLI。安装、统一插件、任务绑定与 GitHub 迁移步骤见[合并使用指南](docs/consolidation.md)。
+EvolveTrace Context 是本仓库的上下文组件，位于 [`context/`](context/)，继续提供独立的 `aictx` CLI。安装、统一插件、任务绑定与 GitHub 迁移步骤见[合并使用指南](docs/consolidation.md)。
 
 ```powershell
 python -m pip install ./context
@@ -25,7 +25,7 @@ python scripts/build_plugin_archive.py
 
 EvolveTrace 是面向 Coding Agent 的本地优先执行证据与回归 Harness：它将任务契约、上下文版本、可观察执行、确定性评估和人工复核绑定成可验证证据链，并把失败沉淀为可重放的 Regression Case。
 
-当前版本提供 Codex 执行审查、实时可观测和窄范围的执行前安全保护，并已实现 Task Contract、AI Context Kit `ContextBundle v1` 导入、Context Receipt、Run 绑定，以及首个 Evidence-based Evals 纵向切片。它基于 Agent 已公开的事件和验证结果构建证据链，不依赖隐藏思维链，也不上传源代码。
+当前版本提供 Codex 执行审查、实时可观测和窄范围的执行前安全保护，并已实现 Task Contract、EvolveTrace Context `ContextBundle v1` 导入、Context Receipt、Run 绑定，以及首个 Evidence-based Evals 纵向切片。它基于 Agent 已公开的事件和验证结果构建证据链，不依赖隐藏思维链，也不上传源代码。
 
 ## 为什么需要它
 
@@ -44,7 +44,7 @@ EvolveTrace 的目标不是给 Agent 再套一层聊天界面，而是把需求�
 
 ```mermaid
 flowchart TD
-    A["AI Context Kit<br/>上下文快照"] --> B["Task Contract<br/>目标、约束、验收标准"]
+    A["EvolveTrace Context<br/>上下文快照"] --> B["Task Contract<br/>目标、约束、验收标准"]
     B --> C["Coding Agent<br/>Codex 等"]
     C --> D["Evidence Layer<br/>轨迹、修改、验证与风险"]
     D --> E["Deterministic Evals"]
@@ -58,7 +58,7 @@ flowchart TD
 
 | 层 | 职责 |
 | --- | --- |
-| [AI Context Kit](https://github.com/sorenjing/ai-context-kit) | 维护“AI 应该知道什么”，生成可审计、可追踪 freshness 的项目上下文 |
+| [EvolveTrace Context](context/) | 维护“AI 应该知道什么”，生成可审计、可追踪 freshness 的项目上下文 |
 | Agent Skills | 约束“AI 应该怎样工作”，复用开发行为与流程 |
 | EvolveTrace | 记录“AI 做了什么、是否做对、失败如何复现” |
 

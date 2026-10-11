@@ -42,7 +42,7 @@ def test_plugin_manifest_exposes_the_standard_skill_directory() -> None:
     assert manifest["version"] == "0.2.0"
     assert manifest["skills"] == "./skills/"
     assert manifest["repository"] == "https://github.com/sorenjing/EvolveTrace"
-    assert manifest["interface"]["displayName"] == "AI Context Kit"
+    assert manifest["interface"]["displayName"] == "EvolveTrace Context"
     assert "mcpServers" not in manifest
     assert "apps" not in manifest
 

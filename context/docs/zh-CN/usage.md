@@ -1,8 +1,8 @@
 本组件现维护于 EvolveTrace/context。首次安装请先阅读[合并使用指南](../../../docs/consolidation.md)；远程命令需要填写已发布的提交 SHA。
 
-# AI Context Kit 中文使用手册
+# EvolveTrace Context 中文使用手册
 
-AI Context Kit 在一个工作区内维护共享的 `.ai/` 上下文，让 Codex、Claude、Gemini 和 Cursor 使用同一套项目索引与语义记忆。它读取有限的项目元数据，不替代当前源码、测试或项目规则。
+EvolveTrace Context 在一个工作区内维护共享的 `.ai/` 上下文，让 Codex、Claude、Gemini 和 Cursor 使用同一套项目索引与语义记忆。它读取有限的项目元数据，不替代当前源码、测试或项目规则。
 
 ## 安装方式
 
@@ -19,7 +19,7 @@ aictx --version
 
 ### 本地开发
 
-需要修改 AI Context Kit 本身时，在仓库中创建虚拟环境并安装开发依赖：
+需要修改 EvolveTrace Context 时，在 EvolveTrace 的 `context/` 目录中创建虚拟环境并安装开发依赖：
 
 ```powershell
 python -m venv .venv
