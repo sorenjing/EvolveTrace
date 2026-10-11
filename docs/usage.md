@@ -74,6 +74,8 @@ python scripts/build_plugin_archive.py
 
 部署内容包括根目录 `hooks/hooks.json`、`context/hooks/session_start.py` 与 `plugin/hooks/`。旧 `plugin/` 只提供 audit-only 兼容接入，不加载上下文；切换统一插件后停用旧插件，避免重复采集。
 
+更新后若 Hook 显示 `modified` 或 `untrusted`，先重新审核当前定义，再开新会话。旧信任记录和数据库里的旧 Session 都不能证明新版已运行；具体核查顺序见[当前 Hook 信任与真实派发检查](observability.md#先确认当前-hook-定义已获信任)。
+
 插件会把支持的 Codex Hook 事件脱敏后发送到：
 
 ```text

@@ -67,6 +67,10 @@ aictx check --workspace <工作区路径>
 
 测试通过只能证明代码层检查通过，不能替代目标工作区的 `status` 和 `check`。
 
+### Codex 自动加载检查
+
+上述 CLI 自测不会检查宿主的 Hook 信任。使用统一插件时，先在 Codex CLI 的 `/hooks` 中审核当前定义；`modified` 或 `untrusted` 都需要用户审核。随后从目标项目开启新会话，检查 `aictx usage <项目名> --workspace <工作区路径>` 是否产生本次 `SessionStart` 记录。旧记录和手动 `load` 不算自动加载验收。执行事件的检查见[统一插件观测手册](../../../docs/observability.md#先确认当前-hook-定义已获信任)。
+
 ### 4. Personal AI Pack
 
 ```powershell

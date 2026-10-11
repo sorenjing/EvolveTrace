@@ -45,7 +45,9 @@ ZIP 根目录直接包含 `.codex-plugin/plugin.json`，并同时包含上下文
 ./start.ps1 -NoBrowser
 ```
 
-打开 `http://127.0.0.1:8001`。在新的项目会话中检查上下文加载消息，用 `aictx usage` 核查来源，再运行 `./scripts/observe.ps1 -ExpectEvidence` 核查执行证据。上下文输出成功不能单独证明客户端接收、模型采用或任务收益。
+打开 `http://127.0.0.1:8001`。先在 Codex CLI 的 `/hooks` 中审核并信任当前 Hook 定义；安装、启用或保留旧信任记录都不能代替这一步。更新后出现 `modified` 时需要重新审核，详见[观测与排障手册](observability.md#先确认当前-hook-定义已获信任)。
+
+在新的项目会话中检查上下文加载消息，用 `aictx usage` 核查新的 `SessionStart` 来源和时间，再运行 `./scripts/observe.ps1 -ExpectEvidence`，对比本次会话的事件时间与计数。历史 Session 不算本次验收。上下文输出成功不能单独证明客户端接收、模型采用或任务收益。
 
 需要把任务与执行绑定时：
 

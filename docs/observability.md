@@ -52,13 +52,33 @@ Invoke-RestMethod http://127.0.0.1:8001/api/audit/sessions
 
 在 Codex 中执行一个会触发生命周期或工具事件的任务后，应该出现新的 Session 或现有 Session 的事件计数增加。
 
+### 先确认当前 Hook 定义已获信任
+
+插件已安装、已启用和 Hook 已获信任是不同状态。更新插件后，即使配置中仍有旧信任记录，当前定义也可能尚未获信任。Codex 会跳过未信任或已变更的 Hook，直到用户审核当前定义，参见[官方 Hook 文档](https://learn.chatgpt.com/docs/hooks)。
+
+在目标项目目录启动 Codex CLI，输入 `/hooks`，查看统一 EvolveTrace 插件的每个 Hook，审核命令、脚本来源和当前定义后授予信任。不要通过手工修改信任哈希或 bypass 代替审核。
+
+宿主提供 `trustStatus` 时，按以下状态排查：
+
+| 状态 | 如何处理 |
+| --- | --- |
+| `trusted` | 当前定义已通过用户信任；继续检查实际派发与执行结果 |
+| `untrusted` | 尚未信任，需先审核当前定义 |
+| `modified` | 定义与此前信任记录不一致，需重新审核 |
+| `managed` | 由宿主管理策略授权，继续核查启用状态和实际执行 |
+
+审核后在目标项目中开启新会话。SessionStart 不会补触发到已经开始的会话。在服务运行时执行一次真实工具调用，并对比检查前后的会话 ID、事件时间和计数；`-ExpectEvidence` 发现一条旧 Session，只能证明数据库中有历史证据。
+
+上下文加载另用 `aictx usage <项目名> --workspace <工作区根目录>` 检查新记录的 `SessionStart` 来源、项目和时间。手动 `aictx load` 的成功记录不能代替宿主自动加载。
+
 没有事件时检查：
 
-1. Codex 客户端是否安装并启用了 `plugin/`。
-2. 本地执行环境是否实际包含 `plugin/hooks/hooks.json` 和 Python 采集脚本。
-3. Hook 使用的 Python 是否可运行。
-4. 服务是否在事件发生时监听 `127.0.0.1:8001`。
-5. 后端控制台是否报告格式校验或请求错误。
+1. Codex 客户端是否安装并启用了仓库根目录的统一插件，当前 Hook 定义是否已获信任。
+2. 安装内容是否包含根目录 `hooks/hooks.json`、`context/hooks/session_start.py` 和 `plugin/hooks/capture_event.py`；旧 `plugin/` 只提供 audit-only 兼容接入。
+3. 宿主解析出的脚本路径是否存在，Hook 使用的 Python 是否可运行。
+4. 是否已在目标项目中开启新会话，而非继续安装前的会话。
+5. 服务是否在事件发生时监听 `127.0.0.1:8001`。
+6. 后端控制台是否报告格式校验或请求错误。
 
 采集是 best-effort。没有 Hook 记录只能说明当前证据不足。
 
