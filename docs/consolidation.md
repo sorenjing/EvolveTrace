@@ -21,6 +21,15 @@ aictx --version
 
 工作区 `.aictx.toml` 和 `.ai/` 保持原位，不要复制到组件目录或重新初始化第二套记忆。
 
+还需核对 Hook 实际调用的 Python，而不只检查 `aictx` 启动器。统一插件会优先从该 Python 导入 `ai_context_kit`；成功时不会再调用 PATH 上的 `aictx`。旧的 editable 安装可能让启动器已更新、Hook 却仍加载旧仓库：
+
+```powershell
+python -m pip show ai-context-kit
+python -c "import ai_context_kit; print(ai_context_kit.__file__)"
+```
+
+源码开发模式应指向当前 EvolveTrace 的 `context/`，普通包安装则应指向预期环境的 site-packages。若 editable 路径仍为旧仓库，在 EvolveTrace 根目录用同一个 Python 运行 `python -m pip install -e ./context`，再检查路径并开启新会话。若该 Python 没有安装组件，加载器会尝试 PATH 上的独立 `aictx`；这时核对 `Get-Command aictx -All` 及其安装环境。
+
 ```powershell
 aictx status --workspace <工作区根目录>
 aictx load <项目名> --workspace <工作区根目录>
