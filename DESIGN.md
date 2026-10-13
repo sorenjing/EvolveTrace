@@ -80,6 +80,8 @@ EvolveTrace Context 的实现现位于同一仓库的 `context/`，保留独立 
 
 仓库文件始终是事实源。EvolveTrace Context 是上下文入口，EvolveTrace 是运行和评估入口。
 
+三个输入侧设计的实现与验证路径见 [Context 设计与学习路径](docs/context-design.md)：受控读取、交付证据，以及 ContextBundle 与任务运行的接口衔接。
+
 ### Context Receipt：上下文与执行之间的可观察连接
 
 `ContextReceipt` 记录某个版本化 Context Bundle 是否被生成、交付并绑定到可观察 Run。它复用现有 Task Contract、Context Snapshot 和 Run，不创建第二套任务或执行状态。等级只能逐级前进：`generated`、`delivered`、`acknowledged`、`evidenced`、`effective`。

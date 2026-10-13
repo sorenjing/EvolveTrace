@@ -39,6 +39,13 @@ const project = {
   "quickStart": "# 在本机运行 EvolveTrace\n\n## 1. 下载并解压\n\n从[下载页](download.html)获取源码 ZIP，解压后在仓库根目录打开 PowerShell。建议使用 Python 3.11+、Node.js 22+。需要安装 Codex Hook 时，使用支持本地插件的客户端。\n\n## 2. 准备后端环境\n\n```powershell\ncd backend\npython -m venv venv\nvenv\\Scripts\\python.exe -m pip install -r requirements-dev.txt\ncd ..\n```\n\n## 3. 构建工作台\n\n```powershell\n./scripts/build_static_ui.ps1\n```\n\n该步骤安装前端依赖并生成由后端提供的静态工作台。\n\n## 4. 启动本地服务\n\n```powershell\n./start.ps1\n```\n\n打开 `http://127.0.0.1:8001`。在 Codex 内置浏览器中使用时，运行 `./start.ps1 -NoBrowser`，再打开同一地址。\n\n## 5. 接入真实执行\n\n按[使用手册](docs/usage.html)安装并启用仓库根目录的统一 EvolveTrace 插件（见[合并使用指南](docs/consolidation.html)），然后确认事件进入工作台。遇到没有事件、任务未绑定或验证证据缺失时，查看[观测与排障](docs/observability.html)。\n\n## 使用 EvolveTrace Context\n\n先在仓库根目录安装上下文 CLI：\n\n```powershell\npython -m pip install ./context\n\naictx task prepare <项目名> --intent \"本次任务目标\" --platform codex\naictx task submit <task-id> --evolvetrace-url http://127.0.0.1:8001\n```\n\n## 运行边界\n\n这个官网提供介绍、文档和下载，不会连接你本地的 Hook、工作区或数据库。实际审查服务默认只监听本机；普通事件采集失败不会补发，缺失事件不能证明某个动作没有发生。",
   "documents": [
     {
+      "source": "docs/context-design.md",
+      "slug": "context-design",
+      "title": "Context 设计与学习路径",
+      "group": "INTEGRATION",
+      "description": "受控上下文输入、交付证据与任务运行绑定的代码阅读及验证路径。"
+    },
+    {
       "source": "docs/consolidation.md",
       "slug": "consolidation",
       "title": "上下文与统一插件安装",
