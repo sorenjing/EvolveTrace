@@ -10,9 +10,9 @@ EvolveTrace 的证据链从任务输入开始：先确定项目背景和验收�
 
 ### 阅读顺序
 
-1. [`config.py`](../context/src/ai_context_kit/config.py)：工作区定位与配置。
-2. [`context_delivery.py`](../context/src/ai_context_kit/context_delivery.py)：`prepare_context`、`_safe_path`、`_read` 和 `session_start`。
-3. [`facts.py`](../context/src/ai_context_kit/facts.py) 与 [`state.py`](../context/src/ai_context_kit/state.py)：限定范围的元数据观察和 freshness 判定。
+1. [`config.py`](../context/src/evolvetrace_context/config.py)：工作区定位与配置。
+2. [`context_delivery.py`](../context/src/evolvetrace_context/context_delivery.py)：`prepare_context`、`_safe_path`、`_read` 和 `session_start`。
+3. [`facts.py`](../context/src/evolvetrace_context/facts.py) 与 [`state.py`](../context/src/evolvetrace_context/state.py)：限定范围的元数据观察和 freshness 判定。
 4. [`session_start.py`](../context/hooks/session_start.py) 与 [`hooks.json`](../hooks/hooks.json)：宿主 Hook 如何调用加载器。
 
 ### 已有机制
@@ -40,8 +40,8 @@ Harness 回执按级别前进，不能跳级或倒退。加载器输出、HTTP �
 
 ### 阅读顺序
 
-1. [`context_delivery.py`](../context/src/ai_context_kit/context_delivery.py)：`emit_context`、`_record` 和 `read_usage`。
-2. [`task_contracts.py`](../context/src/ai_context_kit/task_contracts.py)：客户端回执结构与状态推进。
+1. [`context_delivery.py`](../context/src/evolvetrace_context/context_delivery.py)：`emit_context`、`_record` 和 `read_usage`。
+2. [`task_contracts.py`](../context/src/evolvetrace_context/task_contracts.py)：客户端回执结构与状态推进。
 3. [`models.py`](../backend/harness/models.py) 与 [`harness_service.py`](../backend/services/harness_service.py)：后端验证、运行绑定及证据流转。
 4. [上下文证据演示](context-evidence-demo.md)和[效果验证指南](effectiveness.md)：如何观察与验证结果。
 
@@ -61,14 +61,14 @@ flowchart LR
     F --> G[评估与人工审查]
 ```
 
-[`evolvetrace_client.py`](../context/src/ai_context_kit/evolvetrace_client.py) 的 `submit_task` 依次提交快照、创建任务、提交交付回执，再激活任务绑定，并检查服务返回的标识是否匹配。自动 SessionStart 加载不会代替这一任务提交流程；只有会话事件而没有任务绑定时，工作台可以显示未绑定会话。
+[`evolvetrace_client.py`](../context/src/evolvetrace_context/evolvetrace_client.py) 的 `submit_task` 依次提交快照、创建任务、提交交付回执，再激活任务绑定，并检查服务返回的标识是否匹配。自动 SessionStart 加载不会代替这一任务提交流程；只有会话事件而没有任务绑定时，工作台可以显示未绑定会话。
 
 客户端限定 loopback 地址并设置请求超时。网络不可用或服务端错误会返回未完成结果和告警；4xx 契约错误需要纠正。多个请求之间可能已有部分提交，不能将客户端未完成理解成服务端没有任何记录，也不能凭空补造交付证据。
 
 ### 阅读顺序
 
-1. [`harness_export.py`](../context/src/ai_context_kit/harness_export.py)：构建可移植的 ContextBundle。
-2. [`evolvetrace_client.py`](../context/src/ai_context_kit/evolvetrace_client.py)：请求顺序、标识校验与失败处理。
+1. [`harness_export.py`](../context/src/evolvetrace_context/harness_export.py)：构建可移植的 ContextBundle。
+2. [`evolvetrace_client.py`](../context/src/evolvetrace_context/evolvetrace_client.py)：请求顺序、标识校验与失败处理。
 3. [`context_bundle.py`](../backend/harness/context_bundle.py)：版本、字段、大小与绝对路径等边界验证。
 4. [`routes.py`](../backend/api/routes.py)、[`harness_service.py`](../backend/services/harness_service.py) 与 [`audit_service.py`](../backend/services/audit_service.py)：从 HTTP 接收进入任务和运行证据链。
 

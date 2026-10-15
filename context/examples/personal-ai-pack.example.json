@@ -5,7 +5,7 @@
   "profile": {"visibility": "private", "authority": "portfolio"},
   "sources": {
     "portfolio": {"repository": "example/private-portfolio", "registry": "registry.yaml"},
-    "context": {"provider": "ai-context-kit"}
+    "context": {"provider": "evolvetrace-context"}
   },
   "platforms": {
     "codex": {"enabled": true, "adapter": "codex-plugin"},

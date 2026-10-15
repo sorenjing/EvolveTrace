@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Use `evolvetrace-context` for the Python distribution, component plugin and MCP server, and `evolvetrace_context` for Python imports. Existing `aictx` commands and workspace formats are unchanged.
+
 - Add strict `personal-ai-pack/v2` entrypoint and bounded discovery configuration while preserving v1 manifests.
 - Generate one common entry policy with thin Local, Codex, and ChatGPT bootstrap/fallback adapters.
 - Add `aictx locate` with explicit, environment, untracked-local-override, and bounded-discovery precedence.
@@ -26,7 +28,7 @@
 - Add a standard and portable AI Context Kit plugin manifest.
 - Keep `manage-ai-context` in the canonical `skills/` directory and Python package artifacts.
 
-All notable changes to AI Context Kit are documented here. The project follows semantic versioning after the first published release.
+All notable changes to EvolveTrace Context are documented here. Earlier entries retain their historical component names. The project follows semantic versioning after the first published release.
 
 ## 0.1.0 - Unreleased
 

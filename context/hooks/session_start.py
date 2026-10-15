@@ -10,7 +10,7 @@ import sys
 
 def main() -> None:
     try:
-        from ai_context_kit.context_delivery import session_start
+        from evolvetrace_context.context_delivery import session_start
     except ImportError:
         command = shutil.which("aictx")
         if command:

@@ -36,9 +36,13 @@ export function subscribeToAuditStream(
   sessionId: string | null,
   onMessage: (message: AuditStreamMessage) => void,
   onError: () => void,
+  onOpen?: () => void,
+  onReset?: () => void,
 ): () => void {
   const query = sessionId ? `?session_id=${encodeURIComponent(sessionId)}` : "";
   const source = new EventSource(`${apiBaseUrl()}/api/audit/stream${query}`);
+  source.onopen = () => onOpen?.();
+  source.addEventListener("reset", () => onReset?.());
   source.onmessage = (event) => {
     try {
       onMessage(JSON.parse(event.data) as AuditStreamMessage);

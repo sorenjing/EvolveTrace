@@ -2,7 +2,7 @@
 
 ## 1. 产品定位
 
-EvolveTrace 是一个面向个人多仓库开发的本地优先 Coding Agent Evidence & Regression Harness。它把任务契约、上下文版本、可观察执行、确定性评估和人工复核组织为一条可验证的工程链路，并将失败沉淀为可重放的回归案例。
+EvolveTrace 面向个人多仓库开发，把任务契约、上下文版本、可观察执行、确定性评估和人工复核组织为可验证的工程链路，并提供跨项目命令审计。可重放的通用回归案例是后续目标。
 
 一句话定义：
 
@@ -143,11 +143,20 @@ Task Service 管理需求契约、上下文绑定和状态流转。Run Service �
 
 现有 `AuditEvent`、risk finding、SQLite repository 和 SSE 继续使用。新增 Task、Context Snapshot、Run、Evaluation、Review 和 Regression 表，不把原始 Hook payload 重新引入数据库。
 
-### 5.4 Evaluation Engine
+### 5.4 Cross-project activity and reviewed memory
+
+执行行为观察消费 Context 的 `workspace-index/v1` 项目目录，通过事件工作目录
+进行最深路径归属。后台独立补齐有界执行元数据，统计及重复操作/失败重试规则按需查询，不改变 Task 验收或
+Review 状态。`audit-memory/v1` 只回读带项目、会话和证据引用的人工确认结论。
+这些结论是历史观察；Context CLI 和显式启用的 SessionStart 可以按当前项目
+回读，但不自动改写 `.ai` 人工语义块。协议与使用方式见
+[跨项目审计使用指南](docs/workspace-audit.md)。
+
+### 5.5 Evaluation Engine
 
 Evaluator 使用统一接口，输入为 Task Contract、Context Snapshot、Run 和证据查询接口；输出为结构化 `EvaluationResult`。Evaluator 不直接修改 Task 或 Run 状态，由 Evaluation Service 聚合后流转。
 
-### 5.5 Review Workbench
+### 5.6 Review Workbench
 
 界面从 Session-first 调整为 Task-first：
 

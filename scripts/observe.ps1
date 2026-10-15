@@ -30,6 +30,16 @@ try {
     $workbench = Invoke-WebRequest -Uri "$base/" -Method Get -UseBasicParsing -TimeoutSec 5
     Write-Host "HTTP status: $($workbench.StatusCode)"
 
+    $capture = Invoke-ReadOnlyJson -Label "Hook capture status" -Path "/api/activity/status"
+    Write-Host "Capture state: $($capture.capture_state)"
+    Write-Host "Received since startup: $($capture.received_event_count)"
+    Write-Host "Newly persisted since startup: $($capture.persisted_event_count)"
+    Write-Host "Stored historical events: $($capture.stored_event_count)"
+    Write-Host "Registered projects: $($capture.registered_project_count)"
+    Write-Host "Last server receipt: $($capture.last_received_at)"
+    Write-Host "Observed phases: $($capture.observed_phases -join ', ')"
+    Write-Host "Quiet may mean idle; receipt status does not establish complete capture."
+
     $sessions = @(Invoke-ReadOnlyJson -Label "Audit sessions" -Path "/api/audit/sessions")
     Write-Host "Session count: $($sessions.Count)"
     if ($sessions.Count -gt 0) {
@@ -53,8 +63,8 @@ try {
 }
 
 Write-Host "`n== Summary =="
-if ($ExpectEvidence -and ($sessions.Count -eq 0)) {
-    Write-Host "Service is healthy, but no Hook evidence is available yet."
+if ($ExpectEvidence -and ($capture.received_event_count -eq 0)) {
+    Write-Host "Service is healthy, but no Hook evidence has arrived since this startup. Historical sessions do not prove current capture."
     exit 1
 }
 

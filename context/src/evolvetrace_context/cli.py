@@ -15,6 +15,7 @@ from .discovery import discover_projects
 from .facts import extract_facts
 from .harness_export import build_harness_bundle
 from .evolvetrace_client import submit_task
+from .audit_client import DEFAULT_URL, append_memory, run_audit
 from .locking import workspace_write_lock
 from .pack_install import PackInstaller
 from .personal_pack import PersonalAIPack
@@ -71,6 +72,8 @@ def _parser() -> argparse.ArgumentParser:
         command.add_argument("project", nargs="?")
         command.add_argument("--workspace", type=Path)
         command.add_argument("--json", action="store_true")
+        if name == "load":
+            command.add_argument("--audit-url", help="Optionally recall this project's reviewed audit memory from a loopback service")
     for name in ("init", "scan", "status", "check"):
         command = subparsers.add_parser(name)
         command.add_argument("--workspace", type=Path)
@@ -134,6 +137,23 @@ def _parser() -> argparse.ArgumentParser:
     inspect.add_argument("path", nargs="?", type=Path, default=Path.cwd())
     inspect.add_argument("--context-commit")
     inspect.add_argument("--json", action="store_true")
+    audit = subparsers.add_parser("audit", description="Cross-project execution evidence and explicit reviewed memory")
+    audit_commands = audit.add_subparsers(dest="audit_command", required=True)
+    for name in ("sync", "report", "memory", "remember"):
+        command = audit_commands.add_parser(name)
+        command.add_argument("--workspace", type=Path)
+        command.add_argument("--evolvetrace-url", default=DEFAULT_URL)
+        if name == "sync":
+            command.add_argument("--dry-run", action="store_true")
+        elif name == "report":
+            command.add_argument("project", nargs="?")
+        else:
+            command.add_argument("project")
+        if name == "remember":
+            command.add_argument("--session-id", required=True)
+            command.add_argument("--event-id", action="append", required=True)
+            command.add_argument("--note", required=True)
+            command.add_argument("--confirm", action="store_true")
     return parser
 
 
@@ -287,6 +307,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return session_start()
         if args.command == "load":
             root, result = prepare_context(args.workspace or Path.cwd(), args.project)
+            if args.audit_url:
+                append_memory(root, result, args.project, args.audit_url)
             return emit_context(root, result, as_json=args.json)
         if args.command == "repo":
             repository = inspect_repository(args.path)
@@ -351,6 +373,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"updated personal AI pack: {pack.pack_id}")
             return 0
         root = _root(args.workspace, initializing=args.command == "init")
+        if args.command == "audit":
+            print(json.dumps(run_audit(root, args), ensure_ascii=False, indent=2))
+            return 0
         if args.command == "usage":
             print_usage(root, args.project, as_json=args.json)
             return 0

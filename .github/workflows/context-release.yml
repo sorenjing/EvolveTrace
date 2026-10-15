@@ -25,6 +25,7 @@ jobs:
           .smoke/bin/python -m pip install dist/context/*.whl
           test "$(.smoke/bin/aictx --version)" = "aictx ${GITHUB_REF_NAME#context-v}"
           .smoke/bin/aictx --help >/dev/null
+          .smoke/bin/python -c "import evolvetrace_context as context; from importlib.metadata import version; assert version('evolvetrace-context') == context.__version__"
       - uses: actions/upload-artifact@v4
         with:
           name: context-python-package

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from ai_context_kit.adapters import ManagedFileError, render_adapters, write_managed_file
+from evolvetrace_context.adapters import ManagedFileError, render_adapters, write_managed_file
 
 
 def test_renders_all_supported_ai_entry_files() -> None:

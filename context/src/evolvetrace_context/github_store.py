@@ -49,7 +49,7 @@ class GitHubBundleStore:
             f"https://api.github.com/repos/{self.repository}/contents/"
             f"{quote(path, safe='/')}?ref={quote(self.ref, safe='')}"
         )
-        headers = {"Accept": "application/vnd.github+json", "User-Agent": "ai-context-kit"}
+        headers = {"Accept": "application/vnd.github+json", "User-Agent": "evolvetrace-context"}
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
         try:

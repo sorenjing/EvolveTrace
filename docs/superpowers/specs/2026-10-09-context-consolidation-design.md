@@ -1,5 +1,8 @@
 # Context component consolidation
 
+> Historical consolidation design. The package/import/plugin identity policy
+> below is superseded by [EvolveTrace Context identity](2026-10-15-context-identity-design.md).
+
 ## Product and ownership
 
 EvolveTrace is the primary repository for project context delivery and coding-agent execution evidence. The context component continues to expose `aictx` and `aictx-mcp` as independently installable commands. Marlow remains an independent compatibility probe tool.

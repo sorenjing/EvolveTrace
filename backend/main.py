@@ -1,6 +1,7 @@
 """FastAPI entry point for the local EvolveTrace audit service."""
 
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -14,13 +15,23 @@ from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
 from api.routes import router
+from api import routes
 
 
 STATIC_UI_DIR = Path(os.getenv("EVOLVETRACE_STATIC_UI_DIR", Path(__file__).resolve().parent / "static"))
 
 
 def create_app(static_ui_dir: Path | None = None) -> FastAPI:
-    app = FastAPI(title="EvolveTrace Backend", version="0.1.0")
+    @asynccontextmanager
+    async def lifespan(app):
+        worker = routes.activity_service.evidence_worker
+        await worker.start()
+        try:
+            yield
+        finally:
+            await worker.stop()
+
+    app = FastAPI(title="EvolveTrace Backend", version="0.1.0", lifespan=lifespan)
     origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
     app.add_middleware(CORSMiddleware, allow_origins=[item.strip() for item in origins.split(",") if item.strip()], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
     app.include_router(router, prefix="/api")

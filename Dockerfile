@@ -1,4 +1,4 @@
-FROM node:20-alpine AS ui
+FROM node:22-alpine AS ui
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -10,6 +10,7 @@ WORKDIR /app
 COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 COPY backend ./backend
+COPY LICENSE NOTICE ./licenses/
 COPY --from=ui /app/out ./backend/static
 WORKDIR /app/backend
 EXPOSE 8001

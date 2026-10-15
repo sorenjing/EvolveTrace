@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pytest
 
-from ai_context_kit.cli import main
-from ai_context_kit.config import ConfigError
-from ai_context_kit.harness_export import build_harness_bundle
-from ai_context_kit.task_contracts import TaskEnvelope
+from evolvetrace_context.cli import main
+from evolvetrace_context.config import ConfigError
+from evolvetrace_context.harness_export import build_harness_bundle
+from evolvetrace_context.task_contracts import TaskEnvelope
 
 from test_cli import make_workspace
 

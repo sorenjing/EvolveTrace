@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from ai_context_kit.config import Config
-from ai_context_kit.discovery import discover_projects
+from evolvetrace_context.config import Config
+from evolvetrace_context.discovery import discover_projects
 
 
 def config_for(root: Path) -> Config:

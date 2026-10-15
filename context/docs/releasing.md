@@ -6,11 +6,11 @@ EvolveTrace Context uses a tag-gated Trusted Publishing workflow. Do not create 
 
 1. Create a protected GitHub Environment named `pypi`.
 2. In PyPI, configure a Trusted Publisher for repository `sorenjing/EvolveTrace`, workflow `context-release.yml`, environment `pypi`.
-3. Confirm the repository default branch and package ownership before the first upload.
+3. Confirm the repository default branch and ownership of the `evolvetrace-context` distribution before the first upload. Local packaging does not establish registry-name availability.
 
 ## Version release checklist
 
-1. Update `src/ai_context_kit/__init__.py` and the changelog to the same semantic version.
+1. Update `src/evolvetrace_context/__init__.py` and the changelog to the same semantic version.
 2. Run `.venv/Scripts/python.exe -m pytest -q` on Windows or the equivalent virtual-environment command on Unix.
 3. From the monorepo root, run `python -m build context --outdir dist/context` and inspect only the version being released.
 4. Create a clean temporary virtual environment and install that version's wheel from `dist/context/`.

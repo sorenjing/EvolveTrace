@@ -1,9 +1,9 @@
 from pathlib import Path
 import subprocess
 
-from ai_context_kit.config import Config
-from ai_context_kit.facts import extract_facts
-from ai_context_kit.models import Project
+from evolvetrace_context.config import Config
+from evolvetrace_context.facts import extract_facts
+from evolvetrace_context.models import Project
 
 
 def project_at(root: Path) -> Project:

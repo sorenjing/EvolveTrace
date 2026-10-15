@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from ai_context_kit.mcp_server import (
+from evolvetrace_context.mcp_server import (
     InFlightLimit,
     _pack_status_from_environment,
     _store_from_environment,

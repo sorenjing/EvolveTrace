@@ -3,13 +3,13 @@ requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
-name = "ai-context-kit"
+name = "evolvetrace-context"
 dynamic = ["version"]
 description = "Offline shared context for AI coding tools"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
-authors = [{ name = "AI Context Kit contributors" }]
+authors = [{ name = "EvolveTrace Context contributors" }]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
@@ -19,21 +19,21 @@ classifiers = [
 dependencies = ["PyYAML>=6,<7"]
 
 [project.scripts]
-aictx = "ai_context_kit.cli:entrypoint"
-aictx-mcp = "ai_context_kit.mcp_server:entrypoint"
+aictx = "evolvetrace_context.cli:entrypoint"
+aictx-mcp = "evolvetrace_context.mcp_server:entrypoint"
 
 [project.optional-dependencies]
 dev = ["build>=1.2", "pytest>=8", "mcp>=2,<3"]
 server = ["mcp>=2,<3"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/ai_context_kit"]
+packages = ["src/evolvetrace_context"]
 
 [tool.hatch.build.targets.wheel.shared-data]
-"skills/manage-ai-context" = "share/ai-context-kit/skills/manage-ai-context"
+"skills/manage-ai-context" = "share/evolvetrace-context/skills/manage-ai-context"
 
 [tool.hatch.version]
-path = "src/ai_context_kit/__init__.py"
+path = "src/evolvetrace_context/__init__.py"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

@@ -50,6 +50,13 @@ def test_first_event_creates_run_for_active_repository(tmp_path):
     assert result["run"]["task_id"] == task["task_id"]
 
 
+def test_posix_bound_run_preserves_absolute_execution_directory(tmp_path):
+    harness, task, audit = configured(tmp_path)
+    harness.activate_task(task["task_id"], "sample-app")
+    result = audit.ingest(payload("posix", "/workspace/sample-app"))
+    assert result["run"]["cwd"] == "/workspace/sample-app"
+
+
 def test_unmatched_session_remains_unbound(tmp_path):
     harness, _, audit = configured(tmp_path)
     result = audit.ingest(payload("s2", "other-app"))

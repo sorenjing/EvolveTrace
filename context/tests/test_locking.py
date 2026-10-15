@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from ai_context_kit.locking import WorkspaceLockTimeout, workspace_write_lock
+from evolvetrace_context.locking import WorkspaceLockTimeout, workspace_write_lock
 
 
 def _hold_lock(root: str, ready, release) -> None:

@@ -2,8 +2,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from threading import Thread
 
-from ai_context_kit.evolvetrace_client import build_task_payload, submit_task
-from ai_context_kit.task_contracts import AcceptanceCriterion, ContextReceipt, TaskEnvelope, TaskEnvelopeV2
+from evolvetrace_context.evolvetrace_client import build_task_payload, submit_task
+from evolvetrace_context.task_contracts import AcceptanceCriterion, ContextReceipt, TaskEnvelope, TaskEnvelopeV2
 
 
 def test_v2_payload_preserves_structured_contract() -> None:

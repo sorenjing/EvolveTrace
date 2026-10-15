@@ -49,3 +49,16 @@ def test_sse_stream_has_bounded_queue_and_heartbeat(tmp_path):
         await stream.aclose()
 
     asyncio.run(run())
+
+
+def test_overflow_requests_snapshot_recovery_before_further_events(tmp_path):
+    async def run():
+        service = AuditService(AuditRepository(tmp_path / "audit.db"), queue_size=1, heartbeat_interval=0.01)
+        stream = service.stream()
+        await stream.__anext__()
+        for index in range(4):
+            service.ingest({**hook_payload(), "event_id": f"synthetic-{index}"})
+        assert await stream.__anext__() == 'event: reset\ndata: {"reason": "overflow"}\n\n'
+        assert len(service.get_session("session-service")["events"]) == 4
+        await stream.aclose()
+    asyncio.run(run())

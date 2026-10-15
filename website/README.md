@@ -8,7 +8,7 @@ The static output is `website/dist/`. Upload the contents of that directory to a
 
 ## Source authority and downloads
 
-The explicit documentation allowlist is in `project.mjs`. The build reads these documents and the source archive from `git HEAD`, so documents, downloads and source links describe one recorded commit. Commit reviewed project/document changes before rebuilding when you want them included. Untracked local runtime data is never added to the source ZIP.
+The explicit documentation allowlist is in `project.mjs`. The build requires a clean checkout and reads documents and the source archive from `git HEAD`, so homepage copy, documents, downloads and source links describe one recorded commit. Commit reviewed changes before rebuilding. Ignored local runtime data is never added to the source ZIP.
 
 The download page provides a versioned source ZIP, full commit SHA, size and SHA-256 checksum. It does not claim to provide an executable installer or a GitHub Release. The website's homepage and quick-start copy are authored in `project.mjs`.
 

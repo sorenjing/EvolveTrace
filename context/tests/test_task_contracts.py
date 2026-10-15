@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from ai_context_kit.task_contracts import (
+from evolvetrace_context.task_contracts import (
     AcceptanceCriterion,
     ContextReceipt,
     TaskEnvelope,

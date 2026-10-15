@@ -2,10 +2,10 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 
-from ai_context_kit.publish import publish_bundle
+from evolvetrace_context.publish import publish_bundle
 
 from test_cli import make_workspace
-from ai_context_kit.cli import main
+from evolvetrace_context.cli import main
 
 
 def test_publish_bundle_writes_reviewable_bundle_and_index(tmp_path: Path) -> None:

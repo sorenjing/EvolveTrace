@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 
-from ai_context_kit.cli import main
-from ai_context_kit.task_workspace import prepare_task
+from evolvetrace_context.cli import main
+from evolvetrace_context.task_workspace import prepare_task
 
 from test_cli import make_workspace
 

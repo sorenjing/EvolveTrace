@@ -1,5 +1,11 @@
 # EvolveTrace
 
+**Local-first command auditing, context, and evidence-based review for coding agents.**
+
+EvolveTrace 在本机记录 Coding Agent 的可观察执行，按项目统计命令类型、次数、结果与耗时，
+帮助核对重复读取、反复构建和连续失败，并把 Task、上下文快照、验证证据与人工复核关联起来。
+当前为持续开发中的早期版本；通用回归案例导入导出与重放仍在路线图中。
+
 ## 上下文与执行证据，共用一个项目
 
 EvolveTrace Context 是本仓库的上下文组件，位于 [`context/`](context/)，继续提供独立的 `aictx` CLI。安装、统一插件、任务绑定与 GitHub 迁移步骤见[合并使用指南](docs/consolidation.md)。
@@ -17,13 +23,9 @@ python scripts/build_plugin_archive.py
 
 [打开 EvolveTrace 官网](https://sorenjing-evolvetrace.uas857030604.chatgpt.site) · [下载源码](https://sorenjing-evolvetrace.uas857030604.chatgpt.site/download.html)
 
-官网源码位于 [website/](website/README.md)，包含首页、快速开始、文档、带版本与校验值的源码下载，以及更新记录。官网仅提供公开介绍和下载；实际工具继续在本机运行，可选远程能力按项目文档单独部署。
+官网源码位于 [website/](website/README.md)，包含首页、快速开始、文档、带版本与校验值的源码下载，以及更新记录。官网提供公开介绍和下载，实际审查工具在本机运行。
 
 构建官网：`npm --prefix website ci`，再运行 `npm run site:build`。本地预览：`npm run site:preview`。构建产物 `website/dist/` 可以迁移到其他静态托管平台。
-
-**A local-first evidence, evaluation, and regression harness for coding agents.**
-
-EvolveTrace 是面向 Coding Agent 的本地优先执行证据与回归 Harness：它将任务契约、上下文版本、可观察执行、确定性评估和人工复核绑定成可验证证据链，并把失败沉淀为可重放的 Regression Case。
 
 当前版本提供 Codex 执行审查、实时可观测和窄范围的执行前安全保护，并已实现 Task Contract、EvolveTrace Context `ContextBundle v1` 导入、Context Receipt、Run 绑定，以及首个 Evidence-based Evals 纵向切片。它基于 Agent 已公开的事件和验证结果构建证据链，不依赖隐藏思维链，也不上传源代码。
 
@@ -71,6 +73,7 @@ flowchart TD
 - Codex lifecycle Hooks 事件采集
 - 本地 SQLite 会话与事件存储
 - SSE 实时执行时间线
+- 事件流重连及队列溢出后从本地存储恢复历史，按事件 ID 去重
 - 输入输出脱敏和 loopback-only API
 - 危险命令、权限拒绝、失败调用与修改范围的确定性风险标记
 - Safety Sentinel 执行前阻断
@@ -83,6 +86,14 @@ flowchart TD
 - 合成、脱敏的修复前后回归 fixture；单次成功运行不能自动产生 `effective`
 - `start.ps1` 一键启动并支持 Codex 内置 Browser
 - 后端测试、前端 lint/build 与 GitHub Actions CI
+- Context 项目目录登记、跨项目命令分类统计与重复操作/失败重试线索
+- 有界后台执行元数据补齐、延迟记录重试及来源/结果缺口显示
+- 可选分析窗口、忽略/静音设置、带证据的人工确认审计记忆及按项目回读
+
+跨项目统计、分析和后续记忆加载见[跨项目审计使用指南](docs/workspace-audit.md)。
+
+命令频次是工作流线索，不是真实磁盘 I/O 或硬件健康指标，不能用于诊断磁盘损坏。
+“选择分析”打开本地分析窗口并准备可复制提示，用户自行发送给 Codex。
 
 ## 快速开始
 
@@ -125,6 +136,8 @@ flowchart TD
 
 ## 数据与隐私
 
+安全报告与支持边界见 [安全政策](SECURITY.md)，依赖告警检查见[依赖安全说明](docs/dependency-security.md)。
+
 - 默认只监听 `127.0.0.1`
 - 原始 Hook payload 不落盘
 - 常见 API Key、Token、Cookie、JWT 和 URL 凭据会脱敏
@@ -147,4 +160,4 @@ npm run build
 
 ## License
 
-本项目采用 [Apache License 2.0](LICENSE)，允许个人和商业使用。若项目对你的业务有帮助，欢迎自愿支持后续开发；赞助不是使用条件。
+应用采用 [Apache License 2.0](LICENSE)，`context/` 组件保留 [MIT](context/LICENSE)，来源与许可范围见 [NOTICE](NOTICE)。第三方依赖遵循各自许可证。若项目对你的业务有帮助，欢迎自愿支持后续开发；赞助不是使用条件。
