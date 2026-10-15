@@ -38,7 +38,7 @@ def test_plugin_manifest_exposes_the_standard_skill_directory() -> None:
         (ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
     )
 
-    assert manifest["name"] == "ai-context-kit"
+    assert manifest["name"] == "evolvetrace-context"
     assert manifest["version"] == "0.2.0"
     assert manifest["skills"] == "./skills/"
     assert manifest["repository"] == "https://github.com/sorenjing/EvolveTrace"
@@ -51,7 +51,7 @@ def test_portable_plugin_manifest_is_canonical() -> None:
     manifest = json.loads((ROOT / "plugin.json").read_text(encoding="utf-8"))
 
     assert manifest["$schema"] == "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
-    assert manifest["name"] == "ai-context-kit"
+    assert manifest["name"] == "evolvetrace-context"
     assert (ROOT / "skills/manage-ai-context/SKILL.md").exists()
 
 
@@ -63,7 +63,7 @@ def test_plugin_has_one_canonical_skill_location() -> None:
 def test_python_package_includes_the_canonical_skill() -> None:
     pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
 
-    assert '"skills/manage-ai-context" = "share/ai-context-kit/skills/manage-ai-context"' in pyproject
+    assert '"skills/manage-ai-context" = "share/evolvetrace-context/skills/manage-ai-context"' in pyproject
 
 
 def test_plugin_session_hook_supports_bounded_loading_with_spaced_plugin_paths() -> None:

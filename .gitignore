@@ -65,6 +65,7 @@ __pycache__/
 screenshots/
 *.bak
 logs/
+/runtime/
 
 # PyInstaller 打包产物
 build/

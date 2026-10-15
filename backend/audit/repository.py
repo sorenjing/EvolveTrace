@@ -19,6 +19,7 @@ class AuditRepository:
         connection = sqlite3.connect(self.database_path, timeout=5.0)
         connection.execute("PRAGMA busy_timeout = 5000")
         connection.execute("PRAGMA journal_mode = WAL")
+        connection.execute("PRAGMA foreign_keys = ON")
         connection.row_factory = sqlite3.Row
         return connection
 
@@ -65,6 +66,10 @@ class AuditRepository:
                 "SELECT sequence FROM events WHERE event_id = ?", (event_id,)
             ).fetchone()
         return int(row[0]) if row is not None else None
+
+    def stored_event_count(self) -> int:
+        with self._lock, self._connect() as connection:
+            return int(connection.execute("SELECT COUNT(*) FROM events").fetchone()[0])
 
     def add_event(self, event: AuditEvent, findings: Iterable[RiskFinding] = ()) -> bool:
         risk_json = json.dumps(

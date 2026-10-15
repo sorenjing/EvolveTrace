@@ -6,6 +6,9 @@ on:
   push:
     branches: [master]
 
+permissions:
+  contents: read
+
 jobs:
   context:
     strategy:
@@ -56,7 +59,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
 
       - name: 锁文件预检
@@ -72,3 +75,20 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Frontend evidence and recovery tests
+        run: npm test
+      - name: Dependency advisories and reviewed lint boundary
+        run: npm run security:deps
+
+  website:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - run: npm --prefix website ci
+      - run: npm run site:build

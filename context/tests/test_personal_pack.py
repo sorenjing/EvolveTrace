@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from ai_context_kit.personal_pack import ExecutionProfile, PersonalAIPack
+from evolvetrace_context.personal_pack import ExecutionProfile, PersonalAIPack
 
 
 def write_pack(path: Path, payload: dict) -> Path:
@@ -19,7 +19,7 @@ def valid_pack() -> dict:
         "profile": {"visibility": "private", "authority": "portfolio"},
         "sources": {
             "portfolio": {"repository": "example/private-portfolio", "registry": "registry.yaml"},
-            "context": {"provider": "ai-context-kit"},
+            "context": {"provider": "evolvetrace-context"},
         },
         "platforms": {
             "codex": {"enabled": True, "adapter": "codex-plugin"},

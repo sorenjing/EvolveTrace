@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from ai_context_kit.cli import main
+from evolvetrace_context.cli import main
 
 
 def workspace(root: Path) -> Path:

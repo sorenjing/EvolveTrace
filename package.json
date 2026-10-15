@@ -7,10 +7,12 @@
     "start": "next start",
     "lint": "eslint",
     "site:build": "npm --prefix website run build",
-    "site:preview": "npm --prefix website run dev"
+    "site:preview": "npm --prefix website run dev",
+    "test": "node --experimental-strip-types --test src/app/lib/audit-flow.test.mjs src/app/lib/activity-prompt.test.mjs src/app/lib/audit-recovery.test.mjs scripts/check_node_dependencies.test.mjs scripts/lint-root-boundary.test.mjs",
+    "security:deps": "node scripts/check_node_dependencies.mjs"
   },
   "dependencies": {
-    "next": "16.2.9",
+    "next": "16.4.1",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
@@ -20,7 +22,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.9",
+    "eslint-config-next": "16.4.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

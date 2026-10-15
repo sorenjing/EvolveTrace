@@ -4,7 +4,7 @@ import shutil
 
 import pytest
 
-from ai_context_kit.cli import main
+from evolvetrace_context.cli import main
 from test_personal_pack import valid_pack_v2, write_pack
 
 

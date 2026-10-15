@@ -9,34 +9,26 @@
 ## [Unreleased]
 
 ### Added
-- M0.4 首个 Evidence-based Evals 纵向切片：结构化验收条件、确定性评估、证据引用与人工复核
-- 修复前后 Run 比较与单调 `evidenced → effective` 晋升规则
-- 合成回归 fixture 和公开安全的两次运行演示
-- Context Receipt 持久化、幂等导入、单调证据等级与 Task/Run/Hook 绑定
-- Context Delivery UI，明确区分交付、确认、证据与有效性
-- M0.3 Task & Context：版本化 Context Bundle 导入、不可变快照、Task Contract、Run 绑定与 Unbound Runs
-- 单进程本地工作台：FastAPI 同时服务 API、SSE 和静态界面
-- 任务模板首页（6 个高频模板一键填入）
-- 暗黑模式切换（class 策略，避免 FOUC）
-- Timeline 状态色徽章、步骤折叠、长内容折叠
-- 错误边界（ErrorBoundary）全局捕获
-- 响应式布局（移动端适配）
-- **LLM 流式输出**：`LLMClient.chat_stream()` 逐 token yield，支持前端打字效果
-- **todo 结构化字段**：system prompt 约束模型输出 `todos` 数组，上下文压缩后可恢复进度
+- 跨项目命令分类、次数、结果与耗时统计，带证据引用的重复操作和连续失败提醒
+- 可选分析窗口、忽略/静音、人工确认审计记忆及 Context 按项目回读
+- 有界后台执行元数据补齐、持久化退避重试和补齐状态
+- SSE 重连与队列溢出后的已入库历史恢复
+- Task / Context Snapshot / Context Receipt / Run 绑定、确定性评估与人工复核
+- 合成修正前后 Run 对比、单调证据等级和单进程本地工作台
+- 统一 EvolveTrace 插件及独立安装的 EvolveTrace Context 组件
 
 ### Changed
-- **License**：当前版本改为 **Apache License 2.0**，允许个人和商业使用；赞助自愿
-- API Key 配置面板增加安全警告提示
-- **LLM max_tokens 参数化**：从硬编码 2048 改为可配置参数（默认 4096）
-- **LLM 超时分级**：连接超时 10s + 读取超时 120s（原统一 120s）
+- 上下文发行包与 Python 模块统一为 `evolvetrace-context` / `evolvetrace_context`；CLI 保持 `aictx`
+- 官网、README 与下载版本对齐；明确通用回归重放和原生分析弹窗仍为计划
+- 应用采用 Apache-2.0，Context 组件保留 MIT 与原始许可声明
 
 ### Fixed
-- **视觉模型误判**：`capability.py` 移除 `glm-4-flash`（非视觉模型），保留 `glm-4v`（视觉版）
-- **todo 提取脆弱**：`extract_todos` 从纯字符串匹配升级为结构化字段优先 + 文本兜底，按内容去重
+- 增加依赖告警检查及开发依赖输入边界测试，保留原始告警并只接受已复核的精确范围
+- 升级 Next.js 至 16.4.1，并提高 AnyIO 的最低修复版本；同步 Node 22 构建环境
+- 执行结果未知、取消或冲突时不推断为成功；过期验证不能通过 required 门禁
+- 官网拒绝从脏工作区构建，避免新宣传文案配旧源码下载
 
-### Improved
-- 前端响应式与移动端体验
-- Timeline 错误步骤可视化
+以下 0.1.0 记录属于早期 Agent 原型的历史。当前产品围绕外部 Coding Agent 的执行审计与复核；历史内核、模型配置和工具执行能力不属于当前版本。
 
 ---
 

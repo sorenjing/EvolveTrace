@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from ai_context_kit.entrypoints import render_pack_files
-from ai_context_kit.personal_pack import PersonalAIPack
+from evolvetrace_context.entrypoints import render_pack_files
+from evolvetrace_context.personal_pack import PersonalAIPack
 from test_personal_pack import valid_pack_v2, write_pack
 
 

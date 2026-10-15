@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
+import os
 import sys
 
 from .config import ConfigError, find_workspace, load_config
@@ -55,8 +56,21 @@ def read_usage(root: Path, project: str | None = None) -> dict:
 
 def _valid_event(event: object) -> bool:
     required = {"at", "trigger", "project", "project_path", "freshness", "status", "model_use", "sources", "findings"}
-    if not isinstance(event, dict) or not required <= event.keys() or event.keys() - required - {"session_sha256"}:
+    if not isinstance(event, dict) or not required <= event.keys() or event.keys() - required - {"session_sha256", "audit_memory"}:
         return False
+    if "audit_memory" in event:
+        memory = event["audit_memory"]
+        if not isinstance(memory, dict):
+            return False
+        if memory.get("status") == "returned":
+            if (set(memory) != {"status", "schema_version", "project_id", "memory_ids", "freshness", "truncated"}
+                    or memory["schema_version"] != "audit-memory/v1" or memory["freshness"] != "historical"
+                    or not isinstance(memory["project_id"], str) or len(memory["project_id"]) > 100
+                    or not isinstance(memory["truncated"], bool) or not isinstance(memory["memory_ids"], list)
+                    or len(memory["memory_ids"]) > 20 or not all(isinstance(value, str) and len(value) <= 100 for value in memory["memory_ids"])):
+                return False
+        elif set(memory) != {"status"} or memory.get("status") not in {"unavailable", "project_required"}:
+            return False
     if not all(isinstance(event[k], str) for k in ("at", "trigger", "freshness", "status", "model_use")):
         return False
     if not all(event[k] is None or isinstance(event[k], str) for k in ("project", "project_path")):
@@ -204,6 +218,10 @@ def session_start() -> int:
         session = event.get("session_id")
         root, result = prepare_context(start, trigger="SessionStart:" + source,
                                        session_id=session if isinstance(session, str) else None)
+        audit_url = os.getenv("EVOLVETRACE_AUDIT_MEMORY_URL")
+        if audit_url:
+            from .audit_client import append_memory
+            append_memory(root, result, None, audit_url)
         emit_context(root, result, hook=True)
     except (OSError, ValueError, TypeError):
         return 0
@@ -226,6 +244,9 @@ def print_usage(root: Path, project: str | None, *, as_json: bool = False) -> No
     print(f"Status: {event['status']} | Freshness: {event['freshness']} | Model use: unknown")
     for source in event["sources"]:
         print(f"Read and included: {source['path']} | {source['bytes']} bytes | SHA-256 {source['sha256']}")
+    if "audit_memory" in event:
+        memory = event["audit_memory"]
+        print(f"Reviewed audit memory: {memory['status']} | {len(memory.get('memory_ids', []))} historical entries | truncated={memory.get('truncated', False)}")
     if event["findings"]:
         print("Attention: " + ", ".join(event["findings"]))
     print("Output evidence only: host acceptance, constraint compliance, and time saved require task evidence.")

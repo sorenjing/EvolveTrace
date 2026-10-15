@@ -15,6 +15,9 @@ if (!/^\/(?:[a-zA-Z0-9_-]+\/)*$/.test(base)) throw new Error('WEBSITE_BASE must 
 if (existsSync(out) && lstatSync(out).isSymbolicLink()) throw new Error('dist must not be a symlink.')
 const git = (...args) => execFileSync('git', ['-C', root, ...args], { encoding: 'utf8' }).trim()
 const revision = git('rev-parse', 'HEAD')
+if (git('status', '--porcelain', '--untracked-files=normal')) {
+  throw new Error('Website builds require a clean checkout: commit reviewed changes first so copy, documentation and downloads describe the same source.')
+}
 const short = revision.slice(0, 7)
 const tracked = new Set(git('ls-tree', '-r', '--name-only', revision).split('\n'))
 const url = path => base + path

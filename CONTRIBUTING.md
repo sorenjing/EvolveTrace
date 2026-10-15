@@ -18,6 +18,7 @@
 # 后端（在仓库根目录）
 cd backend
 python -m venv venv
+venv\Scripts\python.exe -m pip install --upgrade pip
 venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 venv\Scripts\python.exe -m uvicorn main:app --host 127.0.0.1 --port 8001
 
@@ -39,7 +40,7 @@ npm run dev
 1. **复现步骤**：明确的操作顺序
 2. **预期行为** vs **实际行为**
 3. **环境信息**：操作系统、Python 版本、Node 版本、浏览器
-4. **日志 / 截图**：后端日志、前端 Console 报错、Timeline 截图
+4. **日志 / 截图**：使用合成复现数据；提交前移除凭据、命令输出中的私人内容、项目名称与本机路径。不要上传原始 Hook、会话 transcript、数据库或真实工作区截图。
 
 ### 功能建议
 

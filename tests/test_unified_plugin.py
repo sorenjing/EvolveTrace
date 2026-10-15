@@ -48,7 +48,7 @@ def test_extracted_plugin_resolves_all_hooks_and_loads_context(tmp_path: Path):
     project.mkdir(parents=True)
     (project / "package.json").write_text('{"name":"example-app"}', encoding="utf-8")
     env = {**os.environ, "PYTHONPATH": str(ROOT / "context/src")}
-    subprocess.run([sys.executable, "-m", "ai_context_kit", "init", "--workspace", str(workspace)], env=env, check=True, capture_output=True)
+    subprocess.run([sys.executable, "-m", "evolvetrace_context", "init", "--workspace", str(workspace)], env=env, check=True, capture_output=True)
     memory = workspace / ".ai/projects/example-app.md"
     memory.write_text(memory.read_text(encoding="utf-8").replace("## Project memory", "## Project memory\n\n- Current product name: Example App."), encoding="utf-8")
     result = subprocess.run([sys.executable, str(extracted / "context/hooks/session_start.py")],

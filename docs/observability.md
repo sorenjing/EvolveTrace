@@ -71,7 +71,7 @@ Invoke-RestMethod http://127.0.0.1:8001/api/audit/sessions
 
 上下文加载另用 `aictx usage <项目名> --workspace <工作区根目录>` 检查新记录的 `SessionStart` 来源、项目和时间。手动 `aictx load` 的成功记录不能代替宿主自动加载。
 
-若 usage 有记录却仍出现旧组件名称或行为，检查 Hook Python 的实际导入路径：`python -c "import ai_context_kit; print(ai_context_kit.__file__)"`。加载器优先直接导入组件，只有导入失败才调用独立 `aictx`；启动器指向新仓库不足以证明 Hook 已切换。迁移检查见[合并安装指南](consolidation.md#本地安装)。
+若 usage 有记录却仍出现旧组件名称或行为，检查 Hook Python 的实际导入路径：`python -c "import evolvetrace_context; print(evolvetrace_context.__file__)"`。加载器优先直接导入组件，只有导入失败才调用独立 `aictx`；启动器指向新仓库不足以证明 Hook 已切换。迁移检查见[合并安装指南](consolidation.md#本地安装)。
 
 没有事件时检查：
 

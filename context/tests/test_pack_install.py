@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from ai_context_kit.pack_install import ManagedPackFileError, PackInstaller
-from ai_context_kit.personal_pack import PersonalAIPack
+from evolvetrace_context.pack_install import ManagedPackFileError, PackInstaller
+from evolvetrace_context.personal_pack import PersonalAIPack
 from test_personal_pack import valid_pack, write_pack
 
 

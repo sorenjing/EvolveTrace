@@ -3,9 +3,9 @@ from dataclasses import replace
 from pathlib import Path
 import subprocess
 
-from ai_context_kit.cli import main
-from ai_context_kit.harness_export import build_harness_bundle
-from ai_context_kit.repository_context import evaluate_freshness, inspect_repository
+from evolvetrace_context.cli import main
+from evolvetrace_context.harness_export import build_harness_bundle
+from evolvetrace_context.repository_context import evaluate_freshness, inspect_repository
 
 
 def git(path: Path, *args: str) -> str:

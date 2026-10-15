@@ -3,16 +3,19 @@
 import ipaddress
 from typing import Any
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from fastapi.responses import Response, StreamingResponse
 
 from services.audit_service import AuditService
 from services.harness_service import HarnessService
+from services.activity_service import ActivityService
 
 
 router = APIRouter()
-harness_service = HarnessService()
-audit_service = AuditService(run_resolver=harness_service.resolve_or_create_run)
+audit_service = AuditService()
+harness_service = HarnessService(audit_repository=audit_service.repository)
+audit_service.run_resolver = harness_service.resolve_or_create_run
+activity_service = ActivityService(audit_service.repository)
 
 
 def require_loopback(request: Request) -> None:
@@ -64,6 +67,55 @@ async def stream_audit_events(session_id: str | None = None):
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@router.post("/activity/workspaces", status_code=201, dependencies=[Depends(require_loopback)])
+def register_activity_workspace(payload: dict[str, Any] = Body(...)):
+    try:
+        return activity_service.repository.register(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/activity/report", dependencies=[Depends(require_loopback)])
+def get_activity_report(project_id: str | None = None, limit: int = Query(20000, ge=1, le=20000)):
+    try:
+        return activity_service.report(project_id, limit)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/activity/status", dependencies=[Depends(require_loopback)])
+async def get_activity_status():
+    return activity_service.status(audit_service.capture_status())
+
+
+@router.post("/activity/decisions", status_code=201, dependencies=[Depends(require_loopback)])
+def review_activity_finding(payload: dict[str, Any] = Body(...)):
+    try:
+        return activity_service.decide(payload)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/activity/memory", status_code=201, dependencies=[Depends(require_loopback)])
+def save_activity_memory(payload: dict[str, Any] = Body(...)):
+    try:
+        return activity_service.remember(payload)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/activity/memory/{project_id}", dependencies=[Depends(require_loopback)])
+def get_activity_memory(project_id: str):
+    try:
+        return activity_service.memory(project_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.post("/harness/context-snapshots", status_code=201, dependencies=[Depends(require_loopback)])

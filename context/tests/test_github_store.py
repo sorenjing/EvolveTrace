@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-from ai_context_kit.github_store import BundleStoreError, GitHubBundleStore
+from evolvetrace_context.github_store import BundleStoreError, GitHubBundleStore
 
 
 class FakeResponse:

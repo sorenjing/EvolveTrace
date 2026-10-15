@@ -22,6 +22,13 @@ def test_running_run_cannot_be_evaluated(tmp_path):
         service.evaluate_run(task.task_id, run.run_id, {"events": []})
 
 
+def test_acceptance_requires_a_complete_evaluation_snapshot(tmp_path):
+    service, repository, task, run = setup_service(tmp_path)
+    repository.set_run_status(run.run_id, "completed")
+    with pytest.raises(ValueError, match="complete evaluation"):
+        service.record_review(task.task_id, run.run_id, {"outcome": "accepted", "note": "missing evaluation", "evaluation_ids": []})
+
+
 def test_evaluation_persists_results_and_human_decision(tmp_path):
     service, repository, task, run = setup_service(tmp_path)
     repository.set_run_status(run.run_id, "completed")
@@ -41,3 +48,44 @@ def test_acceptance_is_rejected_when_required_evidence_fails(tmp_path):
     payload = service.evaluate_run(task.task_id, run.run_id, {"events": []})
     with pytest.raises(ValueError, match="blocking"):
         service.record_review(task.task_id, run.run_id, {"outcome":"accepted","note":"reviewed","evaluation_ids":[item["evaluation_id"] for item in payload["evaluations"]],"actor":"human"})
+
+
+def test_edit_after_successful_verification_requires_new_verification(tmp_path):
+    service, repository, task, run = setup_service(tmp_path)
+    repository.set_run_status(run.run_id, "completed")
+    events = [
+        {"event_id": "pass", "sequence": 1, "tool_name": "Bash", "event_type": "PostToolUse",
+         "details": {"tool_input": {"command": "python -m pytest -q"}, "tool_response": {"exit_code": 0}}},
+        {"event_id": "edit", "sequence": 2, "tool_name": "apply_patch", "event_type": "PostToolUse",
+         "details": {"changed_files": ["demo/app.py"]}},
+    ]
+    payload = service.evaluate_run(task.task_id, run.run_id, {"events": events})
+    verification = next(item for item in payload["evaluations"] if item["evaluator_id"] == "verification")
+    assert verification["status"] == "needs_review"
+    assert verification["severity"] == "blocking"
+
+
+def test_test_started_before_edit_is_not_fresh_even_if_it_finishes_after(tmp_path):
+    service, repository, task, run = setup_service(tmp_path)
+    repository.set_run_status(run.run_id, "completed")
+    events = [
+        {"event_id": "start", "sequence": 1, "event_type": "PreToolUse", "tool_name": "Bash",
+         "details": {"tool_use_id": "c-1", "tool_input": {"command": "python -m pytest -q"}}},
+        {"event_id": "edit", "sequence": 2, "event_type": "PostToolUse", "tool_name": "apply_patch",
+         "details": {"changed_files": ["demo/app.py"]}},
+        {"event_id": "end", "sequence": 3, "event_type": "PostToolUse", "tool_name": "Bash",
+         "details": {"tool_use_id": "c-1", "tool_input": {"command": "python -m pytest -q"}, "tool_response": {"exit_code": 0}}},
+    ]
+    payload = service.evaluate_run(task.task_id, run.run_id, {"events": events})
+    verification = next(item for item in payload["evaluations"] if item["evaluator_id"] == "verification")
+    assert verification["status"] == "needs_review"
+
+
+def test_saved_evaluation_snapshot_is_not_changed_by_later_events(tmp_path):
+    service, repository, task, run = setup_service(tmp_path)
+    repository.set_run_status(run.run_id, "completed")
+    first = service.evaluate_run(task.task_id, run.run_id, {"events": []})
+    second = service.evaluate_run(task.task_id, run.run_id, {"events": [
+        {"event_id": "late", "tool_name": "Bash", "details": {"tool_input": {"command": "python -m pytest -q"}, "tool_response": {"exit_code": 0}}}
+    ]})
+    assert first == second

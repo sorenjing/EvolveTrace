@@ -13,7 +13,7 @@ try {
 }
 
 if (-not (Test-Path -LiteralPath (Join-Path $workspacePath ".aictx.toml"))) {
-    Write-Error "Not an AI Context Kit workspace: $workspacePath"
+    Write-Error "Not an EvolveTrace Context workspace: $workspacePath"
     exit 2
 }
 
@@ -39,7 +39,7 @@ function Invoke-AictxReadOnly {
     return $exitCode
 }
 
-Write-Host "AI Context Kit self-check"
+Write-Host "EvolveTrace Context self-check"
 Write-Host "Workspace: $workspacePath"
 Write-Host "Mode: read-only"
 

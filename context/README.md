@@ -1,6 +1,6 @@
 # EvolveTrace Context
 
-The independently installable context component of EvolveTrace. Source, development and unified plugin packaging are maintained in this monorepo. See [installation and migration](../docs/consolidation.md). The Python distribution `ai-context-kit`, module `ai_context_kit`, CLI `aictx`, legacy plugin identifier and managed markers retain their compatibility names; the original license and attribution remain in [LICENSE](LICENSE) and [NOTICE](../NOTICE).
+The independently installable context component of EvolveTrace. The Python distribution is `evolvetrace-context`, its import module is `evolvetrace_context`, and its commands are `aictx` and `aictx-mcp`. Source, development and unified plugin packaging are maintained in this monorepo. See [installation and migration](../docs/consolidation.md). The original license and attribution remain in [LICENSE](LICENSE) and [NOTICE](../NOTICE).
 
 From the monorepo root: `python -m pip install ./context`. Inside this directory: `python -m pip install .`. For remote installation, pin a published EvolveTrace commit and select `#subdirectory=context`.
 
@@ -38,6 +38,7 @@ EvolveTrace Context gives the workspace one shared context entry point. The CLI 
 - **Cross-process write safety** so concurrent terminals or agents do not lose workspace updates.
 - **Offline by default**: recognized manifests, bounded README text, Git metadata, and directory names only.
 - **Safe failure modes** for malformed markers, symlinked discovery roots, secret files, and project-name collisions.
+- **Cross-project audit handoff** through `aictx audit sync/report`, explicit reviewed memory, and optional project-scoped recall with `load --audit-url`. See the [workspace audit guide](../docs/workspace-audit.md).
 
 ## How it fits with agent skills
 
@@ -63,7 +64,7 @@ Before the first PyPI release, install directly from the repository:
 pipx install "git+https://github.com/sorenjing/EvolveTrace.git@<published-commit-sha>#subdirectory=context"
 ```
 
-After the first PyPI release, `pipx install ai-context-kit` will become the preferred command. The current version is installed directly from GitHub.
+After the first PyPI release, `pipx install evolvetrace-context` will become the preferred command. The current version is installed directly from GitHub.
 
 For local development:
 

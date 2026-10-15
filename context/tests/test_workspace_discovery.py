@@ -3,8 +3,8 @@ import subprocess
 
 import pytest
 
-from ai_context_kit.personal_pack import PersonalAIPack
-from ai_context_kit.workspace_discovery import resolve_workspace
+from evolvetrace_context.personal_pack import PersonalAIPack
+from evolvetrace_context.workspace_discovery import resolve_workspace
 from test_personal_pack import valid_pack_v2, write_pack
 
 

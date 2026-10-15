@@ -74,7 +74,7 @@ def create_server():
     from mcp.server.mcpserver import MCPServer
 
     server = MCPServer(
-        "ai-context-kit",
+        "evolvetrace-context",
         instructions=(
             "Read only explicitly published ContextBundle v1 files. Check freshness before "
             "treating context as current; repository source files remain authoritative."

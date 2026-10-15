@@ -4,7 +4,7 @@ import subprocess
 import sys
 import os
 
-from ai_context_kit.cli import main
+from evolvetrace_context.cli import main
 
 
 HOOK = Path(__file__).parents[1] / "hooks" / "session_start.py"
@@ -104,7 +104,7 @@ def test_old_cli_failure_is_visible_without_leaking_stderr(monkeypatch, capsys):
     original_import = builtins.__import__
 
     def unavailable(name, *args, **kwargs):
-        if name == "ai_context_kit.context_delivery":
+        if name == "evolvetrace_context.context_delivery":
             raise ImportError("not installed in this interpreter")
         return original_import(name, *args, **kwargs)
 

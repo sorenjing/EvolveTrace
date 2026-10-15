@@ -8,7 +8,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## Product boundary
 
-EvolveTrace is a local-first evidence, evaluation, and regression harness for coding agents. It binds a small Task Contract and a versioned project-context snapshot to observable evidence exposed by Coding Agent adapters, runs deterministic evaluators, keeps the final review decision with the human, and turns reviewed failures into reusable regression cases.
+EvolveTrace is a local-first command audit and evidence-based review tool for coding agents. It binds Task Contracts and versioned project context to observable execution, runs deterministic evaluators, and keeps the final review decision with the human. Generalized regression case replay remains planned.
 
 It does not run an Agent, expose hidden chain of thought, upload source code, replace repository inspection, or claim to be a complete sandbox. Team collaboration, cloud sync, RAG, general-purpose requirements management, and multi-agent orchestration remain out of scope.
 
@@ -38,7 +38,7 @@ Task Contracts, Context Snapshots, deterministic freshness/scope/verification ev
 
 ## Context component contract
 
-The EvolveTrace Context component under `context/` owns context discovery, freshness, and semantic-memory rendering. The backend consumes only the versioned `ContextBundle v1` JSON export described in `DESIGN.md`; it must not import `ai_context_kit` Python internals or parse human-facing Markdown. The component retains its independent CLI, tests and MIT license. Root `.codex-plugin/` and `hooks/` compose one plugin using the canonical Skill in `context/skills/`; `plugin/` remains audit-only compatibility packaging. See `docs/consolidation.md` for installation and release boundaries.
+The EvolveTrace Context component under `context/` owns context discovery, freshness, and semantic-memory rendering. The backend consumes only the versioned `ContextBundle v1` JSON export described in `DESIGN.md`; it must not import `evolvetrace_context` Python internals or parse human-facing Markdown. The component retains its independent CLI, tests and MIT license. Root `.codex-plugin/` and `hooks/` compose one plugin using the canonical Skill in `context/skills/`; `plugin/` remains audit-only compatibility packaging. See `docs/consolidation.md` for installation and release boundaries.
 
 ## Constraints
 

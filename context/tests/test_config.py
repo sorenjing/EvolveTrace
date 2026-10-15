@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from ai_context_kit.config import ConfigError, find_workspace, load_config
+from evolvetrace_context.config import ConfigError, find_workspace, load_config
 
 
 def test_find_workspace_walks_upward(tmp_path: Path) -> None:

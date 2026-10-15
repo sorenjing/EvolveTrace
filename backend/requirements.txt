@@ -1,3 +1,5 @@
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
 python-dotenv>=1.0.0
+# Minimum patched version of the ASGI concurrency dependency.
+anyio>=4.14.2

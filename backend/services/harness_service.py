@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import posixpath
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,6 +12,8 @@ from harness.context_bundle import validate_context_bundle
 from harness.evaluators import evaluate_context_freshness, evaluate_repository_scope, evaluate_verification
 from harness.models import ContextReceipt, ExecutionProfile, ReviewDecision, TaskContract
 from harness.repository import HarnessRepository
+from audit.workspace import WorkspaceRepository
+from services.execution_evidence import resolve_execution_evidence
 
 
 def _default_path() -> Path:
@@ -18,8 +21,16 @@ def _default_path() -> Path:
 
 
 class HarnessService:
-    def __init__(self, repository: HarnessRepository | None = None):
+    def __init__(self, repository: HarnessRepository | None = None, audit_repository=None):
         self.repository = repository or HarnessRepository(_default_path())
+        self.evidence_repository = WorkspaceRepository(audit_repository.database_path) if audit_repository else None
+
+    @staticmethod
+    def _expected_evaluations(task: TaskContract) -> set[tuple[str, str]]:
+        families = {"path_scope": "repository-scope", "command_exit_zero": "verification"}
+        return {("context-freshness", "context-freshness")} | {
+            (criterion.criterion_id, families[criterion.type]) for criterion in task.acceptance_criteria
+            if hasattr(criterion, "type") and criterion.type in families}
 
     def import_context_snapshot(self, payload: dict[str, Any], source: str = "file-import"):
         return self.repository.import_context_snapshot(validate_context_bundle(payload), source=source).to_dict()
@@ -81,8 +92,9 @@ class HarnessService:
             return None
         if task.context_snapshot_id is None:
             return None
-        run = self.repository.create_run(task.task_id, task.context_snapshot_id, cwd=key)
-        bound = self.repository.bind_session(run.run_id, session_id, key)
+        execution_directory = posixpath.normpath(cwd.replace("\\", "/"))
+        run = self.repository.create_run(task.task_id, task.context_snapshot_id, cwd=execution_directory)
+        bound = self.repository.bind_session(run.run_id, session_id, execution_directory)
         self.repository.acknowledge_delivered_receipt(task.task_id, bound.run_id)
         return bound.to_dict()
 
@@ -96,21 +108,22 @@ class HarnessService:
             raise ValueError("task or run not found")
         if run.status not in {"completed", "blocked"}:
             raise ValueError("only completed or blocked runs can be evaluated")
+        existing = self.repository.list_evaluations(task_id, run_id)
+        if existing:
+            if not self._expected_evaluations(task) <= {(item.criterion_id, item.evaluator_id) for item in existing}:
+                raise ValueError("incomplete evaluation snapshot; create a new run")
+            return {"task_id": task_id, "run_id": run_id, "evaluations": [item.to_dict() for item in existing]}
         snapshot = self.repository.get_context_snapshot(run.context_snapshot_id)
         changed_paths: list[tuple[str, str]] = []
-        command_events: list[tuple[str, str, int]] = []
-        for event in (session or {}).get("events", []):
+        events, _ = resolve_execution_evidence((session or {}).get("events", []), self.evidence_repository)
+        for event in events:
             event_id = str(event.get("event_id", ""))
             details = event.get("details", {})
             for path in details.get("changed_files", []) if isinstance(details, dict) else []:
                 changed_paths.append((event_id, str(path)))
-            if event.get("tool_name") == "Bash" and isinstance(details, dict):
-                tool_input, tool_response = details.get("tool_input", {}), details.get("tool_response", {})
-                if isinstance(tool_input, dict) and isinstance(tool_response, dict) and "exit_code" in tool_response:
-                    command_events.append((event_id, str(tool_input.get("command", "")), int(tool_response["exit_code"])))
         results = evaluate_context_freshness(task, snapshot, run)
         results += evaluate_repository_scope(task, changed_paths, run)
-        results += evaluate_verification(task, command_events, run)
+        results += evaluate_verification(task, [], run, observed_events=events)
         persisted = [self.repository.save_evaluation(result) for result in results]
         self.repository.set_task_status(task_id, "needs_review")
         receipts = self.repository.list_context_receipts(task_id)
@@ -127,6 +140,9 @@ class HarnessService:
         if set(requested) != {item.evaluation_id for item in results}:
             raise ValueError("review must reference the current evaluation set")
         outcome = str(payload.get("outcome", ""))
+        task = self.repository.get_task(task_id)
+        if outcome == "accepted" and (task is None or not self._expected_evaluations(task) <= {(item.criterion_id, item.evaluator_id) for item in results}):
+            raise ValueError("a complete evaluation snapshot is required for acceptance")
         if outcome == "accepted" and any(item.status != "passed" and item.severity == "blocking" for item in results):
             raise ValueError("blocking evaluations prevent acceptance")
         decision = ReviewDecision.create(task_id=task_id, run_id=run_id, outcome=outcome,

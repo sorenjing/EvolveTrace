@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from ai_context_kit.models import Project, ProjectFacts
-from ai_context_kit.render import MarkerError, render_project_memory, render_workspace
+from evolvetrace_context.models import Project, ProjectFacts
+from evolvetrace_context.render import MarkerError, render_project_memory, render_workspace
 
 
 def sample_facts() -> ProjectFacts:

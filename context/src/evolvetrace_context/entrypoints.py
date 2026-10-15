@@ -74,7 +74,7 @@ Read `{COMMON_PATH}`. Resolve the target project, request the minimum bounded co
 def render_pack_files(pack: PersonalAIPack) -> dict[str, str]:
     """Render managed assets without copying private source mappings."""
     plugin = {
-        "name": "ai-context-kit",
+        "name": "evolvetrace-context",
         "version": __version__,
         "description": "Load bounded, source-traceable context on demand",
         "skills": "./skills/",

@@ -3,8 +3,8 @@ import json
 
 import pytest
 
-from ai_context_kit.models import Project, ProjectFacts
-from ai_context_kit.state import (
+from evolvetrace_context.models import Project, ProjectFacts
+from evolvetrace_context.state import (
     ProjectState,
     StateError,
     WorkspaceState,

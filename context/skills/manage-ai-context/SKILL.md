@@ -37,7 +37,7 @@ After material architecture, dependency, build, test, or workflow changes:
 
 ## Interpret freshness precisely
 
-`current` means only that the observed inputs recorded by AI Context Kit match the inputs used for the latest render. It is not a guarantee that the memory is complete or that unscanned source code has not changed.
+`current` means only that the observed inputs recorded by EvolveTrace Context match the inputs used for the latest render. It is not a guarantee that the memory is complete or that unscanned source code has not changed.
 
 - `new`: the project is discovered but has no recorded render.
 - `stale`: one or more observed inputs changed.
