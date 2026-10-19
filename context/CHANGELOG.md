@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Remove the unused Context-side ExecutionProfile model and its standalone test; the backend execution-profile API and model remain supported.
+- Share bounded loopback transport across task submission and audit requests while preserving unavailable-service fallback and rejected-submission errors.
+- Generate local and Pack Codex entrypoints from one loading policy, with explicit CLI receipts and manual fallback reporting.
+
+- Report bounded `audit-memory-recall/v1` metadata after successful opted-in CLI / Hook output; reporting failures do not block local context and do not imply host acceptance or model use.
+
+- Honor explicit audit-memory opt-in during manual project-switch loads as well as SessionStart; `--audit-url` overrides the environment setting, and unconfigured loads remain offline.
+- Stop generating the unused `CURRENT.md` template for new workspaces without deleting existing user files. Clarify metadata, manual project context, and reviewed audit-memory responsibilities.
+
 - Use `evolvetrace-context` for the Python distribution, component plugin and MCP server, and `evolvetrace_context` for Python imports. Existing `aictx` commands and workspace formats are unchanged.
 
 - Add strict `personal-ai-pack/v2` entrypoint and bounded discovery configuration while preserving v1 manifests.

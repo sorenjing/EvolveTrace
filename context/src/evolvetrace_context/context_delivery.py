@@ -179,7 +179,8 @@ def prepare_context(start: Path, project: str | None = None, *, trigger: str = "
     return root, {"receipt": receipt, "context": header + "\n\n".join(sections)}
 
 
-def emit_context(root: Path | None, result: dict, *, hook: bool = False, as_json: bool = False) -> int:
+def emit_context(root: Path | None, result: dict, *, hook: bool = False, as_json: bool = False,
+                 audit_url: str | None = None) -> int:
     receipt = result["receipt"]
     if hook:
         payload = {"systemMessage": (f"EvolveTrace Context: {receipt['project'] or 'project unselected'}; "
@@ -192,13 +193,20 @@ def emit_context(root: Path | None, result: dict, *, hook: bool = False, as_json
     else:
         print(result["context"], flush=True)
     # Only persist after successfully returning output to stdout. No host ACK is implied.
+    code = 0 if receipt["status"] == "returned" else 1
     if root and "usage_not_recorded" not in receipt["findings"]:
         try:
             _record(root, receipt)
         except (OSError, ValueError):
             print("EvolveTrace Context: usage_not_recorded; context output does not prove host acceptance.", file=sys.stderr)
-            return 1
-    return 0 if receipt["status"] == "returned" else 1
+            code = 1
+    if audit_url:
+        try:
+            from .audit_client import report_memory_recall
+            report_memory_recall(receipt, audit_url)
+        except (ConfigError, KeyError, TypeError):
+            print("EvolveTrace Context: audit_recall_not_reported; local output remains available.", file=sys.stderr)
+    return code
 
 
 def session_start() -> int:
@@ -222,7 +230,7 @@ def session_start() -> int:
         if audit_url:
             from .audit_client import append_memory
             append_memory(root, result, None, audit_url)
-        emit_context(root, result, hook=True)
+        emit_context(root, result, hook=True, audit_url=audit_url)
     except (OSError, ValueError, TypeError):
         return 0
     return 0

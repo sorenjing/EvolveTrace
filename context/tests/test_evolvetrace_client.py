@@ -1,9 +1,52 @@
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import pytest
 from threading import Thread
 
 from evolvetrace_context.evolvetrace_client import build_task_payload, submit_task
 from evolvetrace_context.task_contracts import AcceptanceCriterion, ContextReceipt, TaskEnvelope, TaskEnvelopeV2
+
+
+@pytest.mark.parametrize("mode", ["redirect", "oversized"])
+def test_task_transport_rejects_redirects_and_unbounded_responses(mode):
+    from evolvetrace_context.config import ConfigError
+    from evolvetrace_context.evolvetrace_client import _post
+    followed = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            self.rfile.read(int(self.headers.get("Content-Length", "0")))
+            if mode == "redirect":
+                self.send_response(302)
+                self.send_header("Location", "/redirected")
+                self.end_headers()
+                return
+            body = json.dumps({"padding": "x" * 2_097_152}).encode()
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def do_GET(self):
+            followed.append(self.path)
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b'{}')
+
+        def log_message(self, *args):
+            return
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = Thread(target=server.serve_forever)
+    thread.start()
+    try:
+        with pytest.raises(ConfigError):
+            _post(f"http://127.0.0.1:{server.server_port}", "/harness/context-snapshots", {})
+        assert followed == []
+    finally:
+        server.shutdown()
+        thread.join()
+        server.server_close()
 
 
 def test_v2_payload_preserves_structured_contract() -> None:

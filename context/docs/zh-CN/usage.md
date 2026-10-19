@@ -42,6 +42,8 @@ aictx check
 
 工作区只保留一套 `.ai/`。不要在每个子项目里重复初始化。
 
+新生成的平台入口和 Personal Pack 的 Codex 入口共用相同的加载说明：优先检查匹配的 SessionStart 输出，缺少时调用 `load`，再用 `usage` 核对回执；CLI 不可用时才手工读取同一组文件。升级 CLI 不会自动改写已有工作区入口。已有用户可先运行 `aictx init --dry-run` 审阅差异，再决定是否应用。
+
 ## 每次开始工作
 
 ### 直接查看是否实际加载
@@ -75,6 +77,10 @@ Codex 加载并信任插件 Hook 后，SessionStart 会自动执行相同加载�
 第一次验证：在选中项目内新开启用插件的 Codex 会话，之后运行 `aictx usage <项目名>`，确认时间、`SessionStart:startup`、来源和 `Attention`。手工 `load` 的触发类型为 `manual`，不能冒充宿主 Hook 事件。宿主是否使用了正文、产物是否遵守约束，需要单独核对任务证据，见[效果验证](effectiveness.md)。
 
 ### 手工兜底
+
+旧工作区可能包含 `.ai/CURRENT.md`，加载器并不读取它。新初始化不再生成这个未接通的模板；已有文件及其中的用户内容保持原样。需要跨会话保留的项目决策应在核对后写入该项目的 manual 区。
+
+审计记忆另保存在 EvolveTrace 的本地数据库中，不是自动从对话提炼的记忆。显式设置 `EVOLVETRACE_AUDIT_MEMORY_URL` 后，SessionStart 与手工 `aictx load` 都只回读所选项目的人工确认结论；也可用 `load --audit-url <本地服务地址>` 覆盖配置。没有配置时继续离线。跨项目通用规则需要人工核对并提升至 `GLOBAL.md`，不会自动混用其他项目的正文。
 
 如果 `Attention` 显示 `semantic_memory_empty`，该项目 manual 区仍是默认模板或空白。CLI 可以交付检测事实，但目标、设计决策和任务约束还没有记录；按当前项目权威资料人工补充，不能把 `current` 当作业务背景已经齐全。
 

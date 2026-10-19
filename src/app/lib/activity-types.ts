@@ -86,4 +86,19 @@ export interface AuditMemory {
   schema_version: "audit-memory/v1";
   entries: AuditMemoryEntry[];
   freshness: "historical";
+  recalls?: AuditMemoryRecall[];
+}
+
+export interface AuditMemoryRecall {
+  schema_version: "audit-memory-recall/v1";
+  recall_id: string;
+  reported_at: string;
+  received_at: string;
+  trigger: string;
+  context_status: "returned" | "partial" | "blocked";
+  context_freshness: "current" | "stale" | "new" | "unknown" | "missing";
+  memory_ids: string[];
+  truncated: boolean;
+  authority: "client_reported_output";
+  model_use: "unknown";
 }

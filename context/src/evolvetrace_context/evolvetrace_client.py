@@ -3,13 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-import json
 from typing import Any
-from urllib.error import HTTPError, URLError
-from urllib.parse import urlparse
-from urllib.request import Request, urlopen
 
 from .config import ConfigError
+from .local_transport import LocalHTTPError, LocalServiceUnavailable, _origin, request_json
 from .task_contracts import ContextReceipt, TaskEnvelope, TaskEnvelopeV2
 
 
@@ -23,31 +20,8 @@ class SubmissionResult:
     delivered_receipt: ContextReceipt | None = None
 
 
-def _origin(value: str) -> str:
-    parsed = urlparse(value)
-    if parsed.scheme not in {"http", "https"} or parsed.hostname not in {
-        "127.0.0.1",
-        "::1",
-        "localhost",
-    }:
-        raise ConfigError("EvolveTrace URL must use a loopback host")
-    if parsed.username or parsed.password or parsed.query or parsed.fragment:
-        raise ConfigError("EvolveTrace URL must not contain credentials, query, or fragment")
-    return value.rstrip("/")
-
-
 def _post(origin: str, path: str, payload: dict[str, Any]) -> dict[str, Any]:
-    request = Request(
-        f"{origin}/api{path}",
-        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    with urlopen(request, timeout=3) as response:
-        value = json.loads(response.read())
-    if not isinstance(value, dict):
-        raise ConfigError("EvolveTrace returned an invalid response")
-    return value
+    return request_json(origin, "POST", path, payload)
 
 
 def build_task_payload(envelope: TaskEnvelope | TaskEnvelopeV2, snapshot_id: str, repository_paths: list[str]) -> dict[str, Any]:
@@ -100,9 +74,9 @@ def submit_task(
             {"repository_path": repository_path},
         )
         return SubmissionResult(True, task_id, snapshot_id, receipt_id, None, delivered)
-    except HTTPError as exc:
+    except LocalHTTPError as exc:
         if 400 <= exc.code < 500:
             raise ConfigError(f"EvolveTrace rejected the submission with HTTP {exc.code}") from exc
         return SubmissionResult(False, envelope.task_id, None, None, "evidence sink unavailable")
-    except (URLError, TimeoutError, OSError):
+    except LocalServiceUnavailable:
         return SubmissionResult(False, envelope.task_id, None, None, "evidence sink unavailable")

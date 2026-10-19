@@ -118,6 +118,16 @@ def get_activity_memory(project_id: str):
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
+@router.post("/activity/memory-recalls", status_code=201, dependencies=[Depends(require_loopback)])
+def record_activity_memory_recall(payload: dict[str, Any] = Body(...)):
+    try:
+        return activity_service.record_memory_recall(payload)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
 @router.post("/harness/context-snapshots", status_code=201, dependencies=[Depends(require_loopback)])
 async def import_context_snapshot(payload: dict[str, Any] = Body(...)):
     try:

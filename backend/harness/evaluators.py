@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pathlib import Path, PurePosixPath, PureWindowsPath
+from pathlib import PurePosixPath, PureWindowsPath
 import posixpath
 from typing import Iterable
 from uuid import NAMESPACE_URL, uuid5
@@ -131,15 +131,14 @@ def evaluate_verification(task: TaskContract, command_events: Iterable[tuple[str
     return results
 
 
-def evaluate_file_exists(task: TaskContract, workspace_root: Path, run: Run) -> list[EvaluationResult]:
-    results = []
-    root = workspace_root.resolve()
-    for criterion in _criteria(task, "file_exists"):
-        relative = _path(str(criterion.config["path"]))
-        target = (root / relative).resolve()
-        inside = target == root or root in target.parents
-        exists = inside and target.is_file()
-        status = "passed" if exists else "failed" if criterion.required else "needs_review"
-        severity = "blocking" if criterion.required else "warning"
-        results.append(_result(task, run, criterion.criterion_id, "file-exists", status=status, severity=severity, summary="Required file exists" if exists else "Required file is missing", evidence_refs=[f"path:{relative}"] if exists else [], expected=relative, actual="exists" if exists else "missing"))
-    return results
+def evaluate_unhandled_criteria(task: TaskContract, run: Run) -> list[EvaluationResult]:
+    # File checks need a trusted workspace; manual criteria need explicit evidence.
+    # Neither is integrated into the service yet, so do not imply either passed.
+    return [
+        _result(task, run, criterion.criterion_id, "unhandled-criterion",
+                status="needs_review", severity="blocking" if criterion.required else "warning",
+                summary=f"Criterion requires an evaluator not integrated into this run: {criterion.type}",
+                expected=criterion.description, actual="not evaluated")
+        for criterion in task.acceptance_criteria
+        if isinstance(criterion, AcceptanceCriterion) and criterion.type in {"file_exists", "manual"}
+    ]

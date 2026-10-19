@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 from typing import Sequence
 
@@ -56,12 +57,6 @@ GLOBAL_TEMPLATE = """# Global context
 
 Record stable preferences, environment constraints, and conventions shared by every project.
 """
-CURRENT_TEMPLATE = """# Current work
-
-Record only short-lived cross-session state here. Clear it when the work is complete.
-"""
-
-
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="aictx", description="Offline shared context for AI coding tools")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -198,7 +193,6 @@ def _initialize(root: Path, *, dry_run: bool) -> None:
         _write_if_changed(root / ".aictx.toml", CONFIG_TEMPLATE, dry_run=dry_run)
     for path, contents in (
         (root / ".ai/GLOBAL.md", GLOBAL_TEMPLATE),
-        (root / ".ai/CURRENT.md", CURRENT_TEMPLATE),
     ):
         if not path.exists():
             _write_if_changed(path, contents, dry_run=dry_run)
@@ -307,9 +301,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             return session_start()
         if args.command == "load":
             root, result = prepare_context(args.workspace or Path.cwd(), args.project)
-            if args.audit_url:
-                append_memory(root, result, args.project, args.audit_url)
-            return emit_context(root, result, as_json=args.json)
+            audit_url = args.audit_url if args.audit_url is not None else os.getenv("EVOLVETRACE_AUDIT_MEMORY_URL")
+            if audit_url:
+                append_memory(root, result, args.project, audit_url)
+            return emit_context(root, result, as_json=args.json, audit_url=audit_url)
         if args.command == "repo":
             repository = inspect_repository(args.path)
             freshness = evaluate_freshness(args.context_commit, repository)

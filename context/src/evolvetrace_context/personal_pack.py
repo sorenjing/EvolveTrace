@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 import json
 from pathlib import Path, PureWindowsPath
 import re
@@ -177,49 +177,3 @@ class PersonalAIPack:
             "version": self.version,
             "platforms": list(self.enabled_platforms),
         }
-
-
-@dataclass(frozen=True)
-class ExecutionProfile:
-    schema: str
-    profile_id: str
-    platform: str
-    harness: str
-    adapter: str
-    adapter_version: str
-    provider: str | None
-    model: str | None
-    capabilities: tuple[str, ...]
-    policy_profile: str
-
-    @classmethod
-    def from_dict(cls, payload: Mapping[str, Any]) -> "ExecutionProfile":
-        allowed = {
-            "schema", "profile_id", "platform", "harness", "adapter",
-            "adapter_version", "provider", "model", "capabilities", "policy_profile",
-        }
-        if set(payload) != allowed:
-            raise ValueError("execution profile contains unknown fields")
-        _reject_unsafe(dict(payload))
-        if payload["schema"] != "execution-profile/v1":
-            raise ValueError("unsupported execution profile schema")
-        capabilities = payload["capabilities"]
-        if not isinstance(capabilities, list):
-            raise ValueError("capabilities must be a list")
-        return cls(
-            "execution-profile/v1",
-            _required(payload["profile_id"], "profile_id"),
-            _required(payload["platform"], "platform"),
-            _required(payload["harness"], "harness"),
-            _required(payload["adapter"], "adapter"),
-            _required(payload["adapter_version"], "adapter_version"),
-            str(payload["provider"]).strip() if payload.get("provider") else None,
-            str(payload["model"]).strip() if payload.get("model") else None,
-            tuple(sorted({_required(item, "capability") for item in capabilities})),
-            _required(payload["policy_profile"], "policy_profile"),
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        value = asdict(self)
-        value["capabilities"] = list(self.capabilities)
-        return value

@@ -3,6 +3,7 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 from .models import AuditEvent
+from .execution_results import execution_result
 
 
 @dataclass(frozen=True)
@@ -37,20 +38,8 @@ def _flatten_text(value: Any) -> str:
     return ""
 
 
-def _tool_response_failed(response: Any) -> bool:
-    if isinstance(response, dict):
-        status = str(response.get("status") or "").lower()
-        if status in {"failed", "failure", "error"}:
-            return True
-        exit_code = response.get("exit_code", response.get("exitCode", response.get("returncode")))
-        try:
-            if exit_code is not None and int(exit_code) != 0:
-                return True
-        except (TypeError, ValueError):
-            pass
-        return bool(response.get("error"))
-    text = str(response or "").lower()
-    return bool(re.search(r"\b(?:error|failed|exit(?:ed)?\s+with\s+code\s+[1-9])\b", text))
+def _tool_response_failed(event: AuditEvent) -> bool:
+    return execution_result(event.to_dict())["outcome"] == "failure"
 
 
 def _safety_block(event: AuditEvent) -> RiskFinding | None:
@@ -101,11 +90,7 @@ def analyze_event(event: AuditEvent) -> list[RiskFinding]:
             )
         )
 
-    status = str(event.details.get("status") or event.details.get("result") or "").lower()
-    failed = status in {"failed", "failure", "error"} or _tool_response_failed(
-        event.details.get("tool_response")
-    )
-    if event.event_type in {"PostToolUse", "PostToolUseFailure"} and failed:
+    if event.event_type in {"PostToolUse", "PostToolUseFailure"} and _tool_response_failed(event):
         findings.append(
             RiskFinding(
                 event_id=event.event_id,

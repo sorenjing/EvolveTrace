@@ -47,6 +47,12 @@ class WorkspaceRepository(AuditRepository):
                     FOREIGN KEY (project_id) REFERENCES activity_projects(project_id),
                     FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE CASCADE
                 );
+                CREATE TABLE IF NOT EXISTS activity_memory_recalls (
+                    sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+                    recall_id TEXT NOT NULL UNIQUE, project_id TEXT NOT NULL,
+                    report_json TEXT NOT NULL,
+                    FOREIGN KEY (project_id) REFERENCES activity_projects(project_id)
+                );
                 CREATE TABLE IF NOT EXISTS activity_execution_directories (
                     event_id TEXT PRIMARY KEY, cwd TEXT NOT NULL,
                     rule_version TEXT NOT NULL, observed_at TEXT NOT NULL,
@@ -215,3 +221,30 @@ class WorkspaceRepository(AuditRepository):
         return [{"memory_id": row["memory_id"], "project_id": project_id, "session_id": row["session_id"],
                  "note": row["note"], "evidence_refs": json.loads(row["evidence_json"]),
                  "created_at": row["created_at"], "status": "human_reviewed"} for row in rows]
+
+    def record_memory_recall(self, payload: dict) -> dict:
+        identity = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        record = {**payload, "recall_id": identity, "received_at": datetime.now(timezone.utc).isoformat(),
+                  "authority": "client_reported_output", "model_use": "unknown"}
+        with self._lock, self._connect() as connection:
+            ids = payload["memory_ids"]
+            if ids:
+                placeholders = ",".join("?" for _ in ids)
+                known = {row[0] for row in connection.execute(
+                    f"SELECT memory_id FROM activity_memory WHERE project_id=? AND memory_id IN ({placeholders})",
+                    (payload["project_id"], *ids))}
+                if known != set(ids):
+                    raise ValueError("returned memories must belong to the selected project")
+            connection.execute("INSERT OR IGNORE INTO activity_memory_recalls (recall_id, project_id, report_json) VALUES (?, ?, ?)",
+                               (identity, payload["project_id"], json.dumps(record)))
+            stored = connection.execute("SELECT report_json FROM activity_memory_recalls WHERE recall_id=?", (identity,)).fetchone()
+            connection.execute("""DELETE FROM activity_memory_recalls WHERE project_id=? AND sequence NOT IN (
+                SELECT sequence FROM activity_memory_recalls WHERE project_id=? ORDER BY sequence DESC LIMIT 20)""",
+                (payload["project_id"], payload["project_id"]))
+        return json.loads(stored[0])
+
+    def memory_recalls(self, project_id: str) -> list[dict]:
+        with self._lock, self._connect() as connection:
+            rows = connection.execute("SELECT report_json FROM activity_memory_recalls WHERE project_id=? ORDER BY sequence DESC LIMIT 20",
+                                      (project_id,)).fetchall()
+        return [json.loads(row[0]) for row in rows]

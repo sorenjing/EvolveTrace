@@ -38,7 +38,7 @@ Task Contracts, Context Snapshots, deterministic freshness/scope/verification ev
 
 ## Context component contract
 
-The EvolveTrace Context component under `context/` owns context discovery, freshness, and semantic-memory rendering. The backend consumes only the versioned `ContextBundle v1` JSON export described in `DESIGN.md`; it must not import `evolvetrace_context` Python internals or parse human-facing Markdown. The component retains its independent CLI, tests and MIT license. Root `.codex-plugin/` and `hooks/` compose one plugin using the canonical Skill in `context/skills/`; `plugin/` remains audit-only compatibility packaging. See `docs/consolidation.md` for installation and release boundaries.
+The EvolveTrace Context component under `context/` owns context discovery, freshness, and semantic-memory rendering. The backend consumes only the versioned `ContextBundle v1` JSON export described in `DESIGN.md`; it must not import `evolvetrace_context` Python internals or parse human-facing Markdown. The component retains its independent CLI, tests and MIT license. Root `.codex-plugin/` and `hooks/` compose one plugin using the canonical Skill in `context/skills/`; `plugin/hooks/` contains its collector and safety implementation. Standalone audit-only packaging is retired. See `docs/consolidation.md` for installation and release boundaries.
 
 ## Constraints
 

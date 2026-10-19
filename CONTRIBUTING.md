@@ -76,6 +76,7 @@ venv\Scripts\python.exe -m pytest -q
 
 # 前端静态检查与构建
 cd ..
+npm test
 npm run lint
 npm run build
 ```
@@ -122,7 +123,8 @@ refactor: 抽离 services 层
 
 ## License
 
-提交的代码将在 [Apache License 2.0](LICENSE) 下发布。提交 PR 即表示你同意该许可。
+应用代码采用 [Apache License 2.0](LICENSE)，`context/` 组件保留 [MIT](context/LICENSE)。
+贡献遵循对应目录的许可证，第三方来源与许可范围见 [NOTICE](NOTICE)。
 
 ---
 

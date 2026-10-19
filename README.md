@@ -1,163 +1,157 @@
 # EvolveTrace
 
-**Local-first command auditing, context, and evidence-based review for coding agents.**
+**看清 Coding Agent 执行了什么，再决定下一步。**
 
-EvolveTrace 在本机记录 Coding Agent 的可观察执行，按项目统计命令类型、次数、结果与耗时，
-帮助核对重复读取、反复构建和连续失败，并把 Task、上下文快照、验证证据与人工复核关联起来。
-当前为持续开发中的早期版本；通用回归案例导入导出与重放仍在路线图中。
+Local-first command auditing and evidence-based review for coding agents.
 
-## 上下文与执行证据，共用一个项目
+[![CI](https://github.com/sorenjing/EvolveTrace/actions/workflows/ci.yml/badge.svg)](https://github.com/sorenjing/EvolveTrace/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-EvolveTrace Context 是本仓库的上下文组件，位于 [`context/`](context/)，继续提供独立的 `aictx` CLI。安装、统一插件、任务绑定与 GitHub 迁移步骤见[合并使用指南](docs/consolidation.md)。
+Agent 为什么反复读取同一批文件？测试是真的通过了，还是根本没有拿到结果？
+EvolveTrace 收集 Codex 公开的 Hook 事件，在本机按项目整理命令类型、次数、结果与耗时，
+把重复操作、连续失败和风险提示关联到具体执行证据，供你选择分析、忽略或静音。
 
-```powershell
-python -m pip install ./context
-python scripts/build_plugin_archive.py
-```
+需要审查任务结果时，还可以绑定项目上下文、验收条件和 Run，运行确定性评估并记录人工复核。
+执行记录保存在本地 SQLite，不需要模型账号或 API Key。
 
-插件归档为 `dist/evolvetrace-plugin.zip`，同时提供上下文加载和执行事件采集。`plugin/` 保留 audit-only 接入。上下文组件保留 MIT 许可证，应用使用 Apache-2.0，详见 [NOTICE](NOTICE)。
+[快速开始](#快速开始) · [合成数据演示](docs/demo.md) · [使用手册](docs/usage.md) · [项目官网](https://sorenjing-evolvetrace.uas857030604.chatgpt.site) · [参与贡献](CONTRIBUTING.md)
 
-源码维护入口统一后，后端仍通过版本化 ContextBundle 接收上下文，独立 CLI 使用方式保持兼容。自动对话提取与语义检索仍需后续设计。
+> **早期版本**：命令审计、任务复核、修正尝试准备和前后 Run 比较已接入工作台。执行修正仍需在目标仓库新开 Codex 会话；通用回归案例导入导出与重放仍在开发计划中。
 
-## 项目官网
+![合成任务的命令分类与执行证据详情](docs/assets/workbench-demo.jpg)
 
-[打开 EvolveTrace 官网](https://sorenjing-evolvetrace.uas857030604.chatgpt.site) · [下载源码](https://sorenjing-evolvetrace.uas857030604.chatgpt.site/download.html)
+*使用公开合成数据的实际工作台：两次调用观察，结果均未知。演示步骤见[合成数据演示](docs/demo.md)。*
 
-官网源码位于 [website/](website/README.md)，包含首页、快速开始、文档、带版本与校验值的源码下载，以及更新记录。官网提供公开介绍和下载，实际审查工具在本机运行。
+## 可以用它做什么
 
-构建官网：`npm --prefix website ci`，再运行 `npm run site:build`。本地预览：`npm run site:preview`。构建产物 `website/dist/` 可以迁移到其他静态托管平台。
-
-当前版本提供 Codex 执行审查、实时可观测和窄范围的执行前安全保护，并已实现 Task Contract、EvolveTrace Context `ContextBundle v1` 导入、Context Receipt、Run 绑定，以及首个 Evidence-based Evals 纵向切片。它基于 Agent 已公开的事件和验证结果构建证据链，不依赖隐藏思维链，也不上传源代码。
-
-## 为什么需要它
-
-Agent 最终生成的 diff 无法回答完整的工程问题：
-
-- 它接到的需求和验收标准是否明确？
-- 它使用的项目上下文是否正确、最新？
-- 它执行了哪些命令、申请了哪些权限、修改了哪些文件？
-- 它是否真正运行了测试、lint 或 build？
-- 高风险操作能否在执行前停止？
-- 本次失败能否变成下一次自动复测的案例？
-
-EvolveTrace 的目标不是给 Agent 再套一层聊天界面，而是把需求、上下文、轨迹、评估和人工决策组织成一条可审查的证据链。
-
-## 目标工作流
-
-```mermaid
-flowchart TD
-    A["EvolveTrace Context<br/>上下文快照"] --> B["Task Contract<br/>目标、约束、验收标准"]
-    B --> C["Coding Agent<br/>Codex 等"]
-    C --> D["Evidence Layer<br/>轨迹、修改、验证与风险"]
-    D --> E["Deterministic Evals"]
-    E --> F{"Human Review"}
-    F -->|通过| G["Accepted Run"]
-    F -->|失败| H["Regression Case"]
-    H --> E
-```
-
-## 项目边界
-
-| 层 | 职责 |
+| 你遇到的问题 | 当前提供的帮助 |
 | --- | --- |
-| [EvolveTrace Context](context/) | 维护“AI 应该知道什么”，生成可审计、可追踪 freshness 的项目上下文 |
-| Agent Skills | 约束“AI 应该怎样工作”，复用开发行为与流程 |
-| EvolveTrace | 记录“AI 做了什么、是否做对、失败如何复现” |
+| Agent 来回搜索、反复构建，难以判断卡在哪里 | 按项目查看命令分类、次数、结果和耗时，从重复操作或失败提醒回到原始事件 |
+| 想分析异常，又不希望每次提醒都打断工作 | 选择打开本地分析窗口，复制带证据的提示给 Codex；也可忽略或静音 |
+| Agent 声称“已完成”，需要核对验证依据 | 将 Task、Context Snapshot 与 Run 关联，检查上下文 freshness、仓库范围和验证证据，保存人工复核 |
+| 多个项目反复遇到相似问题 | 人工确认审计记忆，再由 Context 按项目回读 |
+| 担心明显危险的 shell 操作 | 在支持的执行前 Hook 中，用窄范围规则拒绝高置信度危险命令 |
 
-首个完整闭环面向个人多仓库开发，聚焦任务上下文、执行证据、安全检查和回归评估。
-
-学习上下文如何进入这条证据链，可阅读[Context 设计与学习路径](docs/context-design.md)：受控上下文输入、交付证据分级，以及上下文与 Task / Run 的接口衔接。文档包含代码阅读顺序、验证步骤和已有测试入口。
-
-## 当前已实现
-
-- Codex lifecycle Hooks 事件采集
-- 本地 SQLite 会话与事件存储
-- SSE 实时执行时间线
-- 事件流重连及队列溢出后从本地存储恢复历史，按事件 ID 去重
-- 输入输出脱敏和 loopback-only API
-- 危险命令、权限拒绝、失败调用与修改范围的确定性风险标记
-- Safety Sentinel 执行前阻断
-- 三栏审查工作台与可复制的修正提示
-- Task Contract、Context Snapshot、Context Receipt、活动任务 lease、Run 绑定和 Unbound Runs
-- `generated → delivered → acknowledged → evidenced → effective` 的单调证据等级；交付或客户端确认不等于模型理解、遵循或有效
-- 任务优先工作台与单进程本地分发
-- 结构化 Acceptance Criterion、Context Freshness、Repository Scope 与 Verification 确定性评估
-- 不可变 Evaluation Result、人工 Review Decision，以及 `needs_fix → corrected → accepted` 对比闭环
-- 合成、脱敏的修复前后回归 fixture；单次成功运行不能自动产生 `effective`
-- `start.ps1` 一键启动并支持 Codex 内置 Browser
-- 后端测试、前端 lint/build 与 GitHub Actions CI
-- Context 项目目录登记、跨项目命令分类统计与重复操作/失败重试线索
-- 有界后台执行元数据补齐、延迟记录重试及来源/结果缺口显示
-- 可选分析窗口、忽略/静音设置、带证据的人工确认审计记忆及按项目回读
-
-跨项目统计、分析和后续记忆加载见[跨项目审计使用指南](docs/workspace-audit.md)。
-
-命令频次是工作流线索，不是真实磁盘 I/O 或硬件健康指标，不能用于诊断磁盘损坏。
-“选择分析”打开本地分析窗口并准备可复制提示，用户自行发送给 Codex。
+例如，连续失败提醒可以帮助你发现某条测试命令正在反复失败。
+你可以检查事件中的结构化结果，再决定补充依赖、修正命令或继续排查。
+次数本身不说明失败原因；没有退出结果的调用会保留为未知。
 
 ## 快速开始
 
-完成一次性依赖安装后，在仓库根目录运行：
+以下以 **Windows / PowerShell** 为例，需要 Python **3.11+**、Node.js **22+**。
+首次安装需要联网下载依赖。Context CLI 另有 Windows、macOS、Linux CI；完整工作台的首选上手路径是本机 PowerShell。
 
 ```powershell
+git clone https://github.com/sorenjing/EvolveTrace.git
+cd EvolveTrace
+
+# 准备后端依赖
+python -m venv backend/venv
+./backend/venv/Scripts/python.exe -m pip install -r backend/requirements-dev.txt
+
+# 安装前端依赖并构建静态工作台
+./scripts/build_static_ui.ps1
+
+# 启动本地服务与浏览器
 ./start.ps1
 ```
 
-在 ChatGPT 桌面版 Codex 中希望使用内置 Browser：
+打开 `http://127.0.0.1:8001`。使用 Codex 内置 Browser 时，运行 `./start.ps1 -NoBrowser`，再打开同一地址。
+
+**刚启动时没有执行记录是正常的。** 接下来选择一条路径：
+
+- **先看看界面**：使用[隔离的合成数据演示](docs/demo.md)，无需接入真实项目。
+- **记录自己的执行**：构建并安装统一插件，按[安装与启用步骤](docs/consolidation.md)完成客户端配置后，运行一次 Codex 任务。
 
 ```powershell
-./start.ps1 -NoBrowser
+# 在仓库根目录构建插件归档
+./backend/venv/Scripts/python.exe scripts/build_plugin_archive.py
 ```
 
-然后让 Codex 打开 `http://127.0.0.1:8001`。首次使用先运行 `./scripts/build_static_ui.ps1`；完整环境配置、日常使用和观测排障分别见 [RUN.md](RUN.md)、[中文使用手册](docs/usage.md) 与 [观测手册](docs/observability.md)。
+归档输出为 `dist/evolvetrace-plugin.zip`。生成 ZIP 还不等于客户端已安装或启用插件；
+接入后可用[观测手册](docs/observability.md)逐层确认服务、Hook 和事件是否正常。
+后台常驻、前后端开发与实验性 Docker 配置见 [RUN.md](RUN.md)。
 
-## 效果验证
+## 从命令记录到任务复核
 
-采集覆盖、风险规则和人工审查收益的指标及对照步骤见[效果验证指南](docs/effectiveness.md)。服务健康和事件数量不等于审查效果。
+```mermaid
+flowchart LR
+    A[Codex Hook] --> B[本地采集与脱敏]
+    B --> C[命令统计与执行时间线]
+    C --> D[选择分析 / 忽略 / 静音]
+    E[Task + Context Snapshot] --> F[Run 执行证据]
+    B --> F
+    F --> G[确定性评估]
+    G --> H[人工复核]
+```
 
-## Safety Sentinel 边界
+| 能力 | 当前入口与边界 |
+| --- | --- |
+| 项目命令统计、重复操作与连续失败提醒 | 工作台；仅依据采集到的事件，有界后台补齐会显示状态与证据缺口 |
+| 实时执行时间线、风险检查、分析提示 | 工作台；SSE 重连后恢复已入库历史，按事件 ID 去重 |
+| Task、Context Snapshot、活动任务绑定 | Context CLI / HTTP API；工作台查看任务、上下文与 Run，目前没有完整的创建表单 |
+| 确定性评估与人工复核 | 工作台 / API；覆盖上下文 freshness、仓库范围和验证证据，未接入的必需验收条件会阻止接受 |
+| 修正与前后 Run 比较 | 工作台 / API；需修复后准备新尝试，在新 Codex 会话执行，再评估、人工接受并逐项对比；有效性确认仍受后端回执门禁约束 |
+| 经人工确认的审计记忆 | 分析窗口确认，Context CLI 按项目回读；工作台显示已上报的返回时间和记忆 ID，不把模型建议或输出声明当作采用事实 |
+| 通用回归案例、LLM Judge、系统资源采样 | 计划中 |
 
-第一版只对 Codex `PreToolUse` 暴露的 Bash 命令做确定性判断，并阻断四类高置信度操作：
+详细流程见[跨项目审计与记忆](docs/workspace-audit.md)和[上下文证据演示](docs/context-evidence-demo.md)。
+指标与对照步骤见[效果验证指南](docs/effectiveness.md)；目前没有足够实测数据宣称减少了多少时间、Token 或磁盘写入。
 
-- 格式化或擦除存储设备
-- 直接向物理磁盘写入
-- 递归删除文件系统根目录、家目录或父目录
-- 将网络下载内容直接管道给 shell 执行
+## 项目上下文：EvolveTrace Context
 
-普通项目清理和 Git 恢复命令仍会记录并标记风险，但不会自动阻断。Hook 覆盖并不完整，因此 Safety Sentinel 是 Guardrail，而不是完整沙箱。
+[`context/`](context/) 提供可独立安装的 `aictx` CLI，用于维护跨项目上下文、跟踪 freshness、准备任务并交付版本化 ContextBundle。
+后端通过 JSON 契约接收上下文，不要求 Agent 使用同一种工作流。
 
-## 下一阶段
+```powershell
+./backend/venv/Scripts/python.exe -m pip install ./context
 
-- **M0.4 后续 Evaluators**：Safety、event absence、文件存在性编排与更完整的验收证据覆盖
-- **M0.5 Regression Harness**：失败分类、脱敏案例导入导出与通用重放集合
-- **M0.6 LLM Judge Experiments**：可选 Judge、rubric/version、gold labels 和偏差评估
+# 在配置了 .aictx.toml 的工作区登记项目目录
+./backend/venv/Scripts/aictx.exe audit sync --workspace <工作区目录> --evolvetrace-url http://127.0.0.1:8001
+```
 
-详细设计见 [DESIGN.md](DESIGN.md)，首个里程碑实施计划见 [Task & Context implementation plan](docs/superpowers/plans/2026-09-09-task-context-milestone.md)。
+初始化工作区、任务交付与旧版本迁移见[合并使用指南](docs/consolidation.md)，
+设计与代码阅读路径见[Context 设计](docs/context-design.md)。
+交付或客户端确认只证明上下文到达了某个环节，不能证明模型理解、遵循或从中获益。
 
-## 数据与隐私
+## 采集、安全与隐私边界
 
-安全报告与支持边界见 [安全政策](SECURITY.md)，依赖告警检查见[依赖安全说明](docs/dependency-security.md)。
+- 命令频次反映工作流线索，**不测量真实磁盘 I/O，也不能诊断磁盘损坏**。
+- “选择分析”打开本地窗口并准备可复制提示，由用户自行发送给 Codex；尚未接入 Codex 原生分析弹窗。
+- 服务默认只监听 `127.0.0.1`。原始 Hook payload 不落盘，但规范化事件仍可能包含命令、代码片段或输出；常见凭据会按模式脱敏，不能保证清除所有敏感内容。
+- 执行记录默认留在本机，应用没有自动上传源代码的流程；主动复制分析提示、提交 Issue 或配置 Context 发布前仍需检查内容。
+- Hook 覆盖取决于客户端提供的事件。普通采集失败会形成证据缺口；缺失事件不能证明动作没有发生。
+- Safety Sentinel 只在支持的 `PreToolUse` Bash 事件上，拒绝格式化/擦除设备、直接写物理磁盘、递归删除根目录/家目录/父目录、下载内容管道给 shell 等高置信度危险操作。它不是完整沙箱。
 
-- 默认只监听 `127.0.0.1`
-- 原始 Hook payload 不落盘
-- 常见 API Key、Token、Cookie、JWT 和 URL 凭据会脱敏
-- 不上传源代码，不依赖云账号
-- Context Snapshot 和 Regression Case 默认只保存在本地
-- 公开 fixtures 只能使用合成数据，不得包含真实 `.ai/` 内容、公司信息、私人仓库内容或本机绝对路径
+详见 [Hook 事件契约](docs/hook-event-contract.md)、[安全政策](SECURITY.md)和[依赖安全说明](docs/dependency-security.md)。
+公开复现请使用合成数据，不上传真实会话、数据库或工作区截图。
 
-## 开发与验证
+## 接下来与参与贡献
 
-在个人电脑上执行：
+接下来优先用真实任务验证“发现问题 → 记录处理 → 新 Run → 同一组条件复核”的操作路径，
+再扩展更多评估器和通用回归案例。可选 LLM Judge、系统资源采集需要单独设计与验证。
+架构见 [DESIGN.md](DESIGN.md)，变更见 [CHANGELOG.md](CHANGELOG.md)。
+
+适合参与的方向包括：
+
+- 客户端 Hook 兼容性：提供客户端版本、复现步骤与合成事件。
+- 命令分类和风险规则：同时提供命中与不应命中的样例，避免把正常工作误判为异常。
+- 首次安装体验：指出卡在哪一步，以及预期看到什么。
+- 确定性评估：补充可追溯证据和失败用例。
+
+请先阅读[贡献指南](CONTRIBUTING.md)。本地验证：
 
 ```powershell
 cd backend
-venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-venv\Scripts\python.exe -m pytest -q
+./venv/Scripts/python.exe -m pytest -q
 cd ..
+npm test
 npm run lint
 npm run build
 ```
 
+官网源码与发布说明见 [website/](website/README.md)。官网构建要求干净提交，以便文档与源码下载对应同一版本。
+
 ## License
 
-应用采用 [Apache License 2.0](LICENSE)，`context/` 组件保留 [MIT](context/LICENSE)，来源与许可范围见 [NOTICE](NOTICE)。第三方依赖遵循各自许可证。若项目对你的业务有帮助，欢迎自愿支持后续开发；赞助不是使用条件。
+应用采用 [Apache License 2.0](LICENSE)，`context/` 组件保留 [MIT](context/LICENSE)。来源与许可范围见 [NOTICE](NOTICE)，第三方依赖遵循各自许可证。

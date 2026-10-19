@@ -3,6 +3,7 @@
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
+import re
 
 from audit.activity import analyze_activity
 from services.execution_evidence import resolve_execution_evidence
@@ -140,5 +141,30 @@ class ActivityService:
     def memory(self, project_id: str) -> dict:
         project = self._project(project_id)
         return {"schema_version": "audit-memory/v1", "project": self._public(project),
-                "entries": self.repository.memory(project_id), "limit": 20,
+                "entries": self.repository.memory(project_id), "recalls": self.repository.memory_recalls(project_id), "limit": 20,
                 "authority": "human_reviewed_observation", "freshness": "historical"}
+
+    def record_memory_recall(self, payload: dict) -> dict:
+        fields = {"schema_version", "project_id", "reported_at", "trigger", "context_status", "context_freshness", "memory_ids", "truncated"}
+        if set(payload) != fields or payload["schema_version"] != "audit-memory-recall/v1":
+            raise ValueError("expected bounded audit-memory-recall/v1 report")
+        self._project(payload["project_id"])
+        at = payload["reported_at"]
+        if not isinstance(at, str) or len(at) > 64:
+            raise ValueError("reported_at must be a timezone-aware timestamp")
+        try:
+            timestamp = datetime.fromisoformat(at)
+        except ValueError as exc:
+            raise ValueError("reported_at must be a timezone-aware timestamp") from exc
+        if timestamp.utcoffset() is None:
+            raise ValueError("reported_at must be a timezone-aware timestamp")
+        if payload["trigger"] not in ("manual", "SessionStart:startup", "SessionStart:resume", "SessionStart:compact", "SessionStart:clear", "SessionStart:unknown"):
+            raise ValueError("invalid recall trigger")
+        if payload["context_status"] not in ("returned", "partial", "blocked") or payload["context_freshness"] not in ("current", "stale", "new", "unknown", "missing"):
+            raise ValueError("invalid context status or freshness")
+        ids = payload["memory_ids"]
+        if (not isinstance(ids, list) or len(ids) > 20
+                or not all(isinstance(item, str) and re.fullmatch(r"[A-Za-z0-9_-]{1,100}", item) for item in ids)
+                or len(set(ids)) != len(ids) or type(payload["truncated"]) is not bool):
+            raise ValueError("invalid returned memory identifiers")
+        return self.repository.record_memory_recall(payload)

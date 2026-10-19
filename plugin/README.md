@@ -1,6 +1,8 @@
-# EvolveTrace for Codex
+# EvolveTrace Hook collector
 
-This directory is the audit-only compatibility plugin. For combined context loading and execution capture, use the repository-root unified plugin archive described in [the consolidation guide](../docs/consolidation.md). Enable one capture installation at a time.
+This directory contains the collector and deterministic safety policy used by the repository-root unified plugin. Install the archive described in [the consolidation guide](../docs/consolidation.md); its configuration is [`hooks/hooks.json`](../hooks/hooks.json).
+
+The standalone audit-only plugin packaging has been retired. Existing users should enable the unified plugin and disable the old installation to avoid duplicate capture. This source change does not update an already installed plugin.
 
 EvolveTrace captures supported Codex hook events, redacts sensitive values, and sends the resulting audit event to the local FastAPI service at <http://127.0.0.1:8001/api/audit/events>.
 

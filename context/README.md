@@ -89,7 +89,6 @@ The workspace will contain:
 .ai/
   GLOBAL.md
   WORKSPACE.md
-  CURRENT.md
   state.json
   projects/
 AGENTS.md
@@ -97,6 +96,18 @@ CLAUDE.md
 GEMINI.md
 .cursor/rules/ai-context.mdc
 ```
+
+New workspaces no longer create `CURRENT.md`: the loader does not consume it. Existing files remain untouched; move applicable decisions into the selected project's manual block after review.
+
+### What “memory” means here
+
+| Content | Storage and owner | How it is reused |
+| --- | --- | --- |
+| Project metadata | Generated project facts and fingerprints | Bounded discovery and freshness checks; not learned task experience |
+| Goals, decisions and constraints | Human-maintained `GLOBAL.md` and project manual blocks | The loader returns shared rules and only the selected project's context |
+| Reviewed execution lessons | Local audit database; explicit human confirmation and evidence references | Visible in the workbench; optional project-scoped recall in subsequent sessions |
+
+The component does not automatically summarize conversations or infer reusable lessons. Managing several projects does not make one project's notes valid for another. Promote a shared rule to `GLOBAL.md` only after checking its scope; see the [audit workflow](../docs/workspace-audit.md).
 
 When a manifest or README changes:
 

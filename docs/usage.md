@@ -72,7 +72,7 @@ python scripts/build_plugin_archive.py
 
 在支持本地插件的 Codex 客户端上传 `dist/evolvetrace-plugin.zip`，或通过插件市场安装仓库根目录；启用后审核并信任 Hook，再开启新的项目会话。CLI 可用 `/hooks` 核查当前定义和信任状态。安装或启用插件本身不会自动信任 Hook，网页安装也不会把脚本部署到本机。参见 [官方 Hook 文档](https://learn.chatgpt.com/docs/hooks) 和[合并安装指南](consolidation.md)。
 
-部署内容包括根目录 `hooks/hooks.json`、`context/hooks/session_start.py` 与 `plugin/hooks/`。旧 `plugin/` 只提供 audit-only 兼容接入，不加载上下文；切换统一插件后停用旧插件，避免重复采集。
+部署内容包括根目录 `hooks/hooks.json`、`context/hooks/session_start.py` 与 `plugin/hooks/`。独立 audit-only 插件包装已退役；切换统一插件后停用旧安装，避免重复采集。
 
 更新后若 Hook 显示 `modified` 或 `untrusted`，先重新审核当前定义，再开新会话。旧信任记录和数据库里的旧 Session 都不能证明新版已运行；具体核查顺序见[当前 Hook 信任与真实派发检查](observability.md#先确认当前-hook-定义已获信任)。
 
@@ -106,9 +106,17 @@ aictx task submit <task-id> --evolvetrace-url http://127.0.0.1:8001
 2. 检查 Context Snapshot 与 Context Receipt 的来源和 freshness。
 3. 检查 Run 是否绑定到正确 Session。
 4. 在“执行流程”按顺序查看每一步。一次工具调用的开始与完成事件会合并为一步；点击后分别阅读右侧的“工具输入”和“工具输出”，长内容可在面板内滚动。未采集到完成事件时会明确标记，不能据此断定工具仍在运行。风险提示与其他采集字段也在右侧。
-5. 运行确定性 Evaluation，逐项核对 evidence refs。
+5. 对当前选中的 Run 运行确定性 Evaluation，逐项核对面板显示的 Session、Run ID 和 evidence refs。切换 Run 会清空旧评估和备注；其他会话的新事件只刷新数据，不自动切换当前审查对象。
 6. 由人记录 `accepted` 或 `needs_fix`，不要把命令退出码直接等同于最终接受。
-7. 修正后比较两个 Run；只有经过复核的对比才可能把 receipt 推进到 `effective`。
+7. 标为“需修复”后，在“修正与复验”选择目标仓库，点击“准备修正运行”。这会重新激活该 Task，沿用原上下文与验收条件；所选仓库后续的新会话绑定到此 Task。请在目标仓库新开 Codex 会话，原会话始终属于旧 Run。
+8. 匹配的新 Hook 到达后，从 Task Runs 选择新 Run。等待结束，运行评估并由人决定是否接受；旧评估和复核保持只读。
+9. 在“修正与复验”选择需修复的原始 Run 和较新的已接受 Run，逐项核对规则版本、结果及证据，再点击“确认前后比较”。只有满足后端条件与回执检查的对比才会推进到 `effective`。确认保存具体 Run 对，刷新后可恢复，同一对请求重试不重复推进回执。缺少回执时显示错误，不会自动制造交付记录；`effective` 关联已复核的执行结果，不代表模型理解或因果收益。
+
+旧版本只有 `effective` 回执而没有保存具体比较对时，不能据此认定当前选择已确认；历史回执不自动回退或补造比较记录。
+
+只有活动 Task 接收新会话。进入待复核、需修复、已接受或已阻断后，旧租约不再自动创建新 Run；已经绑定的会话仍可补充采集记录。阻断的任务保留历史，不能通过“准备修正运行”直接恢复。
+
+结构化验收条件必须逐项有评估结果。当前尚未接入服务的 `file_exists` 与 `manual` 条件会返回 `needs_review`，不会默认算作通过：必需项为 `blocking`，阻止 `accepted`；可选项为 `warning`。填写普通复核说明不能覆盖必需项缺口。服务不会根据 Hook 提供的目录直接扫描本机文件。历史快照缺少条件时需创建新的 Run，不能自动补写或覆盖原评估。
 
 ## 数据位置与清理边界
 

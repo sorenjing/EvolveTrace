@@ -1,10 +1,13 @@
 import os
 import sys
 
+import pytest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from audit.models import AuditEvent
 from audit.risk import analyze_event
+from audit.execution_results import execution_result
 
 
 def event_with_command(command: str, **extra):
@@ -66,6 +69,25 @@ def test_analyze_event_detects_post_tool_response_failure():
     )
 
     assert any(finding.code == "tool_failure" for finding in analyze_event(failed))
+
+
+@pytest.mark.parametrize("phase,details,outcome", [
+    ("PostToolUse", {"exit_code": 0, "tool_response": "10 passed, 0 failed"}, "success"),
+    ("PostToolUse", {"tool_response": "10 passed, 0 failed"}, "unknown"),
+    ("PostToolUse", {"tool_response": {"exit_code": True}}, "unknown"),
+    ("PostToolUse", {"tool_response": {"exit_code": "1"}}, "unknown"),
+    ("PostToolUse", {"tool_response": {"exit_code": 0, "status": "failed"}}, "unknown"),
+    ("PostToolUse", {"tool_response": {"exit_code": 2}}, "failure"),
+    ("PostToolUseFailure", {}, "failure"),
+    ("PostToolUseFailure", {"status": "cancelled"}, "cancelled"),
+])
+def test_failure_finding_agrees_with_typed_outcome(phase, details, outcome):
+    event = AuditEvent.from_hook({
+        "event_id": "synthetic-outcome", "session_id": "synthetic-risk",
+        "hook_event_name": phase, "tool_name": "Bash", **details,
+    })
+    assert execution_result(event.to_dict())["outcome"] == outcome
+    assert any(item.code == "tool_failure" for item in analyze_event(event)) == (outcome == "failure")
 
 
 def test_apply_patch_event_derives_changed_files():

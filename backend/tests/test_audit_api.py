@@ -32,6 +32,7 @@ def test_application_exposes_health_audit_and_harness_routes():
         "/api/activity/status",
         "/api/activity/decisions",
         "/api/activity/memory",
+        "/api/activity/memory-recalls",
         "/api/activity/memory/{project_id}",
         "/api/harness/context-snapshots",
         "/api/harness/context-receipts",

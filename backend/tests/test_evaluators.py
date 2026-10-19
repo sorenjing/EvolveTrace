@@ -1,8 +1,6 @@
-from pathlib import Path
-
 import pytest
 
-from harness.evaluators import evaluate_context_freshness, evaluate_file_exists, evaluate_repository_scope, evaluate_verification
+from harness.evaluators import evaluate_context_freshness, evaluate_repository_scope, evaluate_verification
 from harness.models import AcceptanceCriterion, ContextSnapshot, Run, TaskContract
 
 
@@ -83,11 +81,3 @@ def test_verification_distinguishes_missing_failed_and_passed_evidence():
     assert missing.status == "needs_review" and missing.evidence_refs == ()
     assert failed.status == "failed" and failed.evidence_refs == ("event-1",)
     assert passed.status == "passed" and passed.evidence_refs == ("event-2",)
-
-
-def test_file_exists_checks_only_workspace_relative_path(tmp_path: Path):
-    (tmp_path / "demo").mkdir()
-    (tmp_path / "demo" / "result.txt").write_text("ok")
-    task = make_task([criterion("file_exists", {"path": "demo/result.txt"})])
-    result = evaluate_file_exists(task, tmp_path, make_run())[0]
-    assert result.status == "passed"

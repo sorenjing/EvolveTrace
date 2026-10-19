@@ -43,6 +43,111 @@ def test_hook_can_opt_in_to_only_its_selected_project_memory(tmp_path, capsys, m
     assert "Narrow scans" in capsys.readouterr().out
 
 
+@pytest.mark.parametrize("explicit_url,expected_note", [
+    (None, "Environment-selected reviewed observation"),
+    ("http://127.0.0.1:8022", "Explicitly-selected reviewed observation"),
+])
+def test_project_switch_load_keeps_recall_opt_in_and_explicit_override(
+    tmp_path, capsys, monkeypatch, explicit_url, expected_note
+):
+    workspace(tmp_path, capsys)
+    identity = audit_client.selected_project(tmp_path, "demo")
+    before = (tmp_path / ".ai/projects/demo.md").read_bytes()
+    monkeypatch.setenv("EVOLVETRACE_AUDIT_MEMORY_URL", "http://127.0.0.1:8021")
+
+    def response(origin, method, path, payload=None):
+        if method == "POST":
+            return {"schema_version": "audit-memory-recall/v1", "recall_id": "r-switch"}
+        notes = {"http://127.0.0.1:8021": "Environment-selected reviewed observation",
+                 "http://127.0.0.1:8022": "Explicitly-selected reviewed observation"}
+        assert method == "GET" and path == f"/activity/memory/{identity}"
+        return {"schema_version": "audit-memory/v1", "project": {"project_id": identity},
+                "entries": [{"memory_id": "m-switch", "project_id": identity,
+                             "session_id": "s-demo", "status": "human_reviewed",
+                             "created_at": "2026-01-01T00:00:00+00:00",
+                             "note": notes[origin], "evidence_refs": ["e-demo"]}],
+                "limit": 20, "authority": "human_reviewed_observation", "freshness": "historical"}
+
+    monkeypatch.setattr(audit_client, "request_json", response)
+    args = ["load", "demo", "--workspace", str(tmp_path), "--json"]
+    if explicit_url:
+        args += ["--audit-url", explicit_url]
+    assert main(args) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert expected_note in result["context"]
+    assert result["receipt"]["audit_memory"]["memory_ids"] == ["m-switch"]
+    assert (tmp_path / ".ai/projects/demo.md").read_bytes() == before
+
+
+def test_project_switch_without_recall_opt_in_stays_offline(tmp_path, capsys, monkeypatch):
+    workspace(tmp_path, capsys)
+    monkeypatch.delenv("EVOLVETRACE_AUDIT_MEMORY_URL", raising=False)
+    monkeypatch.setattr(audit_client, "request_json", lambda *args: pytest.fail("offline load contacted audit service"))
+    assert main(["load", "demo", "--workspace", str(tmp_path), "--json"]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert "audit_memory" not in result["receipt"]
+
+
+@pytest.mark.parametrize("mode", ["load", "hook"])
+@pytest.mark.parametrize("report_fails", [False, True])
+def test_recall_report_follows_output_and_failure_never_blocks_context(
+    tmp_path, capsys, monkeypatch, mode, report_fails
+):
+    from contextlib import redirect_stdout
+    from evolvetrace_context.context_delivery import session_start
+    workspace(tmp_path, capsys)
+    identity = audit_client.selected_project(tmp_path, "demo")
+    monkeypatch.setenv("EVOLVETRACE_AUDIT_MEMORY_URL", "http://127.0.0.1:8001")
+    output = io.StringIO()
+    reports = []
+
+    def transport(origin, method, path, payload=None):
+        if method == "GET":
+            return {"schema_version": "audit-memory/v1", "project": {"project_id": identity},
+                    "entries": [{"memory_id": "m-returned", "status": "human_reviewed",
+                                 "note": "Synthetic reviewed lesson", "evidence_refs": ["e-1"]}]}
+        assert "Synthetic reviewed lesson" in output.getvalue()
+        assert path == "/activity/memory-recalls"
+        reports.append(payload)
+        if report_fails:
+            raise ConfigError("synthetic service failure")
+        return {"schema_version": "audit-memory-recall/v1", "recall_id": "r-demo"}
+
+    monkeypatch.setattr(audit_client, "request_json", transport)
+    with redirect_stdout(output):
+        if mode == "hook":
+            monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps({"cwd": str(tmp_path / "projects/demo"), "source": "startup"})))
+            code = session_start()
+        else:
+            code = main(["load", "demo", "--workspace", str(tmp_path), "--json"])
+    assert code == 0
+    assert "Synthetic reviewed lesson" in output.getvalue()
+    assert len(reports) == 1
+    assert set(reports[0]) == {"schema_version", "project_id", "reported_at", "trigger", "context_status", "context_freshness", "memory_ids", "truncated"}
+    assert reports[0]["memory_ids"] == ["m-returned"]
+    assert reports[0]["project_id"] == identity
+    assert reports[0]["trigger"] == ("manual" if mode == "load" else "SessionStart:startup")
+    assert reports[0]["schema_version"] == "audit-memory-recall/v1"
+    assert "Synthetic reviewed lesson" not in json.dumps(reports[0])
+    assert ("audit_recall_not_reported" in capsys.readouterr().err) is report_fails
+
+
+def test_failed_stdout_never_reports_a_returned_memory(tmp_path, capsys, monkeypatch):
+    from evolvetrace_context.context_delivery import emit_context, prepare_context
+    workspace(tmp_path, capsys)
+    root, result = prepare_context(tmp_path, "demo")
+    result["receipt"]["audit_memory"] = {"status": "returned", "project_id": "demo", "memory_ids": ["m-1"], "truncated": False}
+
+    class BrokenOutput:
+        def write(self, value):
+            raise BrokenPipeError("synthetic broken pipe")
+
+    monkeypatch.setattr(audit_client, "request_json", lambda *args: pytest.fail("broken output was reported as returned"))
+    monkeypatch.setattr("sys.stdout", BrokenOutput())
+    with pytest.raises(BrokenPipeError):
+        emit_context(root, result, audit_url="http://127.0.0.1:8001")
+
+
 def test_real_loopback_transport_and_redirect_rejection():
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):

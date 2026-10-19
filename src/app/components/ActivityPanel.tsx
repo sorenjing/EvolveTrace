@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { fetchActivity, fetchAuditMemory, fetchCaptureStatus, reviewActivity, saveAuditMemory, unmuteActivity } from "@/app/lib/activity-api";
 import { activityPrompt } from "@/app/lib/activity-prompt";
-import type { ActivityCategory, ActivityCode, ActivityFinding, ActivityProject, ActivityReport, ActivitySummary, AuditMemoryEntry, CaptureStatus } from "@/app/lib/activity-types";
+import type { ActivityCategory, ActivityCode, ActivityFinding, ActivityProject, ActivityReport, ActivitySummary, AuditMemoryEntry, AuditMemoryRecall, CaptureStatus } from "@/app/lib/activity-types";
 
 const categoryLabels: Record<ActivityCategory, string> = {
   read_search: "搜索与读取", edit: "修改", build_test: "构建与测试", dependencies: "依赖管理",
@@ -18,13 +18,14 @@ export function ActivityPanel({ revision, onSelectSession }: { revision: number;
   const [captureError, setCaptureError] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [refresh, setRefresh] = useState(0);
-  const [memory, setMemory] = useState<AuditMemoryEntry[]>([]);
+  const [memoryResult, setMemoryResult] = useState<{ projectId: string; entries: AuditMemoryEntry[]; recalls?: AuditMemoryRecall[]; error: string } | null>(null);
   const [dialog, setDialog] = useState<{ project: ActivityProject; finding: ActivityFinding } | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const currentRevision = useRef(revision);
   const project = report?.projects.find(item => item.project_id === selectedId) ?? report?.projects[0];
   const memoryProjectId = project?.project_id;
+  const memory = memoryResult?.projectId === memoryProjectId ? memoryResult : null;
 
   useEffect(() => { currentRevision.current = revision; }, [revision]);
 
@@ -66,11 +67,21 @@ export function ActivityPanel({ revision, onSelectSession }: { revision: number;
 
   useEffect(() => {
     if (!memoryProjectId) return;
+    const projectId = memoryProjectId;
     const controller = new AbortController();
-    void fetchAuditMemory(memoryProjectId, controller.signal).then(value => setMemory(value.entries)).catch(cause => {
-      if (!controller.signal.aborted) { setMemory([]); setError(cause instanceof Error ? cause.message : "无法读取审计记忆"); }
-    });
-    return () => controller.abort();
+    let inFlight = false;
+    function load() {
+      if (inFlight) return;
+      inFlight = true;
+      void fetchAuditMemory(projectId, controller.signal).then(value => {
+        if (!controller.signal.aborted) setMemoryResult({ projectId, entries: value.entries, recalls: value.recalls, error: "" });
+      }).catch(cause => {
+        if (!controller.signal.aborted) setMemoryResult({ projectId, entries: [], error: cause instanceof Error ? cause.message : "无法读取审计记忆" });
+      }).finally(() => { inFlight = false; });
+    }
+    load();
+    const timer = window.setInterval(load, 15000);
+    return () => { window.clearInterval(timer); controller.abort(); };
   }, [memoryProjectId, refresh]);
 
   async function decide(finding: ActivityFinding, action: "ignore" | "mute") {
@@ -112,7 +123,7 @@ export function ActivityPanel({ revision, onSelectSession }: { revision: number;
     </div>}
     {report && !report.projects.length && <p className="mt-3 text-sm text-zinc-500">尚未连接项目目录。通过 Context 登记工作区后，已有执行记录也可归入对应项目。</p>}
     {report && project && <>
-      <label className="mt-3 block text-xs">项目<select aria-label="审计项目" value={project.project_id} onChange={event => { setSelectedId(event.target.value); setMemory([]); }} className="ml-2 max-w-full rounded-lg border border-zinc-300 bg-transparent p-2 dark:border-zinc-700">
+      <label className="mt-3 block text-xs">项目<select aria-label="审计项目" value={project.project_id} onChange={event => setSelectedId(event.target.value)} className="ml-2 max-w-full rounded-lg border border-zinc-300 bg-transparent p-2 dark:border-zinc-700">
         {report.projects.map(item => <option key={item.project_id} value={item.project_id}>{item.name} · {item.relative_path}{item.active ? "" : "（历史项目）"}</option>)}
       </select></label>
       <p className="mt-3 text-sm">{project.activity.attempt_count} 次调用观察 · {project.session_count} 个会话 · {project.activity.failed_count} 次已观察失败 · {project.activity.denied_count} 次阻断</p>
@@ -125,10 +136,44 @@ export function ActivityPanel({ revision, onSelectSession }: { revision: number;
       </div>)}
       {!project.activity.findings.some(item => !item.suppressed) && <p className="mt-3 text-xs text-zinc-500">当前采集范围内暂无待提醒的行为线索。</p>}
       {project.activity.muted_rules.map(code => <button type="button" key={code} disabled={busy} className={`${buttonClass} mr-2 mt-2`} onClick={() => void unmute(code)}>恢复：{ruleLabels[code]}</button>)}
-      <details className="mt-3 text-xs"><summary className="cursor-pointer font-medium">已确认的审计记忆（{memory.length}）</summary>{memory.map(entry => <p key={entry.memory_id} className="mt-2 whitespace-pre-wrap break-words rounded-lg bg-zinc-50 p-2 dark:bg-zinc-900">{entry.note}<span className="mt-1 block text-zinc-500">历史观察 · {entry.created_at.slice(0, 10)} · {entry.evidence_refs.length} 条证据</span></p>)}</details>
+      <section aria-label="项目审计记忆" className="mt-4 border-t border-zinc-200 pt-3 text-xs dark:border-zinc-800">
+        <h3 className="font-medium">已确认的审计记忆 · {project.name}{memory && !memory.error ? `（${memory.entries.length}）` : ""}</h3>
+        <p className="mt-1 text-zinc-500">本项目的人工确认结论，可供后续会话回读；不会自动套用其他项目的经验，也不代表模型已经采用。</p>
+        {!memory && <p role="status" className="mt-2 text-zinc-500">正在读取本项目记忆…</p>}
+        {memory?.error && <p role="alert" className="mt-2 text-amber-700 dark:text-amber-300">{memory.error}。请刷新重试；读取失败不代表没有记忆。</p>}
+        {memory && !memory.error && !memory.entries.length && <p className="mt-2 rounded-lg bg-zinc-50 p-3 dark:bg-zinc-900">尚未保存人工确认的审计记忆。出现执行线索后，可选择分析、核对证据并保存适用结论；采集命令不会自动生成记忆。项目目标和约束另由 Context 的 manual 区维护。</p>}
+        {memory && !memory.error && <MemoryRecallHistory entries={memory.entries} recalls={memory.recalls} />}
+        {memory && !memory.error && memory.entries.map(entry => <article id={`audit-memory-${entry.memory_id}`} key={entry.memory_id} className="mt-2 rounded-lg bg-zinc-50 p-3 dark:bg-zinc-900">
+          <p className="whitespace-pre-wrap break-words">{entry.note}</p>
+          <p className="mt-2 text-zinc-500">人工确认 · 历史观察 · {entry.created_at.slice(0, 10)} · {entry.evidence_refs.length} 条证据</p>
+          <button type="button" className={`${buttonClass} mt-2`} onClick={() => onSelectSession(entry.session_id)}>查看来源会话</button>
+          <details className="mt-2 break-all text-zinc-500"><summary className="cursor-pointer">记忆与证据标识</summary><p className="mt-1">{entry.memory_id}</p><p>{entry.evidence_refs.join("、")}</p></details>
+        </article>)}
+        <details className="mt-3 text-zinc-500"><summary className="cursor-pointer">后续会话如何回读</summary><p className="mt-2">在配置的工作区运行：</p><code className="mt-1 block break-words">aictx load &lt;项目名&gt; --audit-url &lt;本地服务地址&gt;</code><p className="mt-2">也可在启动 Codex 的环境中设置 EVOLVETRACE_AUDIT_MEMORY_URL，由 SessionStart 和后续 load 沿用。默认保持离线；启动服务或看到这张卡片不等于已启用回读。</p></details>
+      </section>
     </>}
     {report && <p className="mt-3 text-xs text-zinc-500">统计覆盖最近采集的 {report.observed_event_count} 条事件；{report.unattributed_event_count} 条未归属。仅捕获开始可能是执行中或缺失结束事件。{report.truncated ? "已达到采集分析上限，较早记录未计入。" : ""}未采集系统 I/O 或硬件健康指标。</p>}
     {dialog && <AnalysisDialog key={dialog.finding.finding_id} {...dialog} onClose={() => setDialog(null)} onSaved={() => setRefresh(value => value + 1)} />}
+  </section>;
+}
+
+function MemoryRecallHistory({ entries, recalls }: { entries: AuditMemoryEntry[]; recalls?: AuditMemoryRecall[] }) {
+  return <section aria-label="记忆加载记录" className="mt-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
+    <h4 className="font-medium">最近记忆加载记录</h4>
+    <p className="mt-1 text-zinc-500">客户端声明已向本地输出返回记忆；不证明宿主收到、模型理解或采用。每 15 秒刷新。</p>
+    {recalls === undefined ? <p className="mt-2 text-amber-700 dark:text-amber-300">当前服务尚未提供加载记录，请更新后端。</p>
+      : !recalls.length ? <p className="mt-2 text-zinc-500">暂无已上报记录。可能尚未启用回读、尚未加载或上报未成功，不能据此认定没有加载。</p>
+      : recalls.slice(0, 5).map((item, index) => <details key={item.recall_id} open={index === 0} className="mt-2 border-t border-zinc-200 pt-2 dark:border-zinc-800">
+        <summary className="cursor-pointer">服务收到：{new Date(item.received_at).toLocaleString("zh-CN")} · {item.trigger === "manual" ? "手动加载 / 切换项目" : item.trigger} · 返回 {item.memory_ids.length} 条</summary>
+        <p className="mt-2 text-zinc-500">客户端输出时间：{new Date(item.reported_at).toLocaleString("zh-CN")} · 上下文 {item.context_status} / {item.context_freshness}</p>
+        {item.truncated && <p className="mt-1 text-amber-700 dark:text-amber-300">交付预算不足，仅列出实际返回的记忆。</p>}
+        {!item.memory_ids.length && <p className="mt-1 text-zinc-500">本次回读已启用，未返回记忆正文。</p>}
+        <ul className="mt-1 space-y-1">{item.memory_ids.map(id => {
+          const entry = entries.find(value => value.memory_id === id);
+          return <li key={id} className="break-words">{entry ? <a className="text-teal-700 underline dark:text-teal-300" href={`#audit-memory-${id}`}>{entry.note.slice(0, 80)}{entry.note.length > 80 ? "…" : ""}</a> : <span className="text-zinc-500">{id}（不在当前记忆列表中）</span>}<code className="block break-all text-[10px] text-zinc-500">{id}</code></li>;
+        })}</ul>
+      </details>)}
+    {!!recalls?.length && <p className="mt-2 text-zinc-500">展示最近 5 次，服务按项目最多保留 20 次元数据记录。普通界面查询不计入加载。</p>}
   </section>;
 }
 

@@ -49,6 +49,8 @@ npm run dev
 
 ## Docker（实验性）
 
+容器构建统一使用根目录 `Dockerfile`，同时打包后端与静态工作台；原 `backend/Dockerfile` 已移除。
+
 推荐使用上面的本机安装流程。Docker 尚未通过完整的 Hook 与审查验收；桥接网络下
 请求来源会改变，可能被 loopback API 拒绝。不要扩大 API 来源或向公网暴露端口来绕过限制。
 
@@ -60,9 +62,6 @@ docker compose up --build
 
 ## 演示数据
 
-```powershell
-cd backend
-venv\Scripts\python.exe scripts\seed_demo.py
-```
-
-脚本回放 `tests/fixtures/codex_hook_session.json`，与自动化测试使用同一事件协议。
+按[合成数据演示](docs/demo.md)使用独立端口和演示数据库。种子脚本回放
+`task_context_run.json` 与 `context_bundle_v1.json`，固定写入 `backend/.demo-*.db`；
+默认服务不会自动读取这些数据库。

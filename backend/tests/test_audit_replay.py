@@ -14,7 +14,7 @@ FIXTURE = Path(__file__).parent / "fixtures" / "codex_hook_session.json"
 
 def test_replay_fixture_uses_only_configured_hook_events():
     root = Path(__file__).resolve().parents[2]
-    configured = set(json.loads((root / "plugin" / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"])
+    configured = set(json.loads((root / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"])
     events = json.loads(FIXTURE.read_text(encoding="utf-8"))
     assert {event["hook_event_name"] for event in events} <= configured
 

@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from audit.redaction import redact_value
 
-TASK_STATUSES = frozenset({"draft", "ready", "active", "evaluating", "needs_review", "needs_fix", "accepted"})
+TASK_STATUSES = frozenset({"draft", "ready", "active", "evaluating", "needs_review", "needs_fix", "accepted", "blocked"})
 RISK_LEVELS = frozenset({"normal", "high", "destructive"})
 FRESHNESS_VALUES = frozenset({"current", "stale", "missing", "unknown"})
 RUN_STATUSES = frozenset({"running", "completed", "blocked"})

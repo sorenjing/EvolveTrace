@@ -66,12 +66,14 @@ The demonstration exports only allowlisted identifiers and timestamps. It exclud
 
 1. Prepare a task with `aictx task prepare`.
 2. Start EvolveTrace on loopback.
-3. Submit the generated task with `aictx task submit <task-id> --evolvetrace-url http://127.0.0.1:8000`.
+3. Submit the generated task with `aictx task submit <task-id> --evolvetrace-url http://127.0.0.1:8001`.
 4. Run the task through the configured execution Hook.
 5. Inspect the task's Context Delivery card and verify the bound receipt and Run.
 6. Click **运行确定性评估** and record `needs_fix` when required evidence is missing.
-7. Execute the corrected attempt, rerun the same criteria, and record `accepted` only when blocking checks pass.
+7. Execute the corrected attempt in a new session so it creates a separate Run, rerun the same criteria, and record `accepted` only when blocking checks pass. A session remains bound to its existing Run; there is currently no one-click retry control.
 8. Submit the two Run IDs to `POST /api/harness/tasks/{task_id}/comparisons`; only this reviewed pair can advance the receipt to `effective`.
 9. Run the privacy scan before exporting any reusable fixture.
 
 The exact commands and schemas are documented in EvolveTrace Context and EvolveTrace.
+
+Task preparation and submission use the CLI / API. Evaluation and human review are available in the workbench for completed Runs; comparison currently uses the API, without a workbench comparison button. The minimal [seeded demo](demo.md) only shows a running Task and its event timeline, not this complete evaluation flow.

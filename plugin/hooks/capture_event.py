@@ -39,7 +39,7 @@ RAW_SECRET_PATTERN = re.compile(
 )
 ASSIGNMENT_PATTERN = re.compile(
     r"(?i)\b(api[_-]?key|access[_-]?token|refresh[_-]?token|password|passwd|"
-    r"secret|authorization)\s*([=:])\s*([^\s,;]+)"
+    r"token|secret|authorization)\s*([=:])\s*([^\s,;]+)"
 )
 
 
@@ -73,13 +73,13 @@ def capture(payload: dict[str, Any], endpoint: str | None = None) -> bool:
         return False
 
     url = endpoint or os.getenv("EVOLVETRACE_API_URL", "http://127.0.0.1:8001/api/audit/events")
-    request = urllib.request.Request(
-        url,
-        data=json.dumps(redact_value(payload), ensure_ascii=False).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
     try:
+        request = urllib.request.Request(
+            url,
+            data=json.dumps(redact_value(payload), ensure_ascii=False).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
         urllib.request.urlopen(request, timeout=1.5)
     except Exception:
         return False
@@ -88,11 +88,15 @@ def capture(payload: dict[str, Any], endpoint: str | None = None) -> bool:
 
 def process_payload(payload: dict[str, Any]) -> int:
     decision = evaluate_pre_tool_use(payload)
-    capture(apply_safety_decision(payload, decision))
-
     hook_output = codex_hook_output(decision)
     if hook_output is not None:
-        print(json.dumps(hook_output, ensure_ascii=False))
+        print(json.dumps(hook_output, ensure_ascii=False), flush=True)
+
+    # Best-effort telemetry must not discard a local policy decision.
+    try:
+        capture(apply_safety_decision(payload, decision))
+    except Exception:
+        pass
     return 0
 
 

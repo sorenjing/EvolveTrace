@@ -2,46 +2,16 @@
 
 import hashlib
 import json
+from datetime import datetime, timezone
 from pathlib import Path, PureWindowsPath
-from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
-from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 from .config import ConfigError, load_config
 from .discovery import discover_projects
-from .evolvetrace_client import _origin
+from .local_transport import DEFAULT_URL, request_json
 from .render import slugify
 
 
-DEFAULT_URL = "http://127.0.0.1:8001"
-RESPONSE_LIMIT = 2_097_152
-
-
-class _NoRedirect(HTTPRedirectHandler):
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
-        raise ConfigError("local audit service redirects are not allowed")
-
-
-def request_json(origin: str, method: str, path: str, payload: dict | None = None) -> dict:
-    origin = _origin(origin)
-    request = Request(origin + "/api" + path, method=method,
-                      data=json.dumps(payload, ensure_ascii=False).encode() if payload is not None else None,
-                      headers={"Accept": "application/json", "Content-Type": "application/json"})
-    try:
-        # Do not send local project metadata through an environment proxy or
-        # follow redirects outside the selected evidence sink.
-        with build_opener(ProxyHandler({}), _NoRedirect()).open(request, timeout=3) as response:
-            body = response.read(RESPONSE_LIMIT + 1)
-        if len(body) > RESPONSE_LIMIT:
-            raise ConfigError("local audit response exceeds size limit")
-        result = json.loads(body)
-    except HTTPError as exc:
-        raise ConfigError(f"local audit service returned HTTP {exc.code}") from exc
-    except (URLError, OSError, TimeoutError, ValueError) as exc:
-        raise ConfigError("local audit service unavailable or response invalid") from exc
-    if not isinstance(result, dict):
-        raise ConfigError("invalid local audit response")
-    return result
 
 
 def workspace_index(root: Path) -> dict:
@@ -117,6 +87,18 @@ def append_memory(root: Path | None, result: dict, name: str | None, origin: str
     except (ConfigError, KeyError, TypeError):
         receipt["audit_memory"] = {"status": "unavailable"}
         result["context"] += "\nAttention: audit_memory_unavailable; normal local context remains available.\n"
+
+
+def report_memory_recall(receipt: dict, origin: str) -> None:
+    memory = receipt.get("audit_memory", {})
+    if memory.get("status") != "returned":
+        return
+    request_json(origin, "POST", "/activity/memory-recalls", {
+        "schema_version": "audit-memory-recall/v1", "project_id": memory["project_id"],
+        "reported_at": datetime.now(timezone.utc).isoformat(), "trigger": receipt["trigger"],
+        "context_status": receipt["status"], "context_freshness": receipt["freshness"],
+        "memory_ids": memory["memory_ids"], "truncated": memory["truncated"],
+    })
 
 
 def run_audit(root: Path, args) -> dict:
