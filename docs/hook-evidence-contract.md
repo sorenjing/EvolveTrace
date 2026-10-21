@@ -8,7 +8,7 @@ redaction before the HTTP request is constructed. It is a test fixture, not a
 captured user session or proof that every Codex version emits those fields.
 
 To inspect a real installation, compare the installed hook configuration and
-the product's current hook documentation with `plugin/hooks/hooks.json`. Run a
+the product's current hook documentation with `hooks/hooks.json`. Run a
 local task containing an ordinary tool call, then check the session timeline
 for the observed event names and timestamps. Record the client and plugin
 versions alongside any diagnosis. An absent event can mean the hook was not

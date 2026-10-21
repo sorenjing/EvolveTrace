@@ -72,7 +72,7 @@ flowchart LR
 3. [`context_bundle.py`](../backend/harness/context_bundle.py)：版本、字段、大小与绝对路径等边界验证。
 4. [`routes.py`](../backend/api/routes.py)、[`harness_service.py`](../backend/services/harness_service.py) 与 [`audit_service.py`](../backend/services/audit_service.py)：从 HTTP 接收进入任务和运行证据链。
 
-学习重点是稳定契约和职责分离：Context 生成输入，Harness 消费输入并关联执行。只审查工具事件时可以使用 audit-only 接入；独立 CLI 也可以在后端未运行时加载本地上下文。
+学习重点是稳定契约和职责分离：Context 生成输入，Harness 消费输入并关联执行。统一插件支持直接采集工具事件，无需先创建 Task；独立 CLI 也可以在后端未运行时加载本地上下文。
 
 ## 如何自行验证
 

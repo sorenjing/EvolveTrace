@@ -50,11 +50,11 @@ CLI 仍只观察规定范围的元数据、加载选定项目记忆。自动筛�
 python scripts/build_plugin_archive.py
 ```
 
-输出 `dist/evolvetrace-plugin.zip`。上传该文件，启用统一 EvolveTrace 插件，再停用重复提供上下文加载或 audit-only 采集的旧插件。首次更新可保留旧安装作为回退，确认新插件可用后再清理。
+输出 `dist/evolvetrace-plugin.zip`。上传该文件，启用统一 EvolveTrace 插件，再停用重复提供上下文加载或 audit-only 采集的旧插件，避免重复采集。源码更新不会自动替换客户端已安装的插件。
 
 ZIP 根目录直接包含 `.codex-plugin/plugin.json`，并同时包含上下文 Skill、SessionStart 加载器和原有审计 Hook。插件不包含后端、Python CLI、私人工作区记忆或数据库；CLI 和本地服务需要分别安装、运行。
 
-`plugin/` 目录继续提供 audit-only 接入。`context/` 中可独立安装的组件插件使用 `evolvetrace-context` 标识；日常使用优先安装仓库根目录的统一插件。
+独立 audit-only 插件包装已退役，`plugin/hooks/` 保留统一插件使用的采集与安全实现；安装清单和 Hook 配置以仓库根目录为准。`context/` 中可独立安装的组件插件使用 `evolvetrace-context` 标识。
 
 ```powershell
 ./start.ps1 -NoBrowser

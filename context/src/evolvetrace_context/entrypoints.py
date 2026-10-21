@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 from . import __version__
+from .adapters import context_instructions
 from .personal_pack import PersonalAIPack
 
 
@@ -39,11 +40,11 @@ CODEX_ENTRYPOINT = f"""# Codex entrypoint
 
 Read `{COMMON_PATH}` and apply its minimum-context, do not guess, and source-reporting rules.
 
-1. Read `AGENTS.md`, then `.ai/GLOBAL.md`, `.ai/WORKSPACE.md`, and only the selected project memory.
-2. Run `aictx status` and inspect the current branch, worktree, and uncommitted changes.
-3. Consult the portfolio only for cross-project routing or decisions.
-4. Use current source and tests for behavior; do not inject the whole portfolio into every task.
-5. Report ContextBundle identifiers, sources used, and verification evidence when available.
+Read `AGENTS.md` and use the shared loading policy below. Inspect the current branch, worktree, and uncommitted changes.
+
+{context_instructions("Codex")}
+
+Consult the portfolio only for cross-project routing or decisions; do not inject it into every task. Report ContextBundle identifiers, sources used, and verification evidence when available.
 """
 
 CHATGPT_ENTRYPOINT = f"""# ChatGPT entrypoint

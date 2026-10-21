@@ -76,7 +76,7 @@ Invoke-RestMethod http://127.0.0.1:8001/api/audit/sessions
 没有事件时检查：
 
 1. Codex 客户端是否安装并启用了仓库根目录的统一插件，当前 Hook 定义是否已获信任。
-2. 安装内容是否包含根目录 `hooks/hooks.json`、`context/hooks/session_start.py` 和 `plugin/hooks/capture_event.py`；旧 `plugin/` 只提供 audit-only 兼容接入。
+2. 安装内容是否包含根目录 `hooks/hooks.json`、`context/hooks/session_start.py` 和 `plugin/hooks/capture_event.py`；独立 audit-only 插件包装已退役，旧客户端安装需要手动切换到统一插件。
 3. 宿主解析出的脚本路径是否存在，Hook 使用的 Python 是否可运行。
 4. 是否已在目标项目中开启新会话，而非继续安装前的会话。
 5. 服务是否在事件发生时监听 `127.0.0.1:8001`。

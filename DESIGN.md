@@ -70,7 +70,7 @@ flowchart TD
 
 ## 4. 三层职责边界
 
-EvolveTrace Context 的实现现位于同一仓库的 `context/`，保留独立 CLI 和模块职责。源码归属统一不改变 ContextBundle 接口、上下文来源权威或执行证据的判定标准。统一插件位于仓库根目录，旧 `plugin/` 仍提供 audit-only 兼容接入。
+EvolveTrace Context 的实现现位于同一仓库的 `context/`，保留独立 CLI 和模块职责。源码归属统一不改变 ContextBundle 接口、上下文来源权威或执行证据的判定标准。统一插件位于仓库根目录，`plugin/hooks/` 提供其采集与安全实现；独立 audit-only 插件包装已退役。
 
 | 系统 | 所有权 | 输出给 EvolveTrace 的内容 |
 | --- | --- | --- |
@@ -151,6 +151,12 @@ Review 状态。`audit-memory/v1` 只回读带项目、会话和证据引用的�
 这些结论是历史观察；Context CLI 和显式启用的 SessionStart 可以按当前项目
 回读，但不自动改写 `.ai` 人工语义块。协议与使用方式见
 [跨项目审计使用指南](docs/workspace-audit.md)。
+
+审计记忆回读使用独立的 `audit-memory-recall/v1` 元数据交接：已显式启用回读的
+CLI / SessionStart 在成功写入 stdout 后上报项目 ID、输出时间、触发方式、上下文状态、
+实际返回的记忆 ID 和截断标志。后端不读取 `.ai/usage.json`，也不导入 Context 内部模块。
+本地 API 验证记忆的项目归属，按项目最多保留 20 条并去重；前端查询不会产生加载记录。
+该记录属于客户端输出声明，不是宿主确认、模型采用或有效性证据；上报失败不阻断正常加载。
 
 ### 5.5 Evaluation Engine
 

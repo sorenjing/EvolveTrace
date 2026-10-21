@@ -47,11 +47,20 @@ def execution_result(event: dict) -> dict:
     response = details.get("tool_response")
     response = response if isinstance(response, dict) else {}
     pre = event.get("event_type") == "PreToolUse"
-    code = None if pre else _code(details.get("exit_code", response.get("exit_code")))
-    outcome = "pending" if pre else _outcome(code, details.get("status", response.get("status")))
+    code = _code(details.get("exit_code"))
+    if code is None:
+        code = _code(response.get("exit_code"))
+    code = None if pre else code
+    status = details.get("status")
+    if not isinstance(status, str):
+        status = response.get("status")
+    outcome = "pending" if pre else _outcome(code, status)
     if event.get("event_type") == "PostToolUseFailure" and outcome != "cancelled":
         outcome = "failure"
-    duration = None if pre else number(details.get("duration_ms", response.get("duration_ms")))
+    duration = number(details.get("duration_ms"))
+    if duration is None:
+        duration = number(response.get("duration_ms"))
+    duration = None if pre else duration
     source = "hook" if outcome in {"success", "failure", "cancelled"} else "unknown"
     duration_source = "hook" if duration is not None else "unknown"
     metadata = event.get("_execution_result")

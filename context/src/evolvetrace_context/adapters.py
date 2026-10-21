@@ -14,7 +14,7 @@ class ManagedFileError(ValueError):
     """Raised instead of overwriting a user-owned entry file."""
 
 
-def _instructions(tool: str, *, cursor: bool = False) -> str:
+def context_instructions(tool: str, *, cursor: bool = False) -> str:
     frontmatter = "---\ndescription: Shared AI workspace context\nalwaysApply: true\n---\n" if cursor else ""
     return frontmatter + f"""{MANAGED}
 # Shared context for {tool}
@@ -22,8 +22,8 @@ def _instructions(tool: str, *, cursor: bool = False) -> str:
 Before broad repository analysis:
 
 1. Find the nearest ancestor containing `.aictx.toml`; use that directory as the workspace root, even when working in a nested repository.
-2. Read the workspace root's `.ai/GLOBAL.md` and `.ai/WORKSPACE.md`.
-3. Load only the current project's `.ai/projects/<project>.md` file from that root.
+2. Run `aictx load <project> --workspace <workspace-root>` to return `.ai/GLOBAL.md`, `.ai/WORKSPACE.md`, and only `.ai/projects/<project>.md`. If a matching SessionStart already returned these sources, inspect that output instead of loading twice.
+3. Inspect `aictx usage <project> --workspace <workspace-root>` for returned sources and gaps. Output does not prove host acceptance, model use, or benefit. If the CLI is unavailable, read those same files manually and report that no CLI loading receipt exists.
 4. Run `aictx status --workspace <workspace-root>` and inspect source only when that project is stale or the task requires it.
 5. Preserve managed markers. Record semantic memory only inside the manual block.
 6. Store decisions and current state, not source copies or chat transcripts.
@@ -32,10 +32,10 @@ Before broad repository analysis:
 
 def render_adapters() -> dict[Path, str]:
     return {
-        Path("AGENTS.md"): _instructions("Codex"),
-        Path("CLAUDE.md"): _instructions("Claude"),
-        Path("GEMINI.md"): _instructions("Gemini"),
-        Path(".cursor/rules/ai-context.mdc"): _instructions("Cursor", cursor=True),
+        Path("AGENTS.md"): context_instructions("Codex"),
+        Path("CLAUDE.md"): context_instructions("Claude"),
+        Path("GEMINI.md"): context_instructions("Gemini"),
+        Path(".cursor/rules/ai-context.mdc"): context_instructions("Cursor", cursor=True),
     }
 
 

@@ -1,6 +1,5 @@
 import type {
   AuditSession,
-  AuditSessionSummary,
   AuditStreamMessage,
 } from "@/app/lib/audit-types";
 function apiBaseUrl(): string {
@@ -17,12 +16,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(`审计服务请求失败：HTTP ${response.status}`);
   }
   return response.json() as Promise<T>;
-}
-
-export function fetchSessions(): Promise<AuditSessionSummary[]> {
-  return request<AuditSessionSummary[]>("/api/audit/sessions", {
-    cache: "no-store",
-  });
 }
 
 export function fetchSession(sessionId: string): Promise<AuditSession> {

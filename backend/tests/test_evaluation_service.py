@@ -5,15 +5,58 @@ from harness.repository import HarnessRepository
 from services.harness_service import HarnessService
 
 
-def setup_service(tmp_path):
+def setup_service(tmp_path, criteria=None):
     repository = HarnessRepository(tmp_path / "harness.db")
     snapshot = repository.import_context_snapshot({"schema_version":"context-bundle/v1","project":"demo","generated_at":"2026-09-17T00:00:00+00:00","freshness":"current","observed_scope":["demo"],"repositories":[{"relative_path":"demo"}]})
-    task = repository.create_task(TaskContract.create(task_id="task-1", title="x", goal="x", target_repositories=["demo"], constraints=[], acceptance_criteria=[
+    task = repository.create_task(TaskContract.create(task_id="task-1", title="x", goal="x", target_repositories=["demo"], constraints=[], acceptance_criteria=criteria if criteria is not None else [
         {"criterion_id":"scope","type":"path_scope","required":True,"description":"scope","config":{"allowed_prefixes":["demo"]}},
         {"criterion_id":"tests","type":"command_exit_zero","required":True,"description":"tests","config":{"command":"python -m pytest -q"}},
     ], open_questions=[], risk_level="normal", status="ready", context_snapshot_id=snapshot.snapshot_id))
     run = repository.create_run(task.task_id, snapshot.snapshot_id)
     return HarnessService(repository), repository, task, run
+
+
+@pytest.mark.parametrize("kind,config", [("file_exists", {"path": "demo/missing.txt"}), ("manual", {})])
+@pytest.mark.parametrize("required", [True, False])
+def test_unhandled_criterion_is_visible_and_required_one_blocks_acceptance(tmp_path, kind, config, required):
+    service, repository, task, run = setup_service(tmp_path, [{
+        "criterion_id": "unhandled", "type": kind, "required": required,
+        "description": "Synthetic criterion without an integrated evaluator", "config": config,
+    }])
+    repository.set_run_status(run.run_id, "completed")
+    result = service.evaluate_run(task.task_id, run.run_id, {"events": []})
+    item = next(item for item in result["evaluations"] if item["criterion_id"] == "unhandled")
+    assert item["status"] == "needs_review"
+    assert item["severity"] == ("blocking" if required else "warning")
+    assert item["evidence_refs"] == []
+    review = {"outcome": "accepted", "note": "Synthetic review", "evaluation_ids": [
+        item["evaluation_id"] for item in result["evaluations"]
+    ]}
+    if required:
+        with pytest.raises(ValueError, match="blocking"):
+            service.record_review(task.task_id, run.run_id, review)
+    else:
+        assert service.record_review(task.task_id, run.run_id, review)["outcome"] == "accepted"
+
+
+@pytest.mark.parametrize("kind,config", [("file_exists", {"path": "demo/missing.txt"}), ("manual", {})])
+def test_historical_snapshot_missing_an_unhandled_criterion_cannot_be_accepted(tmp_path, kind, config):
+    from harness.evaluators import evaluate_context_freshness
+
+    service, repository, task, run = setup_service(tmp_path, [{
+        "criterion_id": "unhandled", "type": kind, "required": True,
+        "description": "Synthetic required criterion", "config": config,
+    }])
+    repository.set_run_status(run.run_id, "completed")
+    snapshot = repository.get_context_snapshot(run.context_snapshot_id)
+    item = repository.save_evaluation(evaluate_context_freshness(task, snapshot, run)[0])
+    with pytest.raises(ValueError, match="complete evaluation"):
+        service.record_review(task.task_id, run.run_id, {
+            "outcome": "accepted", "note": "Synthetic review", "evaluation_ids": [item.evaluation_id],
+        })
+    with pytest.raises(ValueError, match="incomplete evaluation"):
+        service.evaluate_run(task.task_id, run.run_id, {"events": []})
+    assert repository.list_evaluations(task.task_id, run.run_id) == [item]
 
 
 def test_running_run_cannot_be_evaluated(tmp_path):

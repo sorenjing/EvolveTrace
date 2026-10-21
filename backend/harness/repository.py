@@ -30,6 +30,7 @@ class HarnessRepository:
                 CREATE TABLE IF NOT EXISTS runs (run_id TEXT PRIMARY KEY, task_id TEXT NOT NULL, context_snapshot_id TEXT NOT NULL, adapter TEXT NOT NULL, session_id TEXT UNIQUE, cwd TEXT NOT NULL, started_at TEXT NOT NULL, status TEXT NOT NULL, FOREIGN KEY(task_id) REFERENCES tasks(task_id), FOREIGN KEY(context_snapshot_id) REFERENCES context_snapshots(snapshot_id));
                 CREATE INDEX IF NOT EXISTS idx_runs_task_started ON runs(task_id, started_at);
                 CREATE TABLE IF NOT EXISTS active_task_leases (repository_path TEXT PRIMARY KEY, task_id TEXT NOT NULL, activated_at TEXT NOT NULL, FOREIGN KEY(task_id) REFERENCES tasks(task_id));
+                CREATE TABLE IF NOT EXISTS run_comparisons (task_id TEXT NOT NULL, original_run_id TEXT NOT NULL, corrected_run_id TEXT NOT NULL, receipt_id TEXT NOT NULL UNIQUE, PRIMARY KEY(task_id, original_run_id, corrected_run_id), FOREIGN KEY(task_id) REFERENCES tasks(task_id), FOREIGN KEY(original_run_id) REFERENCES runs(run_id), FOREIGN KEY(corrected_run_id) REFERENCES runs(run_id), FOREIGN KEY(receipt_id) REFERENCES context_receipts(receipt_id));
                 CREATE TABLE IF NOT EXISTS unbound_sessions (session_id TEXT PRIMARY KEY, cwd TEXT NOT NULL, first_seen TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS context_receipts (receipt_id TEXT PRIMARY KEY, task_id TEXT NOT NULL, context_snapshot_id TEXT NOT NULL, attempt_id TEXT NOT NULL, bundle_id TEXT NOT NULL, platform TEXT NOT NULL, adapter TEXT NOT NULL, status TEXT NOT NULL, delivered_source_ids_json TEXT NOT NULL, loaded_skill_ids_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, execution_profile_id TEXT, FOREIGN KEY(task_id) REFERENCES tasks(task_id), FOREIGN KEY(context_snapshot_id) REFERENCES context_snapshots(snapshot_id));
                 CREATE INDEX IF NOT EXISTS idx_receipts_task_created ON context_receipts(task_id, created_at);
@@ -42,6 +43,8 @@ class HarnessRepository:
             }
             if "execution_profile_id" not in columns:
                 c.execute("ALTER TABLE context_receipts ADD COLUMN execution_profile_id TEXT")
+            if "reason" not in {row["name"] for row in c.execute("PRAGMA table_info(evaluations)")}:
+                c.execute("ALTER TABLE evaluations ADD COLUMN reason TEXT NOT NULL DEFAULT 'legacy_unspecified'")
 
     def upsert_execution_profile(self, profile: ExecutionProfile) -> ExecutionProfile:
         rendered = json.dumps(profile.to_dict(), ensure_ascii=False, sort_keys=True)
@@ -147,7 +150,9 @@ class HarnessRepository:
     def activate_task(self, task_id, repository_path, activated_at):
         task = self.get_task(task_id)
         if not task: raise ValueError("task not found")
-        if task.status not in {"ready", "active"}: raise ValueError("only ready tasks can be activated")
+        if task.status not in {"ready", "active", "needs_fix"}: raise ValueError("only ready, active or needs_fix tasks can be activated")
+        if task.status == "needs_fix" and any(run.status == "running" for run in self.list_runs_for_task(task_id)):
+            raise ValueError("finish the running attempt before preparing a correction")
         if repository_path not in task.target_repositories: raise ValueError("repository is outside the task scope")
         with self._lock, self._connect() as c:
             c.execute("INSERT OR REPLACE INTO active_task_leases VALUES (?, ?, ?)", (repository_path, task_id, activated_at))
@@ -166,7 +171,8 @@ class HarnessRepository:
         for lease in sorted(leases, key=lambda item: len(tuple(part for part in item["repository_path"].split("/") if part)), reverse=True):
             lease_parts = tuple(part for part in lease["repository_path"].split("/") if part)
             if lease_parts and len(cwd_parts) >= len(lease_parts) and cwd_parts[-len(lease_parts):] == lease_parts:
-                return self.get_task(lease["task_id"])
+                task = self.get_task(lease["task_id"])
+                return task if task is not None and task.status == "active" else None
         return None
 
     def list_runs_for_task(self, task_id):
@@ -269,6 +275,36 @@ class HarnessRepository:
             ).fetchall()
         return [self._receipt(row) for row in rows]
 
+    def list_run_comparisons(self, task_id: str) -> list[dict]:
+        with self._connect() as c:
+            rows = c.execute("SELECT * FROM run_comparisons WHERE task_id=? ORDER BY original_run_id, corrected_run_id", (task_id,)).fetchall()
+        return [self._comparison(row) for row in rows]
+
+    @staticmethod
+    def _comparison(row) -> dict:
+        return {**dict(row), "status": "effective", "comparison_kind": "repair", "context_benefit": "unmeasured"}
+
+    def get_run_comparison(self, task_id: str, original_run_id: str, corrected_run_id: str) -> dict | None:
+        return next((item for item in self.list_run_comparisons(task_id)
+                     if item["original_run_id"] == original_run_id and item["corrected_run_id"] == corrected_run_id), None)
+
+    def confirm_run_comparison(self, task_id: str, original_run_id: str, corrected_run_id: str, receipt: ContextReceipt) -> dict:
+        if receipt.task_id != task_id or receipt.attempt_id != corrected_run_id or receipt.status != "effective":
+            raise ValueError("comparison receipt does not match corrected run")
+        with self._lock, self._connect() as c:
+            c.execute("BEGIN IMMEDIATE")
+            existing = c.execute("SELECT * FROM run_comparisons WHERE task_id=? AND original_run_id=? AND corrected_run_id=?",
+                                 (task_id, original_run_id, corrected_run_id)).fetchone()
+            if existing:
+                return self._comparison(existing)
+            changed = c.execute("UPDATE context_receipts SET status='effective', attempt_id=?, updated_at=? WHERE receipt_id=? AND task_id=? AND status='evidenced'",
+                                (corrected_run_id, receipt.updated_at, receipt.receipt_id, task_id)).rowcount
+            if changed != 1:
+                raise ValueError("comparison requires an evidenced receipt")
+            c.execute("INSERT INTO run_comparisons VALUES (?, ?, ?, ?)", (task_id, original_run_id, corrected_run_id, receipt.receipt_id))
+        return self._comparison({"task_id": task_id, "original_run_id": original_run_id,
+                                 "corrected_run_id": corrected_run_id, "receipt_id": receipt.receipt_id})
+
     def acknowledge_delivered_receipt(self, task_id: str, run_id: str) -> ContextReceipt | None:
         receipts = self.list_context_receipts(task_id)
         delivered = next((item for item in reversed(receipts) if item.status == "delivered"), None)
@@ -282,7 +318,7 @@ class HarnessRepository:
             criterion_id=row["criterion_id"], evaluator_id=row["evaluator_id"],
             evaluator_version=row["evaluator_version"], status=row["status"], severity=row["severity"],
             summary=row["summary"], evidence_refs=json.loads(row["evidence_refs_json"]),
-            expected=row["expected"], actual=row["actual"], created_at=row["created_at"],
+            expected=row["expected"], actual=row["actual"], created_at=row["created_at"], reason=row["reason"],
         )
 
     def save_evaluation(self, result: EvaluationResult) -> EvaluationResult:
@@ -293,7 +329,7 @@ class HarnessRepository:
                 if existing != result:
                     raise ValueError("evaluation already exists with different immutable fields")
                 return existing
-            c.execute("INSERT INTO evaluations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (result.evaluation_id, result.task_id, result.run_id, result.criterion_id, result.evaluator_id, result.evaluator_version, result.status, result.severity, result.summary, json.dumps(result.evidence_refs), result.expected, result.actual, result.created_at))
+            c.execute("INSERT INTO evaluations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (result.evaluation_id, result.task_id, result.run_id, result.criterion_id, result.evaluator_id, result.evaluator_version, result.status, result.severity, result.summary, json.dumps(result.evidence_refs), result.expected, result.actual, result.created_at, result.reason))
         return result
 
     def list_evaluations(self, task_id: str, run_id: str) -> list[EvaluationResult]:

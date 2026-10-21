@@ -12,7 +12,15 @@ from .execution_results import execution_result
 VERSION = "activity/v1"
 CATEGORIES = ("read_search", "edit", "build_test", "dependencies", "git", "network", "mixed", "other")
 WINDOW_SECONDS = 600
+REPEATED_OPERATION_MIN = 5
+FAILED_RETRY_MIN = 3
 PHASES = {"PreToolUse", "PostToolUse", "PostToolUseFailure"}
+
+
+def rule_policy() -> dict:
+    return {"version": VERSION, "window_seconds": WINDOW_SECONDS,
+            "repeated_operation_min": REPEATED_OPERATION_MIN, "failed_retry_min": FAILED_RETRY_MIN,
+            "window_anchor": "latest_observed_call_per_session", "calibration": "heuristic"}
 
 
 def _command(event: dict) -> str:
@@ -182,14 +190,14 @@ def analyze_activity(events: list[dict]) -> dict:
                 failures[retry_key] = []
         candidates = {}
         for (fingerprint, category), group in failures.items():
-            if len(group) >= 3:
+            if len(group) >= FAILED_RETRY_MIN:
                 candidates[(fingerprint, category)] = ("failed_retry", group)
         for key, group in repeated.items():
             fingerprint, _, category = key
             existing = candidates.get((fingerprint, category))
             if existing and existing[0] == "failed_retry":
                 continue
-            if len(group) >= 5 and category in {"read_search", "build_test"}:
+            if len(group) >= REPEATED_OPERATION_MIN and category in {"read_search", "build_test"}:
                 code = "repeated_read" if category == "read_search" else "repeated_build"
                 # One current suggestion per session/command/rule; later edit
                 # epochs must not produce duplicate IDs or UI keys.

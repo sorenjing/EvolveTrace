@@ -1,0 +1,9 @@
+[
+  {"input": {"command": "echo token=synthetic-only-value"}, "expected": {"command": "echo token=[REDACTED]"}},
+  {"input": {"command": "echo TOKEN:synthetic-only-value, next"}, "expected": {"command": "echo TOKEN:[REDACTED], next"}},
+  {"input": {"Authorization": "Basic synthetic-only-value"}, "expected": {"Authorization": "[REDACTED]"}},
+  {"input": {"command": "echo password=synthetic-password;done"}, "expected": {"command": "echo password=[REDACTED];done"}},
+  {"input": {"message": "Bearer synthetic-token"}, "expected": {"message": "Bearer [REDACTED]"}},
+  {"input": {"url": "https://example.test/?next=ok&token=synthetic-query"}, "expected": {"url": "https://example.test/?next=ok&token=[REDACTED]"}},
+  {"input": {"message": "Token counts are ordinary text", "count": 7}, "expected": {"message": "Token counts are ordinary text", "count": 7}}
+]

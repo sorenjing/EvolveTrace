@@ -45,6 +45,68 @@ def ingest(audit, root, session="s-1", nested=False):
         audit.ingest(payload)
 
 
+def recall_fixture(setup):
+    client, audit, activity, root = setup
+    index, _ = register(client, root)
+    ingest(audit, root)
+    project_id = index["projects"][0]["project_id"]
+    memory = activity.remember({"project_id": project_id, "session_id": "s-1", "note": "Use the scoped check",
+                                "evidence_refs": ["s-1-0"], "confirmed": True})
+    payload = {"schema_version": "audit-memory-recall/v1", "project_id": project_id,
+               "reported_at": "2026-01-01T00:00:00+00:00", "trigger": "manual", "context_status": "returned",
+               "context_freshness": "current", "memory_ids": [memory["memory_id"]], "truncated": False}
+    return client, activity, index, payload
+
+
+def test_memory_reads_do_not_count_as_returns_and_reports_are_deduplicated(setup):
+    client, activity, index, payload = recall_fixture(setup)
+    url = "/api/activity/memory/" + payload["project_id"]
+    assert client.get(url).json()["recalls"] == []
+    first = client.post("/api/activity/memory-recalls", json=payload)
+    assert first.status_code == 201
+    assert client.post("/api/activity/memory-recalls", json=payload).json() == first.json()
+    saved = client.get(url).json()["recalls"]
+    assert len(saved) == 1
+    assert saved[0]["memory_ids"] == payload["memory_ids"]
+    assert saved[0]["authority"] == "client_reported_output"
+    assert saved[0]["model_use"] == "unknown"
+    assert client.get(url).json()["recalls"] == saved
+    restarted = ActivityService(activity.audit_repository)
+    assert restarted.memory(payload["project_id"])["recalls"] == saved
+    other = index["projects"][1]["project_id"]
+    assert client.get("/api/activity/memory/" + other).json()["recalls"] == []
+
+
+@pytest.mark.parametrize("changes", [
+    {"schema_version": "unknown"}, {"prompt": "synthetic text must not be stored"},
+    {"reported_at": "not-a-time"}, {"reported_at": "2026-01-01T00:00:00"},
+    {"memory_ids": ["missing"]}, {"memory_ids": ["missing"] * 21},
+    {"trigger": "model-used"}, {"truncated": "false"}, {"context_status": "accepted"},
+    {"model_use": "understood"},
+])
+def test_recall_report_rejects_unbounded_private_or_invalid_claims(setup, changes):
+    client, _, _, payload = recall_fixture(setup)
+    assert client.post("/api/activity/memory-recalls", json={**payload, **changes}).status_code == 422
+    assert client.get("/api/activity/memory/" + payload["project_id"]).json()["recalls"] == []
+
+
+def test_recall_history_checks_project_ownership_and_bounds_persisted_records(setup):
+    client, activity, index, payload = recall_fixture(setup)
+    other = index["projects"][1]["project_id"]
+    assert client.post("/api/activity/memory-recalls", json={**payload, "project_id": other}).status_code == 422
+    empty = {**payload, "project_id": other, "memory_ids": []}
+    assert client.post("/api/activity/memory-recalls", json=empty).status_code == 201
+    for second in range(23):
+        report = {**payload, "reported_at": f"2026-01-01T00:00:{second:02d}+00:00"}
+        assert client.post("/api/activity/memory-recalls", json=report).status_code == 201
+    history = activity.memory(payload["project_id"])["recalls"]
+    assert len(history) == 20
+    assert history[0]["reported_at"] == "2026-01-01T00:00:22+00:00"
+    with activity.repository._connect() as connection:
+        count = connection.execute("SELECT COUNT(*) FROM activity_memory_recalls WHERE project_id=?", (payload["project_id"],)).fetchone()[0]
+    assert count == 20
+
+
 def test_registration_is_idempotent_nested_and_backfills_prior_events(setup):
     client, audit, _, root = setup
     ingest(audit, root)
@@ -116,6 +178,7 @@ def test_new_routes_require_loopback():
     client = TestClient(app, client=("10.1.1.1", 1000))
     assert client.get("/api/activity/report").status_code == 403
     assert client.get("/api/activity/memory/unknown").status_code == 403
+    assert client.post("/api/activity/memory/unknown/revoke", json={"confirmed": True}).status_code == 403
     for path in ("workspaces", "decisions", "memory"):
         assert client.post("/api/activity/" + path, json={}).status_code == 403
 

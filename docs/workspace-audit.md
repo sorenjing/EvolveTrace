@@ -53,6 +53,11 @@ Git、网络、组合命令和其他工具。组合 shell 脚本作为一次观�
 可能偏高。有标识但缺少开始事件的结束观察也单独标出；分析窗口截断、服务晚启动
 或采集缺失都可能导致配对缺口。阻断单独计数。耗时只累计显式 `duration_ms`，缺失结果保持未知。
 
+时间线与后台均按同一会话的 `tool_use_id` 关联，`turn_id` 缺失不拆分一次调用；不同会话不会合并。前端也接受已收到的 `PostToolUseFailure` 作为完成观察，支持先收到完成再收到开始，且按事件 ID 去重。这不扩大插件在特定宿主上的实际事件覆盖。
+
+同一调用若有多个不同事件 ID 的完成观察，时间线分别保留输出和风险，便于检查冲突；较晚成功不会隐藏先前失败。时间线的证据步骤数不等于实际调用次数，后台仍按调用关联并保留结果冲突为未知。
+不同事件 ID 的重复开始观察也单独保留，避免覆盖其中的安全拒绝证据。
+
 `activity/v1` 在每个会话最近 600 秒的已采集操作窗口内检查：
 
 - 同一命令、同一目录至少五次搜索读取或构建测试，期间未捕获修改证据；
@@ -108,6 +113,15 @@ aictx audit remember demo --session-id <会话ID> --event-id <事件ID> --note "
 aictx audit memory demo
 ```
 
+适用条件、到期时间与替代关系可显式指定；替代只作用于同项目的旧结论，并与新结论保存为同一事务：
+
+```powershell
+aictx audit remember demo --session-id <会话ID> --event-id <事件ID> --note "已重新核对的结论" --applies-to "指定测试环境" --expires-at "2035-01-01T00:00:00+00:00" --supersedes <旧记忆ID> --confirm
+aictx audit revoke demo --memory-id <记忆ID> --confirm
+```
+
+工作台分析窗口也提供这些可选字段，并可在记忆卡片撤销。已撤销、被替代或到期的结论停止回读，正文保留在最近 20 条历史中供核查；撤销同条记忆可重试。适用条件会随结论返回，仍需判断是否适合当前任务，不进行自动跨项目推广。未设到期时间的记录不会仅因时间流逝自动失效。
+
 重复 `--event-id` 可引用最多 20 条证据，每条必须属于选定项目和会话。
 结论最多 1,000 字符，保存前执行凭据模式脱敏；读取最新最多 20 条。
 删除会话会一并删除依赖它的记忆。人工备注仍可能包含个人信息，导出 JSON 应按
@@ -115,21 +129,34 @@ aictx audit memory demo
 
 ## 后续任务回读
 
+工作台的“项目审计记忆”区域直接展示所选项目的已确认结论、历史时间和来源会话。
+加载中、读取失败与确实没有记录分别显示。这里展示的是 SQLite 审计记忆，不是 `.ai` 项目 manual 区；看到卡片也不证明记忆已被送入后续模型会话。
+
+“最近记忆加载记录”展示服务收件时间、客户端输出时间、手工加载或 SessionStart 触发方式、上下文状态及实际返回的记忆 ID，可跳到当前记忆卡片。每 15 秒刷新，界面展示最近 5 次，服务按项目最多保留 20 次。
+
+新版 CLI 在成功输出后，通过 loopback `POST /api/activity/memory-recalls` 上报 `audit-memory-recall/v1`。
+只上报有界元数据，不包含记忆正文、源文件正文、prompt、绝对路径或原始会话 ID。
+普通列表查询不会被算作加载；加载零条、部分上下文和预算截断分别保留。
+记录表示 **客户端声明已返回到本地输出**，不证明宿主接收、模型采用或任务收益，也不推进 Task 的 Context Receipt 等级。
+没有记录可能是未启用、未加载、旧版 CLI 或上报失败，不能当作“从未加载”。上报失败仍返回本地上下文；后台只显示已收到的记录，不扫描工作区补造历史。
+已删除会话的记忆正文随会话移除，历史加载记录只保留 ID 等元数据，按上述数量上限淘汰；不在当前最新 20 条记忆中的 ID 不会被误标为已删除。
+
 ```powershell
 aictx load demo --audit-url http://127.0.0.1:8001
 ```
 
-只返回所选项目的 `human_reviewed` 记录，独立标记为历史观察。
+只返回所选项目仍有效且未到期的 `human_reviewed` 记录，独立标记为历史观察。
 回执记录实际返回的记忆 ID，不改变本地文件 freshness。附加段落最多 8 KiB，
 同时受整体交付预算限制，截断会明确标记。服务不可用时，本地上下文仍会返回。
 
-希望 Codex SessionStart 自动回读时，在启动 Codex 的环境中显式设置：
+希望 Codex SessionStart 和切换项目时的 `aictx load` 都回读时，在启动 Codex 的环境中显式设置：
 
 ```powershell
 $env:EVOLVETRACE_AUDIT_MEMORY_URL = "http://127.0.0.1:8001"
 ```
 
 默认保持离线加载。启用后也只回读当前项目，禁用环境代理和 HTTP 重定向。
+`load --audit-url` 可覆盖环境变量指定的服务地址。仅启动后端不会自动启用回读。
 记忆保存于 SQLite；回读不改写 `.ai/projects/*.md` 人工块。要把结论提升为长期
 项目约束，应重新核对后显式维护人工块。
 
@@ -142,6 +169,7 @@ $env:EVOLVETRACE_AUDIT_MEMORY_URL = "http://127.0.0.1:8001"
 | GET | `/api/activity/status` | 读取 `activity-status/v1` 本次服务收件与登记状态 |
 | POST | `/api/activity/decisions` | 保存 ignore、mute 或 unmute |
 | POST | `/api/activity/memory` | 确认并保存带证据的结论 |
+| POST | `/api/activity/memory-recalls` | 接收客户端成功输出后的有界加载记录 |
 | GET | `/api/activity/memory/{project_id}` | 读取 `audit-memory/v1` |
 
 全部路径仅允许 loopback 客户端。已有审计和 `ContextBundle v1` 协议保持兼容。

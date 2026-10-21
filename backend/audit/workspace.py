@@ -47,6 +47,12 @@ class WorkspaceRepository(AuditRepository):
                     FOREIGN KEY (project_id) REFERENCES activity_projects(project_id),
                     FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE CASCADE
                 );
+                CREATE TABLE IF NOT EXISTS activity_memory_recalls (
+                    sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+                    recall_id TEXT NOT NULL UNIQUE, project_id TEXT NOT NULL,
+                    report_json TEXT NOT NULL,
+                    FOREIGN KEY (project_id) REFERENCES activity_projects(project_id)
+                );
                 CREATE TABLE IF NOT EXISTS activity_execution_directories (
                     event_id TEXT PRIMARY KEY, cwd TEXT NOT NULL,
                     rule_version TEXT NOT NULL, observed_at TEXT NOT NULL,
@@ -63,6 +69,13 @@ class WorkspaceRepository(AuditRepository):
                     FOREIGN KEY (event_id) REFERENCES events(event_id) ON DELETE CASCADE
                 );
             """)
+
+            columns = {row["name"] for row in connection.execute("PRAGMA table_info(activity_memory)")}
+            for name, declaration in {"memory_status": "TEXT NOT NULL DEFAULT 'human_reviewed'",
+                                      "applicability": "TEXT NOT NULL DEFAULT ''", "expires_at": "TEXT",
+                                      "supersedes": "TEXT"}.items():
+                if name not in columns:
+                    connection.execute(f"ALTER TABLE activity_memory ADD COLUMN {name} {declaration}")
 
     def register(self, payload: dict) -> dict:
         if payload.get("schema_version") != "workspace-index/v1":
@@ -200,18 +213,64 @@ class WorkspaceRepository(AuditRepository):
             else:
                 connection.execute("INSERT OR IGNORE INTO activity_decisions VALUES (?, ?, ?)", (project_id, scope, target))
 
-    def remember(self, project_id: str, session_id: str, note: str, refs: list[str]) -> dict:
+    def remember(self, project_id: str, session_id: str, note: str, refs: list[str], *,
+                 applicability: str = "", expires_at: str | None = None, supersedes: str | None = None) -> dict:
         record = {"memory_id": uuid4().hex, "project_id": project_id, "session_id": session_id,
                   "note": redact_value(note), "evidence_refs": refs,
-                  "created_at": datetime.now(timezone.utc).isoformat(), "status": "human_reviewed"}
+                  "created_at": datetime.now(timezone.utc).isoformat(), "status": "human_reviewed",
+                  "applicability": redact_value(applicability), "expires_at": expires_at, "supersedes": supersedes}
         with self._lock, self._connect() as connection:
-            connection.execute("INSERT INTO activity_memory VALUES (?, ?, ?, ?, ?, ?)",
-                (record["memory_id"], project_id, session_id, record["note"], json.dumps(refs), record["created_at"]))
+            connection.execute("BEGIN IMMEDIATE")
+            if supersedes:
+                changed = connection.execute("UPDATE activity_memory SET memory_status='superseded' WHERE memory_id=? AND project_id=? AND memory_status='human_reviewed'",
+                                             (supersedes, project_id)).rowcount
+                if changed != 1:
+                    raise ValueError("replacement requires an active memory from the same project")
+            connection.execute("INSERT INTO activity_memory (memory_id, project_id, session_id, note, evidence_json, created_at, applicability, expires_at, supersedes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (record["memory_id"], project_id, session_id, record["note"], json.dumps(refs), record["created_at"], record["applicability"], expires_at, supersedes))
         return record
 
-    def memory(self, project_id: str) -> list[dict]:
+    def revoke_memory(self, project_id: str, memory_id: str) -> dict:
         with self._lock, self._connect() as connection:
-            rows = connection.execute("SELECT * FROM activity_memory WHERE project_id = ? ORDER BY created_at DESC LIMIT 20", (project_id,)).fetchall()
+            row = connection.execute("SELECT memory_status FROM activity_memory WHERE project_id=? AND memory_id=?", (project_id, memory_id)).fetchone()
+            if row is None:
+                raise ValueError("memory does not belong to selected project")
+            connection.execute("UPDATE activity_memory SET memory_status='revoked' WHERE project_id=? AND memory_id=?", (project_id, memory_id))
+        return {"project_id": project_id, "memory_id": memory_id, "status": "revoked"}
+
+    def memory(self, project_id: str, *, history: bool = False) -> list[dict]:
+        now = datetime.now(timezone.utc).isoformat()
+        active = "memory_status='human_reviewed' AND (expires_at IS NULL OR expires_at > ?)"
+        with self._lock, self._connect() as connection:
+            rows = connection.execute(f"SELECT * FROM activity_memory WHERE project_id = ? AND {'NOT (' + active + ')' if history else active} ORDER BY created_at DESC LIMIT 20", (project_id, now)).fetchall()
         return [{"memory_id": row["memory_id"], "project_id": project_id, "session_id": row["session_id"],
                  "note": row["note"], "evidence_refs": json.loads(row["evidence_json"]),
-                 "created_at": row["created_at"], "status": "human_reviewed"} for row in rows]
+                 "created_at": row["created_at"], "applicability": row["applicability"], "expires_at": row["expires_at"],
+                 "supersedes": row["supersedes"], "status": "expired" if row["memory_status"] == "human_reviewed" and row["expires_at"] and row["expires_at"] <= now else row["memory_status"]} for row in rows]
+
+    def record_memory_recall(self, payload: dict) -> dict:
+        identity = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        record = {**payload, "recall_id": identity, "received_at": datetime.now(timezone.utc).isoformat(),
+                  "authority": "client_reported_output", "model_use": "unknown"}
+        with self._lock, self._connect() as connection:
+            ids = payload["memory_ids"]
+            if ids:
+                placeholders = ",".join("?" for _ in ids)
+                known = {row[0] for row in connection.execute(
+                    f"SELECT memory_id FROM activity_memory WHERE project_id=? AND memory_id IN ({placeholders})",
+                    (payload["project_id"], *ids))}
+                if known != set(ids):
+                    raise ValueError("returned memories must belong to the selected project")
+            connection.execute("INSERT OR IGNORE INTO activity_memory_recalls (recall_id, project_id, report_json) VALUES (?, ?, ?)",
+                               (identity, payload["project_id"], json.dumps(record)))
+            stored = connection.execute("SELECT report_json FROM activity_memory_recalls WHERE recall_id=?", (identity,)).fetchone()
+            connection.execute("""DELETE FROM activity_memory_recalls WHERE project_id=? AND sequence NOT IN (
+                SELECT sequence FROM activity_memory_recalls WHERE project_id=? ORDER BY sequence DESC LIMIT 20)""",
+                (payload["project_id"], payload["project_id"]))
+        return json.loads(stored[0])
+
+    def memory_recalls(self, project_id: str) -> list[dict]:
+        with self._lock, self._connect() as connection:
+            rows = connection.execute("SELECT report_json FROM activity_memory_recalls WHERE project_id=? ORDER BY sequence DESC LIMIT 20",
+                                      (project_id,)).fetchall()
+        return [json.loads(row[0]) for row in rows]

@@ -1,0 +1,935 @@
+{
+  "schema_version": "regression-suite/v1",
+  "evaluator_suite": "evidence/v1",
+  "cases": [
+    {
+      "schema_version": "regression-case/v1",
+      "case_id": "success",
+      "task": {
+        "task_id": "synthetic-task",
+        "title": "Synthetic review",
+        "goal": "Verify captured evidence",
+        "target_repositories": [
+          "demo"
+        ],
+        "constraints": [],
+        "acceptance_criteria": [
+          {
+            "criterion_id": "tests",
+            "type": "command_exit_zero",
+            "required": true,
+            "description": "Synthetic tests pass",
+            "config": {
+              "command": "npm test"
+            }
+          }
+        ],
+        "open_questions": [],
+        "risk_level": "normal"
+      },
+      "snapshot": {
+        "schema_version": "context-bundle/v1",
+        "project": "demo",
+        "generated_at": "2026-01-01T00:00:00+00:00",
+        "freshness": "current",
+        "observed_scope": [
+          "demo"
+        ],
+        "repositories": [
+          {
+            "name": "demo",
+            "relative_path": "demo"
+          }
+        ],
+        "context": {
+          "automatic": "Synthetic fixture",
+          "manual": ""
+        }
+      },
+      "run": {
+        "cwd": "demo"
+      },
+      "events": [
+        {
+          "event_id": "test",
+          "event_type": "PostToolUse",
+          "tool_name": "Bash",
+          "cwd": "demo",
+          "details": {
+            "tool_input": {
+              "command": "npm test"
+            },
+            "tool_response": {
+              "exit_code": 0
+            }
+          },
+          "sequence": 1
+        }
+      ],
+      "expected": [
+        {
+          "criterion_id": "context-freshness",
+          "evaluator_id": "context-freshness",
+          "evaluator_version": "1",
+          "status": "passed",
+          "severity": "blocking",
+          "reason": "context_declared_current"
+        },
+        {
+          "criterion_id": "tests",
+          "evaluator_id": "verification",
+          "evaluator_version": "2",
+          "status": "passed",
+          "severity": "blocking",
+          "reason": "verification_succeeded"
+        }
+      ]
+    },
+    {
+      "schema_version": "regression-case/v1",
+      "case_id": "test-failure",
+      "task": {
+        "task_id": "synthetic-task",
+        "title": "Synthetic review",
+        "goal": "Verify captured evidence",
+        "target_repositories": [
+          "demo"
+        ],
+        "constraints": [],
+        "acceptance_criteria": [
+          {
+            "criterion_id": "tests",
+            "type": "command_exit_zero",
+            "required": true,
+            "description": "Synthetic tests pass",
+            "config": {
+              "command": "npm test"
+            }
+          }
+        ],
+        "open_questions": [],
+        "risk_level": "normal"
+      },
+      "snapshot": {
+        "schema_version": "context-bundle/v1",
+        "project": "demo",
+        "generated_at": "2026-01-01T00:00:00+00:00",
+        "freshness": "current",
+        "observed_scope": [
+          "demo"
+        ],
+        "repositories": [
+          {
+            "name": "demo",
+            "relative_path": "demo"
+          }
+        ],
+        "context": {
+          "automatic": "Synthetic fixture",
+          "manual": ""
+        }
+      },
+      "run": {
+        "cwd": "demo"
+      },
+      "events": [
+        {
+          "event_id": "test",
+          "event_type": "PostToolUse",
+          "tool_name": "Bash",
+          "cwd": "demo",
+          "details": {
+            "tool_input": {
+              "command": "npm test"
+            },
+            "tool_response": {
+              "exit_code": 1
+            }
+          },
+          "sequence": 1
+        }
+      ],
+      "expected": [
+        {
+          "criterion_id": "context-freshness",
+          "evaluator_id": "context-freshness",
+          "evaluator_version": "1",
+          "status": "passed",
+          "severity": "blocking",
+          "reason": "context_declared_current"
+        },
+        {
+          "criterion_id": "tests",
+          "evaluator_id": "verification",
+          "evaluator_version": "2",
+          "status": "failed",
+          "severity": "blocking",
+          "reason": "verification_failed"
+        }
+      ]
+    },
+    {
+      "schema_version": "regression-case/v1",
+      "case_id": "unknown-outcome",
+      "task": {
+        "task_id": "synthetic-task",
+        "title": "Synthetic review",
+        "goal": "Verify captured evidence",
+        "target_repositories": [
+          "demo"
+        ],
+        "constraints": [],
+        "acceptance_criteria": [
+          {
+            "criterion_id": "tests",
+            "type": "command_exit_zero",
+            "required": true,
+            "description": "Synthetic tests pass",
+            "config": {
+              "command": "npm test"
+            }
+          }
+        ],
+        "open_questions": [],
+        "risk_level": "normal"
+      },
+      "snapshot": {
+        "schema_version": "context-bundle/v1",
+        "project": "demo",
+        "generated_at": "2026-01-01T00:00:00+00:00",
+        "freshness": "current",
+        "observed_scope": [
+          "demo"
+        ],
+        "repositories": [
+          {
+            "name": "demo",
+            "relative_path": "demo"
+          }
+        ],
+        "context": {
+          "automatic": "Synthetic fixture",
+          "manual": ""
+        }
+      },
+      "run": {
+        "cwd": "demo"
+      },
+      "events": [
+        {
+          "event_id": "test",
+          "event_type": "PostToolUse",
+          "tool_name": "Bash",
+          "cwd": "demo",
+          "details": {
+            "tool_input": {
+              "command": "npm test"
+            },
+            "tool_response": {
+              "exit_code": null
+            }
+          },
+          "sequence": 1
+        }
+      ],
+      "expected": [
+        {
+          "criterion_id": "context-freshness",
+          "evaluator_id": "context-freshness",
+          "evaluator_version": "1",
+          "status": "passed",
+          "severity": "blocking",
+          "reason": "context_declared_current"
+        },
+        {
+          "criterion_id": "tests",
+          "evaluator_id": "verification",
+          "evaluator_version": "2",
+          "status": "needs_review",
+          "severity": "blocking",
+          "reason": "outcome_unknown"
+        }
+      ]
+    },
+    {
+      "schema_version": "regression-case/v1",
+      "case_id": "missing-command",
+      "task": {
+        "task_id": "synthetic-task",
+        "title": "Synthetic review",
+        "goal": "Verify captured evidence",
+        "target_repositories": [
+          "demo"
+        ],
+        "constraints": [],
+        "acceptance_criteria": [
+          {
+            "criterion_id": "tests",
+            "type": "command_exit_zero",
+            "required": true,
+            "description": "Synthetic tests pass",
+            "config": {
+              "command": "npm test"
+            }
+          }
+        ],
+        "open_questions": [],
+        "risk_level": "normal"
+      },
+      "snapshot": {
+        "schema_version": "context-bundle/v1",
+        "project": "demo",
+        "generated_at": "2026-01-01T00:00:00+00:00",
+        "freshness": "current",
+        "observed_scope": [
+          "demo"
+        ],
+        "repositories": [
+          {
+            "name": "demo",
+            "relative_path": "demo"
+          }
+        ],
+        "context": {
+          "automatic": "Synthetic fixture",
+          "manual": ""
+        }
+      },
+      "run": {
+        "cwd": "demo"
+      },
+      "events": [],
+      "expected": [
+        {
+          "criterion_id": "context-freshness",
+          "evaluator_id": "context-freshness",
+          "evaluator_version": "1",
+          "status": "passed",
+          "severity": "blocking",
+          "reason": "context_declared_current"
+        },
+        {
+          "criterion_id": "tests",
+          "evaluator_id": "verification",
+          "evaluator_version": "2",
+          "status": "needs_review",
+          "severity": "blocking",
+          "reason": "evidence_missing"
+        }
+      ]
+    },
+    {
+      "schema_version": "regression-case/v1",
+      "case_id": "wrong-directory",
+      "task": {
+        "task_id": "synthetic-task",
+        "title": "Synthetic review",
+        "goal": "Verify captured evidence",
+        "target_repositories": [
+          "demo"
+        ],
+        "constraints": [],
+        "acceptance_criteria": [
+          {
+            "criterion_id": "tests",
+            "type": "command_exit_zero",
+            "required": true,
+            "description": "Synthetic tests pass",
+            "config": {
+              "command": "npm test"
+            }
+          }
+        ],
+        "open_questions": [],
+        "risk_level": "normal"
+      },
+      "snapshot": {
+        "schema_version": "context-bundle/v1",
+        "project": "demo",
+        "generated_at": "2026-01-01T00:00:00+00:00",
+        "freshness": "current",
+        "observed_scope": [
+          "demo"
+        ],
+        "repositories": [
+          {
+            "name": "demo",
+            "relative_path": "demo"
+          }
+        ],
+        "context": {
+          "automatic": "Synthetic fixture",
+          "manual": ""
+        }
+      },
+      "run": {
+        "cwd": "demo"
+      },
+      "events": [
+        {
+          "event_id": "test",
+          "event_type": "PostToolUse",
+          "tool_name": "Bash",
+          "cwd": "other",
+          "details": {
+            "tool_input": {
+              "command": "npm test"
+            },
+            "tool_response": {
+              "exit_code": 0
+            }
+          },
+          "sequence": 1
+        }
+      ],
+      "expected": [
+        {
+          "criterion_id": "context-freshness",
+          "evaluator_id": "context-freshness",
+          "evaluator_version": "1",
+          "status": "passed",
+          "severity": "blocking",
+          "reason": "context_declared_current"
+        },
+        {
+          "criterion_id": "tests",
+          "evaluator_id": "verification",
+          "evaluator_version": "2",
+          "status": "needs_review",
+          "severity": "blocking",
+          "reason": "directory_unverified"
+        }
+      ]
+    },
+    {
+      "schema_version": "regression-case/v1",
+      "case_id": "edit-after-test",
+      "task": {
+        "task_id": "synthetic-task",
+        "title": "Synthetic review",
+        "goal": "Verify captured evidence",
+        "target_repositories": [
+          "demo"
+        ],
+        "constraints": [],
+        "acceptance_criteria": [
+          {
+            "criterion_id": "tests",
+            "type": "command_exit_zero",
+            "required": true,
+            "description": "Synthetic tests pass",
+            "config": {
+              "command": "npm test"
+            }
+          }
+        ],
+        "open_questions": [],
+        "risk_level": "normal"
+      },
+      "snapshot": {
+        "schema_version": "context-bundle/v1",
+        "project": "demo",
+        "generated_at": "2026-01-01T00:00:00+00:00",
+        "freshness": "current",
+        "observed_scope": [
+          "demo"
+        ],
+        "repositories": [
+          {
+            "name": "demo",
+            "relative_path": "demo"
+          }
+        ],
+        "context": {
+          "automatic": "Synthetic fixture",
+          "manual": ""
+        }
+      },
+      "run": {
+        "cwd": "demo"
+      },
+      "events": [
+        {
+          "event_id": "test",
+          "event_type": "PostToolUse",
+          "tool_name": "Bash",
+          "cwd": "demo",
+          "details": {
+            "tool_input": {
+              "command": "npm test"
+            },
+            "tool_response": {
+              "exit_code": 0
+            }
+          },
+          "sequence": 1
+        },
+        {
+          "event_id": "edit",
+          "event_type": "PostToolUse",
+          "tool_name": "apply_patch",
+          "cwd": "demo",
+          "details": {
+            "changed_files": [
+              "demo/src/app.py"
+            ]
+          },
+          "sequence": 2
+        }
+      ],
+      "expected": [
+        {
+          "criterion_id": "context-freshness",
+          "evaluator_id": "context-freshness",
+          "evaluator_version": "1",
+          "status": "passed",
+          "severity": "blocking",
+          "reason": "context_declared_current"
+        },
+        {
+          "criterion_id": "tests",
+          "evaluator_id": "verification",
+          "evaluator_version": "2",
+          "status": "needs_review",
+          "severity": "blocking",
+          "reason": "verification_stale"
+        }
+      ]
+    },
+    {
+      "schema_version": "regression-case/v1",
+      "case_id": "scope-violation",
+      "task": {
+        "task_id": "synthetic-task",
+        "title": "Synthetic review",
+        "goal": "Verify captured evidence",
+        "target_repositories": [
+          "demo"
+        ],
+        "constraints": [],
+        "acceptance_criteria": [
+          {
+            "criterion_id": "tests",
+            "type": "command_exit_zero",
+            "required": true,
+            "description": "Synthetic tests pass",
+            "config": {
+              "command": "npm test"
+            }
+          },
+          {
+            "criterion_id": "scope",
+            "type": "path_scope",
+            "required": true,
+            "description": "Synthetic scope",
+            "config": {
+              "allowed_prefixes": [
+                "demo/src"
+              ]
+            }
+          }
+        ],
+        "open_questions": [],
+        "risk_level": "normal"
+      },
+      "snapshot": {
+        "schema_version": "context-bundle/v1",
+        "project": "demo",
+        "generated_at": "2026-01-01T00:00:00+00:00",
+        "freshness": "current",
+        "observed_scope": [
+          "demo"
+        ],
+        "repositories": [
+          {
+            "name": "demo",
+            "relative_path": "demo"
+          }
+        ],
+        "context": {
+          "automatic": "Synthetic fixture",
+          "manual": ""
+        }
+      },
+      "run": {
+        "cwd": "demo"
+      },
+      "events": [
+        {
+          "event_id": "edit",
+          "event_type": "PostToolUse",
+          "tool_name": "apply_patch",
+          "cwd": "demo",
+          "details": {
+            "changed_files": [
+              "demo/outside.py"
+            ]
+          },
+          "sequence": 1
+        },
+        {
+          "event_id": "test-start",
+          "event_type": "PreToolUse",
+          "tool_name": "Bash",
+          "cwd": "demo",
+          "details": {
+            "tool_use_id": "verify-1",
+            "tool_input": {
+              "command": "npm test"
+            }
+          },
+          "sequence": 2
+        },
+        {
+          "event_id": "test",
+          "event_type": "PostToolUse",
+          "tool_name": "Bash",
+          "cwd": "demo",
+          "details": {
+            "tool_input": {
+              "command": "npm test"
+            },
+            "tool_response": {
+              "exit_code": 0
+            },
+            "tool_use_id": "verify-1"
+          },
+          "sequence": 3
+        }
+      ],
+      "expected": [
+        {
+          "criterion_id": "context-freshness",
+          "evaluator_id": "context-freshness",
+          "evaluator_version": "1",
+          "status": "passed",
+          "severity": "blocking",
+          "reason": "context_declared_current"
+        },
+        {
+          "criterion_id": "tests",
+          "evaluator_id": "verification",
+          "evaluator_version": "2",
+          "status": "passed",
+          "severity": "blocking",
+          "reason": "verification_succeeded"
+        },
+        {
+          "criterion_id": "scope",
+          "evaluator_id": "repository-scope",
+          "evaluator_version": "1",
+          "status": "failed",
+          "severity": "blocking",
+          "reason": "scope_mismatch"
+        }
+      ]
+    },
+    {
+      "schema_version": "regression-case/v1",
+      "case_id": "scope-missing",
+      "task": {
+        "task_id": "synthetic-task",
+        "title": "Synthetic review",
+        "goal": "Verify captured evidence",
+        "target_repositories": [
+          "demo"
+        ],
+        "constraints": [],
+        "acceptance_criteria": [
+          {
+            "criterion_id": "tests",
+            "type": "command_exit_zero",
+            "required": true,
+            "description": "Synthetic tests pass",
+            "config": {
+              "command": "npm test"
+            }
+          },
+          {
+            "criterion_id": "scope",
+            "type": "path_scope",
+            "required": true,
+            "description": "Synthetic scope",
+            "config": {
+              "allowed_prefixes": [
+                "demo/src"
+              ]
+            }
+          }
+        ],
+        "open_questions": [],
+        "risk_level": "normal"
+      },
+      "snapshot": {
+        "schema_version": "context-bundle/v1",
+        "project": "demo",
+        "generated_at": "2026-01-01T00:00:00+00:00",
+        "freshness": "current",
+        "observed_scope": [
+          "demo"
+        ],
+        "repositories": [
+          {
+            "name": "demo",
+            "relative_path": "demo"
+          }
+        ],
+        "context": {
+          "automatic": "Synthetic fixture",
+          "manual": ""
+        }
+      },
+      "run": {
+        "cwd": "demo"
+      },
+      "events": [
+        {
+          "event_id": "test",
+          "event_type": "PostToolUse",
+          "tool_name": "Bash",
+          "cwd": "demo",
+          "details": {
+            "tool_input": {
+              "command": "npm test"
+            },
+            "tool_response": {
+              "exit_code": 0
+            }
+          },
+          "sequence": 1
+        }
+      ],
+      "expected": [
+        {
+          "criterion_id": "context-freshness",
+          "evaluator_id": "context-freshness",
+          "evaluator_version": "1",
+          "status": "passed",
+          "severity": "blocking",
+          "reason": "context_declared_current"
+        },
+        {
+          "criterion_id": "tests",
+          "evaluator_id": "verification",
+          "evaluator_version": "2",
+          "status": "passed",
+          "severity": "blocking",
+          "reason": "verification_succeeded"
+        },
+        {
+          "criterion_id": "scope",
+          "evaluator_id": "repository-scope",
+          "evaluator_version": "1",
+          "status": "needs_review",
+          "severity": "blocking",
+          "reason": "evidence_missing"
+        }
+      ]
+    },
+    {
+      "schema_version": "regression-case/v1",
+      "case_id": "manual-unavailable",
+      "task": {
+        "task_id": "synthetic-task",
+        "title": "Synthetic review",
+        "goal": "Verify captured evidence",
+        "target_repositories": [
+          "demo"
+        ],
+        "constraints": [],
+        "acceptance_criteria": [
+          {
+            "criterion_id": "tests",
+            "type": "command_exit_zero",
+            "required": true,
+            "description": "Synthetic tests pass",
+            "config": {
+              "command": "npm test"
+            }
+          },
+          {
+            "criterion_id": "manual",
+            "type": "manual",
+            "required": true,
+            "description": "Synthetic human criterion",
+            "config": {}
+          }
+        ],
+        "open_questions": [],
+        "risk_level": "normal"
+      },
+      "snapshot": {
+        "schema_version": "context-bundle/v1",
+        "project": "demo",
+        "generated_at": "2026-01-01T00:00:00+00:00",
+        "freshness": "current",
+        "observed_scope": [
+          "demo"
+        ],
+        "repositories": [
+          {
+            "name": "demo",
+            "relative_path": "demo"
+          }
+        ],
+        "context": {
+          "automatic": "Synthetic fixture",
+          "manual": ""
+        }
+      },
+      "run": {
+        "cwd": "demo"
+      },
+      "events": [
+        {
+          "event_id": "test",
+          "event_type": "PostToolUse",
+          "tool_name": "Bash",
+          "cwd": "demo",
+          "details": {
+            "tool_input": {
+              "command": "npm test"
+            },
+            "tool_response": {
+              "exit_code": 0
+            }
+          },
+          "sequence": 1
+        }
+      ],
+      "expected": [
+        {
+          "criterion_id": "context-freshness",
+          "evaluator_id": "context-freshness",
+          "evaluator_version": "1",
+          "status": "passed",
+          "severity": "blocking",
+          "reason": "context_declared_current"
+        },
+        {
+          "criterion_id": "tests",
+          "evaluator_id": "verification",
+          "evaluator_version": "2",
+          "status": "passed",
+          "severity": "blocking",
+          "reason": "verification_succeeded"
+        },
+        {
+          "criterion_id": "manual",
+          "evaluator_id": "unhandled-criterion",
+          "evaluator_version": "1",
+          "status": "needs_review",
+          "severity": "blocking",
+          "reason": "evaluator_unavailable"
+        }
+      ]
+    },
+    {
+      "schema_version": "regression-case/v1",
+      "case_id": "revision-mismatch",
+      "task": {
+        "task_id": "synthetic-task",
+        "title": "Synthetic review",
+        "goal": "Verify captured evidence",
+        "target_repositories": [
+          "demo"
+        ],
+        "constraints": [],
+        "acceptance_criteria": [
+          {
+            "criterion_id": "tests",
+            "type": "command_exit_zero",
+            "required": true,
+            "description": "Synthetic tests pass",
+            "config": {
+              "command": "npm test"
+            }
+          }
+        ],
+        "open_questions": [],
+        "risk_level": "normal"
+      },
+      "snapshot": {
+        "schema_version": "context-bundle/v1",
+        "project": "demo",
+        "generated_at": "2026-01-01T00:00:00+00:00",
+        "freshness": "current",
+        "observed_scope": [
+          "demo"
+        ],
+        "repositories": [
+          {
+            "name": "demo",
+            "relative_path": "demo",
+            "head_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "context": {
+          "automatic": "Synthetic fixture",
+          "manual": ""
+        }
+      },
+      "run": {
+        "cwd": "demo"
+      },
+      "events": [
+        {
+          "event_id": "start",
+          "event_type": "SessionStart",
+          "cwd": "demo",
+          "details": {
+            "repository_state": {
+              "schema_version": "repository-state/v1",
+              "head_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "tracked_dirty": false,
+              "authority": "client_collected_git",
+              "coverage": "tracked_files_only"
+            }
+          },
+          "sequence": 1
+        },
+        {
+          "event_id": "test",
+          "event_type": "PostToolUse",
+          "tool_name": "Bash",
+          "cwd": "demo",
+          "details": {
+            "tool_input": {
+              "command": "npm test"
+            },
+            "tool_response": {
+              "exit_code": 0
+            }
+          },
+          "sequence": 2
+        }
+      ],
+      "expected": [
+        {
+          "criterion_id": "context-freshness",
+          "evaluator_id": "context-freshness",
+          "evaluator_version": "1",
+          "status": "passed",
+          "severity": "blocking",
+          "reason": "context_declared_current"
+        },
+        {
+          "criterion_id": "tests",
+          "evaluator_id": "verification",
+          "evaluator_version": "2",
+          "status": "passed",
+          "severity": "blocking",
+          "reason": "verification_succeeded"
+        },
+        {
+          "criterion_id": "repository-revision",
+          "evaluator_id": "repository-revision",
+          "evaluator_version": "1",
+          "status": "failed",
+          "severity": "blocking",
+          "reason": "repository_revision_mismatch"
+        }
+      ]
+    }
+  ]
+}

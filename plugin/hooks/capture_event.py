@@ -2,6 +2,7 @@ import json
 import os
 from pathlib import Path
 import re
+import subprocess
 import sys
 import urllib.request
 from typing import Any
@@ -39,7 +40,7 @@ RAW_SECRET_PATTERN = re.compile(
 )
 ASSIGNMENT_PATTERN = re.compile(
     r"(?i)\b(api[_-]?key|access[_-]?token|refresh[_-]?token|password|passwd|"
-    r"secret|authorization)\s*([=:])\s*([^\s,;]+)"
+    r"token|secret|authorization)\s*([=:])\s*([^\s,;]+)"
 )
 
 
@@ -73,13 +74,13 @@ def capture(payload: dict[str, Any], endpoint: str | None = None) -> bool:
         return False
 
     url = endpoint or os.getenv("EVOLVETRACE_API_URL", "http://127.0.0.1:8001/api/audit/events")
-    request = urllib.request.Request(
-        url,
-        data=json.dumps(redact_value(payload), ensure_ascii=False).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
     try:
+        request = urllib.request.Request(
+            url,
+            data=json.dumps(redact_value(payload), ensure_ascii=False).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
         urllib.request.urlopen(request, timeout=1.5)
     except Exception:
         return False
@@ -88,12 +89,41 @@ def capture(payload: dict[str, Any], endpoint: str | None = None) -> bool:
 
 def process_payload(payload: dict[str, Any]) -> int:
     decision = evaluate_pre_tool_use(payload)
-    capture(apply_safety_decision(payload, decision))
-
     hook_output = codex_hook_output(decision)
     if hook_output is not None:
-        print(json.dumps(hook_output, ensure_ascii=False))
+        print(json.dumps(hook_output, ensure_ascii=False), flush=True)
+
+    # Best-effort telemetry must not discard a local policy decision.
+    try:
+        captured = apply_safety_decision(payload, decision)
+        if payload.get("hook_event_name") in {"SessionStart", "SessionEnd"}:
+            captured = {**captured, "repository_state": repository_state(payload.get("cwd"))}
+        capture(captured)
+    except Exception:
+        pass
     return 0
+
+
+def repository_state(cwd: object) -> dict:
+    """Bounded Git observation; never capture source contents or scan untracked files."""
+    state = {"schema_version": "repository-state/v1", "authority": "client_collected_git",
+             "coverage": "tracked_files_only", "head_commit": None, "tracked_dirty": None}
+    if not isinstance(cwd, str) or not Path(cwd).is_absolute():
+        return state
+    command = ["git", "--no-optional-locks", "-c", "core.fsmonitor=false", "-C", cwd]
+    try:
+        head = subprocess.run([*command, "rev-parse", "--verify", "HEAD"], stdout=subprocess.PIPE,
+                              stderr=subprocess.DEVNULL, text=True, timeout=0.4)
+        revision = head.stdout.strip()
+        if head.returncode or not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", revision):
+            return state
+        dirty = subprocess.run([*command, "diff", "--quiet", "--no-ext-diff", "--no-textconv", "HEAD", "--"],
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=0.4)
+        if dirty.returncode in {0, 1}:
+            state.update(head_commit=revision, tracked_dirty=bool(dirty.returncode))
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    return state
 
 
 def main() -> int:

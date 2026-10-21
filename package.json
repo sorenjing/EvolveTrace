@@ -8,7 +8,7 @@
     "lint": "eslint",
     "site:build": "npm --prefix website run build",
     "site:preview": "npm --prefix website run dev",
-    "test": "node --experimental-strip-types --test src/app/lib/audit-flow.test.mjs src/app/lib/activity-prompt.test.mjs src/app/lib/audit-recovery.test.mjs scripts/check_node_dependencies.test.mjs scripts/lint-root-boundary.test.mjs",
+    "test": "node --experimental-strip-types --test src/app/lib/audit-flow.test.mjs src/app/lib/activity-prompt.test.mjs src/app/lib/activity-navigation.test.mjs src/app/lib/audit-recovery.test.mjs src/app/lib/review-selection.test.mjs src/app/lib/run-comparison.test.mjs scripts/check_node_dependencies.test.mjs scripts/lint-root-boundary.test.mjs",
     "security:deps": "node scripts/check_node_dependencies.mjs"
   },
   "dependencies": {

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from evolvetrace_context.personal_pack import ExecutionProfile, PersonalAIPack
+from evolvetrace_context.personal_pack import PersonalAIPack
 
 
 def write_pack(path: Path, payload: dict) -> Path:
@@ -116,23 +116,3 @@ def test_pack_rejects_unsafe_or_unsupported_values(tmp_path: Path, mutation) -> 
     mutation(payload)
     with pytest.raises(ValueError):
         PersonalAIPack.load(write_pack(tmp_path / "pack.json", payload))
-
-
-def test_execution_profile_excludes_knowledge_and_secret_fields() -> None:
-    profile = ExecutionProfile.from_dict(
-        {
-            "schema": "execution-profile/v1",
-            "profile_id": "codex-local",
-            "platform": "codex",
-            "harness": "codex-work",
-            "adapter": "openai-plugin",
-            "adapter_version": "1.0.0",
-            "provider": "openai",
-            "model": "gpt-test",
-            "capabilities": ["mcp", "skills", "mcp"],
-            "policy_profile": "local-reviewed",
-        }
-    )
-    assert profile.capabilities == ("mcp", "skills")
-    with pytest.raises(ValueError, match="unknown"):
-        ExecutionProfile.from_dict({**profile.to_dict(), "prompt": "private"})

@@ -1,4 +1,4 @@
-import type { ContextReceipt, ContextSnapshot, EvaluationResult, ReviewDecision, TaskContract, UnboundRun } from "@/app/lib/harness-types";
+import type { EvaluationResult, ReviewDecision, RunComparison, TaskContract, UnboundRun } from "@/app/lib/harness-types";
 
 function apiBaseUrl(): string {
   const configured = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -16,11 +16,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const listTasks = () => request<TaskContract[]>("/api/harness/tasks", { cache: "no-store" });
 export const getTask = (taskId: string) => request<TaskContract>(`/api/harness/tasks/${encodeURIComponent(taskId)}`, { cache: "no-store" });
-export const createTask = (task: Omit<TaskContract, "task_id" | "created_at">) => request<TaskContract>("/api/harness/tasks", { method: "POST", body: JSON.stringify(task) });
-export const importContextSnapshot = (bundle: object) => request<ContextSnapshot>("/api/harness/context-snapshots", { method: "POST", body: JSON.stringify(bundle) });
 export const activateTask = (taskId: string, repositoryPath: string) => request<TaskContract>(`/api/harness/tasks/${encodeURIComponent(taskId)}/activate`, { method: "POST", body: JSON.stringify({ repository_path: repositoryPath }) });
+export const compareRuns = (taskId: string, originalRunId: string, correctedRunId: string) => request<RunComparison>(`/api/harness/tasks/${encodeURIComponent(taskId)}/comparisons`, { method: "POST", body: JSON.stringify({ original_run_id: originalRunId, corrected_run_id: correctedRunId }) });
 export const listUnboundRuns = () => request<UnboundRun[]>("/api/harness/runs/unbound", { cache: "no-store" });
-export const listContextReceipts = (taskId: string) => request<ContextReceipt[]>(`/api/harness/tasks/${encodeURIComponent(taskId)}/context-receipts`, { cache: "no-store" });
 export const evaluateRun = (taskId: string, runId: string) => request<{ evaluations: EvaluationResult[] }>(`/api/harness/tasks/${encodeURIComponent(taskId)}/runs/${encodeURIComponent(runId)}/evaluate`, { method: "POST" });
 export const listEvaluations = (taskId: string, runId: string) => request<EvaluationResult[]>(`/api/harness/tasks/${encodeURIComponent(taskId)}/runs/${encodeURIComponent(runId)}/evaluations`, { cache: "no-store" });
 export const recordReview = (taskId: string, runId: string, payload: { outcome: ReviewDecision["outcome"]; note: string; evaluation_ids: string[]; actor: string }) => request<ReviewDecision>(`/api/harness/tasks/${encodeURIComponent(taskId)}/runs/${encodeURIComponent(runId)}/review`, { method: "POST", body: JSON.stringify(payload) });

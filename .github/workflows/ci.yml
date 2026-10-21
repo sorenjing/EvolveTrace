@@ -52,6 +52,9 @@ jobs:
       - name: 单元测试
         run: pytest tests/ -v
 
+      - name: Frozen evidence regression
+        run: python ../scripts/replay_regressions.py tests/fixtures/regression-cases.json
+
   frontend:
     runs-on: ubuntu-latest
     steps:
