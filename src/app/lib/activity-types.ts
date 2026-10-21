@@ -38,6 +38,8 @@ export interface ActivityProject {
   relative_path: string;
   active: boolean;
   session_count: number;
+  sessions?: { session_id: string; event_count: number; started_at: string; last_seen: string }[];
+  event_ids?: string[];
   activity: ActivitySummary & { muted_rules: ActivityCode[] };
 }
 
@@ -71,6 +73,8 @@ export interface ActivityReport {
   unattributed_event_count: number;
   truncated: boolean;
   event_limit: number;
+  scope?: { session_id: string | null; project_id: string | null };
+  rule_policy?: { version: string; window_seconds: number; repeated_operation_min: number; failed_retry_min: number; window_anchor: string; calibration: string };
 }
 
 export interface AuditMemoryEntry {
@@ -79,12 +83,16 @@ export interface AuditMemoryEntry {
   note: string;
   evidence_refs: string[];
   created_at: string;
-  status: "human_reviewed";
+  status: "human_reviewed" | "revoked" | "superseded" | "expired";
+  applicability?: string;
+  expires_at?: string | null;
+  supersedes?: string | null;
 }
 
 export interface AuditMemory {
   schema_version: "audit-memory/v1";
   entries: AuditMemoryEntry[];
+  history?: AuditMemoryEntry[];
   freshness: "historical";
   recalls?: AuditMemoryRecall[];
 }

@@ -78,9 +78,9 @@ def register_activity_workspace(payload: dict[str, Any] = Body(...)):
 
 
 @router.get("/activity/report", dependencies=[Depends(require_loopback)])
-def get_activity_report(project_id: str | None = None, limit: int = Query(20000, ge=1, le=20000)):
+def get_activity_report(project_id: str | None = None, limit: int = Query(20000, ge=1, le=20000), session_id: str | None = Query(None, min_length=1, max_length=256)):
     try:
-        return activity_service.report(project_id, limit)
+        return activity_service.report(project_id, limit, session_id)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -116,6 +116,16 @@ def get_activity_memory(project_id: str):
         return activity_service.memory(project_id)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/activity/memory/{memory_id}/revoke", dependencies=[Depends(require_loopback)])
+def revoke_activity_memory(memory_id: str, payload: dict[str, Any] = Body(...)):
+    try:
+        return activity_service.revoke_memory(memory_id, payload)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.post("/activity/memory-recalls", status_code=201, dependencies=[Depends(require_loopback)])
@@ -215,6 +225,18 @@ async def evaluate_harness_run(task_id: str, run_id: str):
 @router.get("/harness/tasks/{task_id}/runs/{run_id}/evaluations", dependencies=[Depends(require_loopback)])
 async def list_harness_evaluations(task_id: str, run_id: str):
     return [item.to_dict() for item in harness_service.repository.list_evaluations(task_id, run_id)]
+
+
+@router.post("/harness/tasks/{task_id}/runs/{run_id}/regression-draft", dependencies=[Depends(require_loopback)])
+async def export_harness_regression_draft(task_id: str, run_id: str, payload: dict[str, Any] = Body(...)):
+    try:
+        if set(payload) != {"workspace_root", "case_id"}:
+            raise ValueError("workspace_root and case_id are required")
+        run = harness_service.repository.get_run(run_id)
+        session = audit_service.get_session(run.session_id) if run and run.session_id else None
+        return harness_service.export_regression_draft(task_id, run_id, session, **payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.post("/harness/tasks/{task_id}/runs/{run_id}/review", status_code=201, dependencies=[Depends(require_loopback)])

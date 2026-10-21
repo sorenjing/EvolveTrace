@@ -34,6 +34,7 @@ def test_application_exposes_health_audit_and_harness_routes():
         "/api/activity/memory",
         "/api/activity/memory-recalls",
         "/api/activity/memory/{project_id}",
+        "/api/activity/memory/{memory_id}/revoke",
         "/api/harness/context-snapshots",
         "/api/harness/context-receipts",
         "/api/harness/execution-profiles",
@@ -45,6 +46,7 @@ def test_application_exposes_health_audit_and_harness_routes():
         "/api/harness/tasks/{task_id}/comparisons",
         "/api/harness/tasks/{task_id}/runs/{run_id}/evaluate",
         "/api/harness/tasks/{task_id}/runs/{run_id}/evaluations",
+        "/api/harness/tasks/{task_id}/runs/{run_id}/regression-draft",
         "/api/harness/tasks/{task_id}/runs/{run_id}/review",
         "/api/harness/runs/unbound",
     }

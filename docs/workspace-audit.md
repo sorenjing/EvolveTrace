@@ -113,6 +113,15 @@ aictx audit remember demo --session-id <会话ID> --event-id <事件ID> --note "
 aictx audit memory demo
 ```
 
+适用条件、到期时间与替代关系可显式指定；替代只作用于同项目的旧结论，并与新结论保存为同一事务：
+
+```powershell
+aictx audit remember demo --session-id <会话ID> --event-id <事件ID> --note "已重新核对的结论" --applies-to "指定测试环境" --expires-at "2035-01-01T00:00:00+00:00" --supersedes <旧记忆ID> --confirm
+aictx audit revoke demo --memory-id <记忆ID> --confirm
+```
+
+工作台分析窗口也提供这些可选字段，并可在记忆卡片撤销。已撤销、被替代或到期的结论停止回读，正文保留在最近 20 条历史中供核查；撤销同条记忆可重试。适用条件会随结论返回，仍需判断是否适合当前任务，不进行自动跨项目推广。未设到期时间的记录不会仅因时间流逝自动失效。
+
 重复 `--event-id` 可引用最多 20 条证据，每条必须属于选定项目和会话。
 结论最多 1,000 字符，保存前执行凭据模式脱敏；读取最新最多 20 条。
 删除会话会一并删除依赖它的记忆。人工备注仍可能包含个人信息，导出 JSON 应按
@@ -136,7 +145,7 @@ aictx audit memory demo
 aictx load demo --audit-url http://127.0.0.1:8001
 ```
 
-只返回所选项目的 `human_reviewed` 记录，独立标记为历史观察。
+只返回所选项目仍有效且未到期的 `human_reviewed` 记录，独立标记为历史观察。
 回执记录实际返回的记忆 ID，不改变本地文件 freshness。附加段落最多 8 KiB，
 同时受整体交付预算限制，截断会明确标记。服务不可用时，本地上下文仍会返回。
 

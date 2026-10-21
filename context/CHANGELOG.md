@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add reviewed-memory applicability, expiry and supersession options, plus explicit `audit revoke --confirm`; deliver applicability with the historical observation. Retired entries remain local history and are excluded from normal recall.
+
 - Remove the unused Context-side ExecutionProfile model and its standalone test; the backend execution-profile API and model remain supported.
 - Share bounded loopback transport across task submission and audit requests while preserving unavailable-service fallback and rejected-submission errors.
 - Generate local and Pack Codex entrypoints from one loading policy, with explicit CLI receipts and manual fallback reporting.

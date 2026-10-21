@@ -134,7 +134,7 @@ def _parser() -> argparse.ArgumentParser:
     inspect.add_argument("--json", action="store_true")
     audit = subparsers.add_parser("audit", description="Cross-project execution evidence and explicit reviewed memory")
     audit_commands = audit.add_subparsers(dest="audit_command", required=True)
-    for name in ("sync", "report", "memory", "remember"):
+    for name in ("sync", "report", "memory", "remember", "revoke"):
         command = audit_commands.add_parser(name)
         command.add_argument("--workspace", type=Path)
         command.add_argument("--evolvetrace-url", default=DEFAULT_URL)
@@ -148,6 +148,12 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument("--session-id", required=True)
             command.add_argument("--event-id", action="append", required=True)
             command.add_argument("--note", required=True)
+            command.add_argument("--confirm", action="store_true")
+            command.add_argument("--applies-to", default="")
+            command.add_argument("--expires-at")
+            command.add_argument("--supersedes")
+        if name == "revoke":
+            command.add_argument("--memory-id", required=True)
             command.add_argument("--confirm", action="store_true")
     return parser
 

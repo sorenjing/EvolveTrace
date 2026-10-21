@@ -8,7 +8,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## Product boundary
 
-EvolveTrace is a local-first command audit and evidence-based review tool for coding agents. It binds Task Contracts and versioned project context to observable execution, runs deterministic evaluators, and keeps the final review decision with the human. Generalized regression case replay remains planned.
+EvolveTrace is a local-first command audit and evidence-based review tool for coding agents. It binds Task Contracts and versioned project context to observable execution, runs deterministic evaluators, and keeps the final review decision with the human. Local Run draft export, human label freezing and offline evidence re-scoring are implemented; Agent re-execution remains planned.
 
 It does not run an Agent, expose hidden chain of thought, upload source code, replace repository inspection, or claim to be a complete sandbox. Team collaboration, cloud sync, RAG, general-purpose requirements management, and multi-agent orchestration remain out of scope.
 

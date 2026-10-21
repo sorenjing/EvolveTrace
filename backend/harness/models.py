@@ -202,19 +202,21 @@ class EvaluationResult:
     expected: str
     actual: str
     created_at: str
+    reason: str = "legacy_unspecified"
 
     @classmethod
     def create(cls, *, task_id: str, run_id: str, criterion_id: str, evaluator_id: str,
                evaluator_version: str, status: str, severity: str, summary: str,
                evidence_refs: Iterable[str], expected: str, actual: str,
-               evaluation_id: str | None = None, created_at: str | None = None) -> "EvaluationResult":
+               evaluation_id: str | None = None, created_at: str | None = None,
+               reason: str = "legacy_unspecified") -> "EvaluationResult":
         if status not in EVALUATION_STATUSES or severity not in EVALUATION_SEVERITIES:
             raise ValueError("invalid evaluation status or severity")
         if any(not str(value).strip() for value in (task_id, run_id, criterion_id, evaluator_id, evaluator_version, summary)):
             raise ValueError("evaluation identifiers and summary are required")
         return cls(evaluation_id or str(uuid4()), task_id, run_id, criterion_id, evaluator_id,
                    evaluator_version, status, severity, summary, _strings(evidence_refs, "evidence_refs"),
-                   expected, actual, created_at or _now())
+                   expected, actual, created_at or _now(), reason)
 
     def to_dict(self) -> dict[str, Any]:
         return {**asdict(self), "evidence_refs": list(self.evidence_refs)}

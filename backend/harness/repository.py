@@ -43,6 +43,8 @@ class HarnessRepository:
             }
             if "execution_profile_id" not in columns:
                 c.execute("ALTER TABLE context_receipts ADD COLUMN execution_profile_id TEXT")
+            if "reason" not in {row["name"] for row in c.execute("PRAGMA table_info(evaluations)")}:
+                c.execute("ALTER TABLE evaluations ADD COLUMN reason TEXT NOT NULL DEFAULT 'legacy_unspecified'")
 
     def upsert_execution_profile(self, profile: ExecutionProfile) -> ExecutionProfile:
         rendered = json.dumps(profile.to_dict(), ensure_ascii=False, sort_keys=True)
@@ -276,7 +278,11 @@ class HarnessRepository:
     def list_run_comparisons(self, task_id: str) -> list[dict]:
         with self._connect() as c:
             rows = c.execute("SELECT * FROM run_comparisons WHERE task_id=? ORDER BY original_run_id, corrected_run_id", (task_id,)).fetchall()
-        return [{**dict(row), "status": "effective"} for row in rows]
+        return [self._comparison(row) for row in rows]
+
+    @staticmethod
+    def _comparison(row) -> dict:
+        return {**dict(row), "status": "effective", "comparison_kind": "repair", "context_benefit": "unmeasured"}
 
     def get_run_comparison(self, task_id: str, original_run_id: str, corrected_run_id: str) -> dict | None:
         return next((item for item in self.list_run_comparisons(task_id)
@@ -290,14 +296,14 @@ class HarnessRepository:
             existing = c.execute("SELECT * FROM run_comparisons WHERE task_id=? AND original_run_id=? AND corrected_run_id=?",
                                  (task_id, original_run_id, corrected_run_id)).fetchone()
             if existing:
-                return {**dict(existing), "status": "effective"}
+                return self._comparison(existing)
             changed = c.execute("UPDATE context_receipts SET status='effective', attempt_id=?, updated_at=? WHERE receipt_id=? AND task_id=? AND status='evidenced'",
                                 (corrected_run_id, receipt.updated_at, receipt.receipt_id, task_id)).rowcount
             if changed != 1:
                 raise ValueError("comparison requires an evidenced receipt")
             c.execute("INSERT INTO run_comparisons VALUES (?, ?, ?, ?)", (task_id, original_run_id, corrected_run_id, receipt.receipt_id))
-        return {"task_id": task_id, "original_run_id": original_run_id, "corrected_run_id": corrected_run_id,
-                "receipt_id": receipt.receipt_id, "status": "effective"}
+        return self._comparison({"task_id": task_id, "original_run_id": original_run_id,
+                                 "corrected_run_id": corrected_run_id, "receipt_id": receipt.receipt_id})
 
     def acknowledge_delivered_receipt(self, task_id: str, run_id: str) -> ContextReceipt | None:
         receipts = self.list_context_receipts(task_id)
@@ -312,7 +318,7 @@ class HarnessRepository:
             criterion_id=row["criterion_id"], evaluator_id=row["evaluator_id"],
             evaluator_version=row["evaluator_version"], status=row["status"], severity=row["severity"],
             summary=row["summary"], evidence_refs=json.loads(row["evidence_refs_json"]),
-            expected=row["expected"], actual=row["actual"], created_at=row["created_at"],
+            expected=row["expected"], actual=row["actual"], created_at=row["created_at"], reason=row["reason"],
         )
 
     def save_evaluation(self, result: EvaluationResult) -> EvaluationResult:
@@ -323,7 +329,7 @@ class HarnessRepository:
                 if existing != result:
                     raise ValueError("evaluation already exists with different immutable fields")
                 return existing
-            c.execute("INSERT INTO evaluations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (result.evaluation_id, result.task_id, result.run_id, result.criterion_id, result.evaluator_id, result.evaluator_version, result.status, result.severity, result.summary, json.dumps(result.evidence_refs), result.expected, result.actual, result.created_at))
+            c.execute("INSERT INTO evaluations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (result.evaluation_id, result.task_id, result.run_id, result.criterion_id, result.evaluator_id, result.evaluator_version, result.status, result.severity, result.summary, json.dumps(result.evidence_refs), result.expected, result.actual, result.created_at, result.reason))
         return result
 
     def list_evaluations(self, task_id: str, run_id: str) -> list[EvaluationResult]:

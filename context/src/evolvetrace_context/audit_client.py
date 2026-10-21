@@ -68,6 +68,13 @@ def append_memory(root: Path | None, result: dict, name: str | None, origin: str
         included = []
         for entry in entries:
             line = f"{entry['memory_id']}: {entry['note']} | evidence: {', '.join(entry['evidence_refs'])}"
+            applicability = entry.get("applicability", "")
+            if not isinstance(applicability, str) or len(applicability) > 300:
+                raise ConfigError("invalid memory applicability")
+            if applicability:
+                line += f" | applies to: {applicability}"
+            if entry.get("expires_at"):
+                line += f" | expires: {entry['expires_at']}"
             size = len(line.encode()) + 1
             if size > budget:
                 break
@@ -114,7 +121,19 @@ def run_audit(root: Path, args) -> dict:
     if action == "remember":
         if not args.confirm:
             raise ConfigError("review the note and evidence, then use --confirm to save audit memory")
-        return request_json(origin, "POST", "/activity/memory", {
+        payload = {
             "project_id": selected_project(root, args.project), "session_id": args.session_id,
-            "evidence_refs": args.event_id, "note": args.note, "confirmed": True})
+            "evidence_refs": args.event_id, "note": args.note, "confirmed": True}
+        for field, value in {"applicability": getattr(args, "applies_to", ""),
+                             "expires_at": getattr(args, "expires_at", None),
+                             "supersedes": getattr(args, "supersedes", None)}.items():
+            if value:
+                payload[field] = value
+        return request_json(origin, "POST", "/activity/memory", payload)
+    if action == "revoke":
+        if not args.confirm:
+            raise ConfigError("confirm revoking the reviewed memory with --confirm")
+        from urllib.parse import quote
+        return request_json(origin, "POST", f"/activity/memory/{quote(args.memory_id, safe='')}/revoke", {
+            "project_id": selected_project(root, args.project), "confirmed": True})
     raise ConfigError("unknown audit action")

@@ -16,7 +16,7 @@ EvolveTrace 收集 Codex 公开的 Hook 事件，在本机按项目整理命令�
 
 [快速开始](#快速开始) · [合成数据演示](docs/demo.md) · [使用手册](docs/usage.md) · [项目官网](https://sorenjing-evolvetrace.uas857030604.chatgpt.site) · [参与贡献](CONTRIBUTING.md)
 
-> **早期版本**：命令审计、任务复核、修正尝试准备和前后 Run 比较已接入工作台。执行修正仍需在目标仓库新开 Codex 会话；通用回归案例导入导出与重放仍在开发计划中。
+> **早期版本**：命令审计、任务复核、修正尝试准备和前后 Run 比较已接入工作台。支持本地 Run 回归草稿导出、人工冻结和离线证据重新评分；执行修正仍需在目标仓库新开 Codex 会话，Agent 重新执行与独立结果验收仍在开发计划中。
 
 ![合成任务的命令分类与执行证据详情](docs/assets/workbench-demo.jpg)
 
@@ -92,7 +92,8 @@ flowchart LR
 | Task、Context Snapshot、活动任务绑定 | Context CLI / HTTP API；工作台查看任务、上下文与 Run，目前没有完整的创建表单 |
 | 确定性评估与人工复核 | 工作台 / API；覆盖上下文 freshness、仓库范围和验证证据，未接入的必需验收条件会阻止接受 |
 | 修正与前后 Run 比较 | 工作台 / API；需修复后准备新尝试，在新 Codex 会话执行，再评估、人工接受并逐项对比；有效性确认仍受后端回执门禁约束 |
-| 经人工确认的审计记忆 | 分析窗口确认，Context CLI 按项目回读；工作台显示已上报的返回时间和记忆 ID，不把模型建议或输出声明当作采用事实 |
+| 经人工确认的审计记忆 | 分析窗口确认，支持适用条件、到期、替代与撤销；Context 按项目回读仍有效记录，工作台保留历史与已上报的加载记录 |
+| 离线证据回归 | [CLI 与案例格式](docs/regression.md)；本地 Run 导出草稿、人工冻结、重新评分，保留差异和未知，不执行记录中的命令 |
 | 通用回归案例、LLM Judge、系统资源采样 | 计划中 |
 
 详细流程见[跨项目审计与记忆](docs/workspace-audit.md)和[上下文证据演示](docs/context-evidence-demo.md)。

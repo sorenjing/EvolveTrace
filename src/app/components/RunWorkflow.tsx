@@ -109,7 +109,7 @@ function Comparison({ taskId, original, corrected, savedResult, onChanged }: { t
       </tr>)}</tbody>
     </table></div>}
     <p className="text-xs text-zinc-500">确认仅关联已复核的执行结果；后端仍检查验收条件与上下文回执，不能据此推断模型理解或因果收益。</p>
-    {confirmed ? <p role="status" className="break-all rounded bg-emerald-50 p-3 text-xs text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">已确认前后比较 · {confirmed.status} · 回执 {confirmed.receipt_id}</p>
+    {confirmed ? <p role="status" className="break-all rounded bg-emerald-50 p-3 text-xs text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">已确认修正复验 · Context 收益未测 · 回执 {confirmed.receipt_id}</p>
       : <button className={buttonClass} disabled={busy || !evidence} onClick={() => void confirm()}>确认前后比较</button>}
   </div>;
 }

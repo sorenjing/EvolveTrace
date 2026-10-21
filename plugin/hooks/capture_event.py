@@ -2,6 +2,7 @@ import json
 import os
 from pathlib import Path
 import re
+import subprocess
 import sys
 import urllib.request
 from typing import Any
@@ -94,10 +95,35 @@ def process_payload(payload: dict[str, Any]) -> int:
 
     # Best-effort telemetry must not discard a local policy decision.
     try:
-        capture(apply_safety_decision(payload, decision))
+        captured = apply_safety_decision(payload, decision)
+        if payload.get("hook_event_name") in {"SessionStart", "SessionEnd"}:
+            captured = {**captured, "repository_state": repository_state(payload.get("cwd"))}
+        capture(captured)
     except Exception:
         pass
     return 0
+
+
+def repository_state(cwd: object) -> dict:
+    """Bounded Git observation; never capture source contents or scan untracked files."""
+    state = {"schema_version": "repository-state/v1", "authority": "client_collected_git",
+             "coverage": "tracked_files_only", "head_commit": None, "tracked_dirty": None}
+    if not isinstance(cwd, str) or not Path(cwd).is_absolute():
+        return state
+    command = ["git", "--no-optional-locks", "-c", "core.fsmonitor=false", "-C", cwd]
+    try:
+        head = subprocess.run([*command, "rev-parse", "--verify", "HEAD"], stdout=subprocess.PIPE,
+                              stderr=subprocess.DEVNULL, text=True, timeout=0.4)
+        revision = head.stdout.strip()
+        if head.returncode or not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", revision):
+            return state
+        dirty = subprocess.run([*command, "diff", "--quiet", "--no-ext-diff", "--no-textconv", "HEAD", "--"],
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=0.4)
+        if dirty.returncode in {0, 1}:
+            state.update(head_commit=revision, tracked_dirty=bool(dirty.returncode))
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    return state
 
 
 def main() -> int:

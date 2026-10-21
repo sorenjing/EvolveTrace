@@ -8,6 +8,8 @@ EvolveTrace 对某个 Run 的验收检查，回答该 Run 是否有规定证据�
 
 已有确定性检查覆盖 Context Freshness、Repository Scope、Verification 等条件；它们不自动给出风险 Precision/Recall 或用户审查收益。Review accepted 和局部修复对比也不能替代工具有/无的公平实验。
 
+固定证据、人工预期标签与重新评分可使用[离线证据回归](regression.md)。本地 Run 先导出待复核草稿，人工核对输入和标签后再冻结；不要把当前评估器输出复制成金标后宣称准确率得到验证。导出保真检查与规则正确性评估是两件事。
+
 ## 指标合同
 
 | 指标 | 分子 / 分母或时间边界 | 证据 |

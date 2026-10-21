@@ -178,6 +178,7 @@ def test_new_routes_require_loopback():
     client = TestClient(app, client=("10.1.1.1", 1000))
     assert client.get("/api/activity/report").status_code == 403
     assert client.get("/api/activity/memory/unknown").status_code == 403
+    assert client.post("/api/activity/memory/unknown/revoke", json={"confirmed": True}).status_code == 403
     for path in ("workspaces", "decisions", "memory"):
         assert client.post("/api/activity/" + path, json={}).status_code == 403
 

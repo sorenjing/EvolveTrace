@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 import re
 
-from audit.activity import analyze_activity
+from audit.activity import analyze_activity, rule_policy
 from services.execution_evidence import resolve_execution_evidence
 from audit.repository import AuditRepository
 from audit.workspace import WorkspaceRepository
@@ -62,13 +62,16 @@ class ActivityService:
     def _resolve_directories(self, events: list[dict]) -> tuple[list[dict], dict]:
         return resolve_execution_evidence(events, self.repository)
 
-    def report(self, project_id: str | None = None, limit: int = 20000) -> dict:
+    def report(self, project_id: str | None = None, limit: int = 20000, session_id: str | None = None) -> dict:
         if not 1 <= limit <= 20000:
             raise ValueError("limit must be between 1 and 20000")
         projects = self.repository.projects()
         if project_id:
             self._project(project_id)
         events, truncated = self.repository.events(limit)
+        # Preserve the global bounded scan: a filter must not silently expand it.
+        if session_id is not None:
+            events = [event for event in events if event["session_id"] == session_id]
         events, metadata_scan = self._resolve_directories(events)
         groups, unknown = defaultdict(list), 0
         sources = {"hook_cwd": 0, "tool_workdir": 0, "execution_record": 0}
@@ -95,13 +98,23 @@ class ActivityService:
             for finding in activity["findings"]:
                 finding["suppressed"] = ("ignore", finding["finding_id"]) in decisions or ("mute", finding["code"]) in decisions
             activity["muted_rules"] = sorted(target for scope, target in decisions if scope == "mute")
-            result.append({**self._public(project), "session_count": len({event["session_id"] for event in groups[identity]}),
-                           "activity": activity})
+            session_events = defaultdict(list)
+            for event in groups[identity]:
+                session_events[event["session_id"]].append(event)
+            sessions = [{"session_id": sid, "event_count": len(items),
+                         "started_at": min(item["timestamp"] for item in items),
+                         "last_seen": max(item["timestamp"] for item in items)}
+                        for sid, items in session_events.items()]
+            sessions.sort(key=lambda item: (item["last_seen"], item["session_id"]), reverse=True)
+            result.append({**self._public(project), "session_count": len(sessions),
+                           "sessions": sessions, "activity": activity,
+                           **({"event_ids": [event["event_id"] for event in groups[identity]]} if session_id is not None else {})})
         return {"schema_version": "workspace-activity/v1", "projects": result,
                 "overall_activity": analyze_activity(events),
                 "attribution_sources": sources, "execution_metadata_scan": metadata_scan,
                 "observed_event_count": len(events), "unattributed_event_count": unknown,
-                "event_limit": limit, "truncated": truncated, "coverage": "captured_hook_events_only"}
+                "event_limit": limit, "truncated": truncated, "coverage": "captured_hook_events_only",
+                "scope": {"session_id": session_id, "project_id": project_id}, "rule_policy": rule_policy()}
 
     def decide(self, payload: dict) -> dict:
         project_id = str(payload.get("project_id", ""))
@@ -136,12 +149,36 @@ class ActivityService:
         valid = {event["event_id"] for event in events if (matched := self._match(event["cwd"], locations)) and matched["project_id"] == project["project_id"]}
         if not set(refs).issubset(valid):
             raise ValueError("evidence does not belong to the selected project/session")
-        return self.repository.remember(project_id, session_id, note.strip(), list(dict.fromkeys(refs)))
+        applicability = payload.get("applicability", "")
+        if not isinstance(applicability, str) or len(applicability) > 300:
+            raise ValueError("applicability must contain at most 300 characters")
+        expiry = payload.get("expires_at")
+        if expiry is not None:
+            try:
+                timestamp = datetime.fromisoformat(expiry)
+                if timestamp.utcoffset() is None or timestamp <= datetime.now(timezone.utc):
+                    raise ValueError("expiry must be a future timezone-aware timestamp")
+                expiry = timestamp.astimezone(timezone.utc).isoformat()
+            except (TypeError, ValueError) as exc:
+                raise ValueError("invalid memory expiry") from exc
+        supersedes = payload.get("supersedes")
+        if supersedes is not None and (not isinstance(supersedes, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", supersedes)):
+            raise ValueError("invalid replaced memory id")
+        return self.repository.remember(project_id, session_id, note.strip(), list(dict.fromkeys(refs)),
+                                        applicability=applicability.strip(), expires_at=expiry, supersedes=supersedes)
+
+    def revoke_memory(self, memory_id: str, payload: dict) -> dict:
+        project_id = str(payload.get("project_id", ""))
+        self._project(project_id)
+        if payload.get("confirmed") is not True:
+            raise ValueError("revoking memory requires explicit human confirmation")
+        return self.repository.revoke_memory(project_id, memory_id)
 
     def memory(self, project_id: str) -> dict:
         project = self._project(project_id)
         return {"schema_version": "audit-memory/v1", "project": self._public(project),
-                "entries": self.repository.memory(project_id), "recalls": self.repository.memory_recalls(project_id), "limit": 20,
+                "entries": self.repository.memory(project_id), "history": self.repository.memory(project_id, history=True),
+                "recalls": self.repository.memory_recalls(project_id), "limit": 20,
                 "authority": "human_reviewed_observation", "freshness": "historical"}
 
     def record_memory_recall(self, payload: dict) -> dict:

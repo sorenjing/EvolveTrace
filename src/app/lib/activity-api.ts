@@ -12,13 +12,14 @@ async function request<T>(path: string, payload?: object, signal?: AbortSignal):
   return response.json() as Promise<T>;
 }
 
-export const fetchActivity = (signal?: AbortSignal) => request<ActivityReport>("/report", undefined, signal);
+export const fetchActivity = (signal?: AbortSignal, sessionId?: string | null) => request<ActivityReport>(`/report${sessionId ? `?session_id=${encodeURIComponent(sessionId)}` : ""}`, undefined, signal);
 export const fetchCaptureStatus = (signal?: AbortSignal) => request<CaptureStatus>("/status", undefined, signal);
 export const fetchAuditMemory = (projectId: string, signal?: AbortSignal) => request<AuditMemory>(`/memory/${encodeURIComponent(projectId)}`, undefined, signal);
 export const reviewActivity = (projectId: string, finding: ActivityFinding, action: "ignore" | "mute") => request("/decisions", {
   project_id: projectId, session_id: finding.session_id, finding_id: finding.finding_id, code: finding.code, action,
 });
 export const unmuteActivity = (projectId: string, code: ActivityCode) => request("/decisions", { project_id: projectId, code, action: "unmute" });
-export const saveAuditMemory = (projectId: string, finding: ActivityFinding, note: string) => request<AuditMemoryEntry>("/memory", {
-  project_id: projectId, session_id: finding.session_id, evidence_refs: finding.evidence_refs, note, confirmed: true,
+export const revokeAuditMemory = (projectId: string, memoryId: string) => request(`/memory/${encodeURIComponent(memoryId)}/revoke`, { project_id: projectId, confirmed: true });
+export const saveAuditMemory = (projectId: string, finding: ActivityFinding, note: string, options: { applicability?: string; expires_at?: string; supersedes?: string } = {}) => request<AuditMemoryEntry>("/memory", {
+  project_id: projectId, session_id: finding.session_id, evidence_refs: finding.evidence_refs, note, confirmed: true, ...options,
 });
