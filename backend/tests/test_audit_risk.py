@@ -78,6 +78,12 @@ def test_analyze_event_detects_post_tool_response_failure():
     ("PostToolUse", {"tool_response": {"exit_code": "1"}}, "unknown"),
     ("PostToolUse", {"tool_response": {"exit_code": 0, "status": "failed"}}, "unknown"),
     ("PostToolUse", {"tool_response": {"exit_code": 2}}, "failure"),
+    ("PostToolUse", {"exit_code": None, "tool_response": {"exit_code": 2}}, "failure"),
+    ("PostToolUse", {"status": None, "tool_response": {"status": "failed"}}, "failure"),
+    ("PostToolUse", {"exit_code": True, "status": False, "tool_response": {"exit_code": 2, "status": "failed"}}, "failure"),
+    ("PostToolUse", {"exit_code": 0, "tool_response": {"exit_code": 2}}, "success"),
+    ("PostToolUse", {"status": "cancelled", "tool_response": {"status": "failed"}}, "cancelled"),
+    ("PreToolUse", {"exit_code": None, "tool_response": {"exit_code": 2}}, "pending"),
     ("PostToolUseFailure", {}, "failure"),
     ("PostToolUseFailure", {"status": "cancelled"}, "cancelled"),
 ])
@@ -88,6 +94,16 @@ def test_failure_finding_agrees_with_typed_outcome(phase, details, outcome):
     })
     assert execution_result(event.to_dict())["outcome"] == outcome
     assert any(item.code == "tool_failure" for item in analyze_event(event)) == (outcome == "failure")
+
+
+@pytest.mark.parametrize("top_duration,expected", [(None, 12), (False, 12), (0, 0)])
+def test_nested_duration_fallback_preserves_explicit_zero(top_duration, expected):
+    event = AuditEvent.from_hook({"event_id": "synthetic-duration", "session_id": "synthetic-risk",
+        "hook_event_name": "PostToolUse", "duration_ms": top_duration,
+        "tool_response": {"exit_code": 2, "duration_ms": 12}})
+    result = execution_result(event.to_dict())
+    assert result["duration_ms"] == expected
+    assert result["duration_source"] == "hook"
 
 
 def test_apply_patch_event_derives_changed_files():
