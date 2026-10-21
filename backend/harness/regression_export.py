@@ -6,6 +6,8 @@ import math
 from pathlib import PurePosixPath, PureWindowsPath
 import posixpath
 
+from audit.redaction import redact_value
+
 from .context_bundle import _contains_absolute_path
 from .evaluators import evaluate_evidence
 from .regression import MAX_SUITE_BYTES, RESULT_FIELDS, _digest, _prepare
@@ -100,6 +102,8 @@ def build_draft(task, snapshot, run, events: list[dict], *, workspace_root: str,
         case["events"].append(projected)
     if len(json.dumps(case).encode()) > MAX_SUITE_BYTES:
         raise ValueError("draft exceeds 4 MiB; no data was truncated")
+    if redact_value(case) != case:
+        raise ValueError("case contains sensitive values; prepare a sanitized case manually")
     if _contains_absolute_path(case):
         raise ValueError("case contains absolute path-like text; prepare a portable case manually")
     original = _signatures(evaluate_evidence(task, snapshot, run, events))
@@ -129,6 +133,8 @@ def freeze_draft(draft: dict) -> dict:
         raise ValueError("input digest changed; export and review the input again")
     if _contains_absolute_path(case):
         raise ValueError("case must not contain absolute path-like text")
+    if redact_value(case) != case:
+        raise ValueError("case contains sensitive values; prepare a sanitized case manually")
     _prepare(case)  # Validate the human labels; agreement with the evaluator is NOT required.
     suite = {"schema_version": "regression-suite/v1", "evaluator_suite": "evidence/v1", "cases": [copy.deepcopy(case)]}
     if len(json.dumps(suite).encode()) > MAX_SUITE_BYTES:

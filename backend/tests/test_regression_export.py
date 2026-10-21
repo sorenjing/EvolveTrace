@@ -49,6 +49,39 @@ def test_export_is_portable_minimal_and_does_not_invent_gold(tmp_path):
     assert harness.repository.get_run(run["run_id"]).status == "completed"
 
 
+@pytest.mark.parametrize("location", ["description", "command", "path", "allowed_prefixes"])
+def test_export_refuses_sensitive_criterion_values_without_changing_semantics(tmp_path, location):
+    from dataclasses import replace
+    from harness.models import AcceptanceCriterion
+    from harness.regression_export import build_draft
+
+    harness, task, audit, run = export_fixture(tmp_path)
+    secret = "password=SYNTHETIC_REVIEW_VALUE"
+    kind, config = {"description": ("manual", {}), "command": ("command_exit_zero", {"command": secret}),
+                    "path": ("file_exists", {"path": secret}),
+                    "allowed_prefixes": ("path_scope", {"allowed_prefixes": [secret]})}[location]
+    criterion = AcceptanceCriterion.from_payload({"criterion_id": "private-check", "type": kind,
+        "required": False, "description": secret if location == "description" else "Review check", "config": config})
+    original_task = harness.repository.get_task(task["task_id"])
+    private_task = replace(original_task, acceptance_criteria=(*original_task.acceptance_criteria, criterion))
+    with pytest.raises(ValueError, match="sensitive"):
+        build_draft(private_task, harness.repository.get_context_snapshot(task["context_snapshot_id"]),
+            harness.repository.get_run(run["run_id"]), [], workspace_root="/synthetic", case_id="private-criterion")
+    assert private_task.acceptance_criteria[-1] == criterion
+
+
+def test_freeze_rechecks_sensitive_values_after_manual_draft_edits(tmp_path):
+    from harness.regression import _digest
+    from harness.regression_export import freeze_draft
+
+    harness, task, audit, run = export_fixture(tmp_path)
+    draft = reviewed(draft_for(harness, task, audit, run))
+    draft["case"]["task"]["acceptance_criteria"][0]["description"] = "password=SYNTHETIC_REVIEW_VALUE"
+    draft["input_digest"] = _digest({key: value for key, value in draft["case"].items() if key != "expected"})
+    with pytest.raises(ValueError, match="sensitive"):
+        freeze_draft(draft)
+
+
 def reviewed(draft):
     draft = copy.deepcopy(draft)
     draft["case"]["expected"] = [

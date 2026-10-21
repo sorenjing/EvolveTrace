@@ -42,7 +42,6 @@ export default function Home() {
   const navigation = useRef(0);
   const scopedEvents = useMemo(() => {
     if (!session) return [];
-    if (!projectId) return session.events;
     if (timelineScope?.sessionId !== session.session_id || timelineScope.projectId !== projectId) return [];
     const ids = new Set(timelineScope.eventIds);
     return session.events.filter(event => ids.has(event.event_id));

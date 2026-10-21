@@ -71,8 +71,9 @@ export function ActivityPanel({ revision, selectedProjectId, sessionId, onProjec
         onProjectsChanged(value.projects);
         if (sessionId && scoped?.scope?.session_id !== sessionId) throw new Error("当前后端尚不支持会话统计，请重启 EvolveTrace 服务");
         if (sessionId && scoped) {
+          const eventIds = selectedProjectId ? scoped.projects.find(item => item.project_id === selectedProjectId)?.event_ids ?? [] : scoped.event_ids;
+          if (!Array.isArray(eventIds)) throw new Error("当前后端尚不支持会话事件范围，请重启 EvolveTrace 服务");
           setScopedResult({ id: sessionId, report: scoped });
-          const eventIds = scoped.projects.find(item => item.project_id === selectedProjectId)?.event_ids ?? [];
           onScopeEventsChanged(sessionId, selectedProjectId, eventIds);
         }
         setError("");

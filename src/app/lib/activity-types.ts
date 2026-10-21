@@ -65,6 +65,7 @@ export interface CaptureStatus {
 
 export interface ActivityReport {
   schema_version: "workspace-activity/v1";
+  event_ids?: string[];
   projects: ActivityProject[];
   overall_activity: ActivitySummary;
   attribution_sources: { hook_cwd: number; tool_workdir: number; execution_record: number };

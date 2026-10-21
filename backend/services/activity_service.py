@@ -111,6 +111,7 @@ class ActivityService:
                            **({"event_ids": [event["event_id"] for event in groups[identity]]} if session_id is not None else {})})
         return {"schema_version": "workspace-activity/v1", "projects": result,
                 "overall_activity": analyze_activity(events),
+                **({"event_ids": [event["event_id"] for event in events]} if session_id is not None else {}),
                 "attribution_sources": sources, "execution_metadata_scan": metadata_scan,
                 "observed_event_count": len(events), "unattributed_event_count": unknown,
                 "event_limit": limit, "truncated": truncated, "coverage": "captured_hook_events_only",

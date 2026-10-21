@@ -88,3 +88,15 @@ def test_session_filter_preserves_global_event_limit_boundary(setup):
     assert report["truncated"] is True
     assert report["observed_event_count"] == 0
     assert report["event_limit"] == 2
+
+
+def test_unattributed_session_event_ids_share_the_bounded_statistics_window(setup):
+    service, audit, root = setup
+    ingest(audit, root, "older")
+    ingest(audit, root, "newer")
+    partial = service.report(session_id="older", limit=7)
+    assert partial["projects"] == []
+    assert partial["unattributed_event_count"] == partial["observed_event_count"] == 2
+    assert set(partial["event_ids"]) == {"older-False-3", "older-False-4"}
+    assert service.report(session_id="older", limit=2)["event_ids"] == []
+    assert "event_ids" not in service.report(limit=2)
