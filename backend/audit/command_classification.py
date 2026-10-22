@@ -78,7 +78,7 @@ def _simple(parts: list[str], depth: int = 0) -> tuple[str, str]:
         operation = "modify_files"
     elif executable in {"curl", "wget", "invoke-webrequest", "invoke-restmethod"}:
         operation = "network"
-    elif executable in {"pytest", "vitest", "jest"}:
+    elif executable in {"pytest", "vitest", "jest", "unittest"}:
         operation = "verify_tests"
     elif executable in {"ruff", "eslint", "tsc"}:
         operation = "verify_static"
@@ -151,7 +151,9 @@ def expected_nonzero(tool_name: str, command: str) -> str | None:
     executable = _executable(parts[0])
     if executable in {"rg", "grep"}:
         return "no_matches"
-    args = [value.lower() for value in parts[1:]]
+    args = [value.strip("\"'").lower() for value in parts[1:]]
+    if executable == "git":
+        args = _skip_options(args, {"-c", "--git-dir", "--work-tree"})
     if "--" in args:
         args = args[:args.index("--")]
     if executable == "git" and args[:1] == ["diff"] and "--no-index" not in args and any(value in {"--exit-code", "--quiet"} for value in args):

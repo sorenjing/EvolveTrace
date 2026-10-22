@@ -21,6 +21,8 @@ from test_activity import event
     ("npm --prefix website run build", "build_test", "build_package", "script_name_hint"),
     ("uv run --project backend pytest", "build_test", "verify_tests", "known_command"),
     ("python -m compileall -q .", "build_test", "build_package", "known_command"),
+    ("python -m unittest", "build_test", "verify_tests", "known_command"),
+    ("python -m unittest discover", "build_test", "verify_tests", "known_command"),
     ("git status", "git", "vcs_read", "known_command"),
     ("git push", "git", "vcs_write", "known_command"),
     ("python custom.py", "other", "unknown", "unrecognized"),
@@ -56,7 +58,8 @@ def test_operation_breakdown_keeps_results_durations_and_inference_coverage():
         "duration_sample_count": 2, "reported_duration_ms": 30, "inferred_count": 1}
 
 
-@pytest.mark.parametrize("command", ["rg absent src", "grep absent sample.txt", "git diff --exit-code", "git diff --quiet"])
+@pytest.mark.parametrize("command", ["rg absent src", "grep absent sample.txt", "git diff --exit-code", "git diff --quiet",
+    "git --no-pager diff --exit-code", "git -C demo diff --quiet", "git -c color.ui=false diff --exit-code"])
 def test_normal_nonzero_query_does_not_become_failure_retry_or_risk(command):
     calls = [event(index, command, exit_code=1) for index in range(3)]
     report = analyze_activity(calls)
@@ -120,8 +123,10 @@ def test_query_meaning_uses_paired_start_when_completion_has_no_command(reverse)
     assert report["findings"] == []
 
 
-def test_no_index_git_diff_does_not_suppress_exit_one_errors():
-    report = analyze_activity([event(index, "git diff --no-index --exit-code missing-a missing-b", exit_code=1)
+@pytest.mark.parametrize("command", ["git diff --no-index --exit-code missing-a missing-b",
+    "git -C demo diff --no-index --exit-code missing-a missing-b", "git --unknown diff --exit-code"])
+def test_no_index_git_diff_does_not_suppress_exit_one_errors(command):
+    report = analyze_activity([event(index, command, exit_code=1)
                                for index in range(3)])
     assert report["expected_nonzero_count"] == 0
     assert report["findings"][0]["code"] == "failed_retry"
