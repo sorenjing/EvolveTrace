@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { fetchActivity, fetchAuditMemory, fetchCaptureStatus, reviewActivity, revokeAuditMemory, saveAuditMemory, unmuteActivity } from "@/app/lib/activity-api";
 import { activityPrompt } from "@/app/lib/activity-prompt";
 import { activityFindings } from "@/app/lib/activity-navigation";
+import { ConnectionGuide } from "./ConnectionGuide";
 import type { ActivityCategory, ActivityCode, ActivityFinding, ActivityOperation, ActivityProject, ActivityReport, ActivitySummary, AuditMemoryEntry, AuditMemoryRecall, CaptureStatus } from "@/app/lib/activity-types";
 
 const categoryLabels: Record<ActivityCategory, string> = {
@@ -146,6 +147,7 @@ export function ActivityPanel({ revision, selectedProjectId, sessionId, onProjec
   return <section aria-label="跨项目执行审计" className="mb-5 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
     <div className="flex items-center justify-between gap-2"><div><p className="text-[10px] font-semibold uppercase tracking-widest text-teal-600">执行观察</p><h2 className="mt-1 text-lg font-semibold">先核对问题，再查看执行统计</h2></div><button type="button" className={buttonClass} onClick={() => setRefresh(value => value + 1)}>刷新</button></div>
     <ol className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-zinc-500"><li>1. 选择左侧项目或会话</li><li>2. 核对提醒与命令证据</li><li>3. 需要时分析并记录结论</li></ol>
+    <ConnectionGuide capture={capture} error={captureError} />
     <div className="mt-4 rounded-lg border border-teal-200 bg-teal-50 p-3 dark:border-teal-900 dark:bg-teal-950/30">
       <p className="text-xs font-medium text-teal-800 dark:text-teal-200">当前统计范围</p><p className="mt-1 break-words text-sm font-semibold">{scopeLabel}</p>
       <p className="mt-1 text-xs text-zinc-500">{sessionId ? "仅统计所选会话在此范围内的操作。" : "选择会话后，统计与下方时间线会同步切换。"}数据来自最近入库的有界记录，不是「今天」或全量历史。</p>
