@@ -94,4 +94,6 @@ jobs:
           cache: npm
           cache-dependency-path: website/package-lock.json
       - run: npm --prefix website ci
+      - name: Website dependency advisories
+        run: npm --prefix website audit --registry=https://registry.npmjs.org
       - run: npm run site:build
