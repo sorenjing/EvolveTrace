@@ -54,3 +54,15 @@ test("structured result facts survive truncation of a large output body", () => 
   assert.ok(prompt.includes('"exit_code":0'));
   assert.doesNotMatch(prompt, /transcript_path|private detail/);
 });
+
+test("lifecycle feedback includes the selected event content rather than missing tool fields", () => {
+  for (const event_type of ["UserPromptSubmit", "PermissionRequest"]) {
+    const [step] = buildAuditSteps([{ ...base, tool_name: "", event_id: "lifecycle", sequence: 0, event_type,
+      details: { description: "Synthetic permission request", requested_action: "read sample.txt" } }]);
+    const prompt = reviewPrompt(step, "核对此请求");
+    assert.ok(prompt.includes("Synthetic permission request"));
+    assert.ok(prompt.includes("read sample.txt"));
+    assert.ok(prompt.includes(event_type));
+    assert.doesNotMatch(prompt, /工具输入（采集证据）|工具输出（采集证据）/);
+  }
+});

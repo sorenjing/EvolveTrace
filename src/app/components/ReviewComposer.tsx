@@ -30,7 +30,7 @@ export function ReviewComposer({ step }: { step: AuditStep | null }) {
       <button type="button" disabled={copying} onClick={copyPrompt} className="mt-2 w-full rounded-xl bg-zinc-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50 dark:bg-white dark:text-zinc-900 dark:hover:bg-teal-300">
         {copying ? "复制中…" : copied ? "已复制，粘贴到 Codex 继续" : "复制修正提示（含证据）"}
       </button>
-      <p role="status" className="mt-2 text-[11px] text-zinc-500">{copied ? "仅已复制，尚未发送或执行。" : "包含当前步骤的输入与输出，发送前请核对内容。"}</p>
+      <p role="status" className="mt-2 text-[11px] text-zinc-500">{copied ? "仅已复制，尚未发送或执行。" : "包含当前步骤的采集证据，发送前请核对内容。"}</p>
       {error && <><p role="alert" className="mt-2 text-xs text-amber-700 dark:text-amber-300">{error}</p><details className="mt-2 text-xs"><summary className="cursor-pointer">手动复制修正提示</summary><textarea aria-label="可手动复制的修正提示" readOnly value={prompt} rows={5} className="mt-2 max-h-32 w-full overflow-auto rounded border p-2" /></details></>}
     </div>
   );
