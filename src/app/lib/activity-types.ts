@@ -1,5 +1,20 @@
 export type ActivityCategory = "read_search" | "edit" | "build_test" | "dependencies" | "git" | "network" | "mixed" | "other";
 export type ActivityCode = "repeated_read" | "repeated_build" | "failed_retry";
+export type ActivityOperation = "find_files" | "search_content" | "read_file" | "modify_files" | "verify_tests" | "verify_static" | "build_package" | "run_program" | "manage_dependencies" | "vcs_read" | "vcs_write" | "network" | "unknown";
+
+export interface OperationSummary {
+  operation: ActivityOperation;
+  count: number;
+  success_count: number;
+  failed_count: number;
+  expected_nonzero_count: number;
+  unknown_outcome_count: number;
+  pending_count: number;
+  cancelled_count: number;
+  duration_sample_count: number;
+  reported_duration_ms: number;
+  inferred_count: number;
+}
 
 export interface ActivityFinding {
   finding_id: string;
@@ -13,6 +28,10 @@ export interface ActivityFinding {
 }
 
 export interface ActivitySummary {
+    classification_version?: string;
+    operations?: OperationSummary[];
+    expected_nonzero_count?: number;
+    command_shapes?: { single: number; compound: number; tool: number };
     attempt_count: number;
     unpaired_event_count: number;
     orphan_completion_count: number;

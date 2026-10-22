@@ -22,7 +22,7 @@ export function ReviewComposer({ event }: { event: AuditEvent | null }) {
   }
 
   return (
-    <div className="border-t border-zinc-200 p-4 dark:border-zinc-800">
+    <div className="shrink-0 border-t border-zinc-200 p-4 dark:border-zinc-800">
       <p className="text-xs font-semibold">针对这一步提出建议</p>
       <textarea value={review} onChange={(eventChange) => setReview(eventChange.target.value)} rows={3} placeholder="例如：这个命令修改范围过大，请先展示 diff 并补充测试。" className="mt-2 w-full resize-none rounded-xl border border-zinc-200 bg-transparent p-3 text-xs outline-none ring-teal-500 focus:ring-2 dark:border-zinc-700" />
       <button type="button" onClick={copyPrompt} className="mt-2 w-full rounded-xl bg-zinc-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-teal-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-teal-300">

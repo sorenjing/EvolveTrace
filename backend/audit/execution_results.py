@@ -2,6 +2,7 @@
 
 import math
 
+from .command_classification import expected_nonzero
 
 def number(value: object) -> float | None:
     if isinstance(value, (int, float)) and not isinstance(value, bool):
@@ -75,7 +76,15 @@ def execution_result(event: dict) -> dict:
             duration, duration_source = metadata["duration_ms"], "execution_record"
         if metadata.get("conflict") is True:
             outcome, code, source = "unknown", None, "conflict"
-    return {"outcome": outcome, "exit_code": code, "duration_ms": duration,
+    tool_input = details.get("tool_input", {})
+    command = tool_input.get("command") or tool_input.get("cmd") if isinstance(tool_input, dict) else tool_input
+    query_result = None
+    if (outcome == "failure" and code == 1 and source != "conflict"
+            and event.get("event_type") != "PostToolUseFailure"
+            and (not isinstance(status, str) or status.lower() not in {"failed", "failure", "error"})
+            and isinstance(command, str)):
+        query_result = expected_nonzero(event.get("tool_name", ""), command)
+    return {"outcome": outcome, "exit_code": code, "duration_ms": duration, "query_result": query_result,
             "source": source, "duration_source": duration_source,
             "started_at": metadata.get("started_at") if isinstance(metadata, dict) else None,
             "completed_at": metadata.get("completed_at") if isinstance(metadata, dict) else None}

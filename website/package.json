@@ -9,7 +9,7 @@
     "check": "node verify.mjs"
   },
   "dependencies": {
-    "markdown-it": "14.3.2",
+    "markdown-it": "14.3.3",
     "markdown-it-anchor": "9.2.0"
   }
 }

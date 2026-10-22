@@ -39,7 +39,8 @@ def _flatten_text(value: Any) -> str:
 
 
 def _tool_response_failed(event: AuditEvent) -> bool:
-    return execution_result(event.to_dict())["outcome"] == "failure"
+    result = execution_result(event.to_dict())
+    return result["outcome"] == "failure" and not result.get("query_result")
 
 
 def _safety_block(event: AuditEvent) -> RiskFinding | None:
@@ -96,7 +97,7 @@ def analyze_event(event: AuditEvent) -> list[RiskFinding]:
                 event_id=event.event_id,
                 code="tool_failure",
                 severity="medium",
-                message="工具调用返回失败结果。",
+                message="观察到非零退出或失败状态，请结合命令含义核对。",
             )
         )
     return findings

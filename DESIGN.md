@@ -148,6 +148,8 @@ Task Service 管理需求契约、上下文绑定和状态流转。Run Service �
 执行行为观察消费 Context 的 `workspace-index/v1` 项目目录，通过事件工作目录
 进行最深路径归属。后台独立补齐有界执行元数据，统计及重复操作/失败重试规则按需查询，不改变 Task 验收或
 Review 状态。`audit-memory/v1` 只回读带项目、会话和证据引用的人工确认结论。
+操作目的、执行形式、结果与耗时覆盖分别描述；脚本名和组合结构的推断保持显式。
+查询退出码的解释不改写原始结果，也不放宽明确要求 exit 0 的验收合同。
 这些结论是历史观察；Context CLI 和显式启用的 SessionStart 可以按当前项目
 回读，但不自动改写 `.ai` 人工语义块。协议与使用方式见
 [跨项目审计使用指南](docs/workspace-audit.md)。
@@ -376,10 +378,10 @@ evolvetrace start
 
 ### M0.5 — Regression Harness
 
-状态：已提供一条合成回归 fixture 验证 `needs_fix → corrected → accepted`；通用案例导入导出、taxonomy 和集合管理仍在规划中。
+状态：已实现本地 Run 的有界草稿导出、独立人工标签冻结和离线证据重新评分；10 个合成案例与线上确定性评估器共用入口并接入 CI。另有修复前后 Run 比较。Agent 重新执行、通用失败 taxonomy 和案例集合管理仍在规划中。详见[离线证据回归](docs/regression.md)。
 
 - 失败 taxonomy
-- 脱敏导出、导入和 fixture replay
+- 数据型案例导出、冻结与 fixture 重新评分（已实现；不执行案例命令）
 - 修复前后对比
 - golden、edge 和 adversarial 集合
 

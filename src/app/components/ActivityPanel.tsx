@@ -3,19 +3,32 @@
 import { useEffect, useRef, useState } from "react";
 import { fetchActivity, fetchAuditMemory, fetchCaptureStatus, reviewActivity, revokeAuditMemory, saveAuditMemory, unmuteActivity } from "@/app/lib/activity-api";
 import { activityPrompt } from "@/app/lib/activity-prompt";
-import type { ActivityCategory, ActivityCode, ActivityFinding, ActivityProject, ActivityReport, ActivitySummary, AuditMemoryEntry, AuditMemoryRecall, CaptureStatus } from "@/app/lib/activity-types";
+import { activityFindings } from "@/app/lib/activity-navigation";
+import type { ActivityCategory, ActivityCode, ActivityFinding, ActivityOperation, ActivityProject, ActivityReport, ActivitySummary, AuditMemoryEntry, AuditMemoryRecall, CaptureStatus } from "@/app/lib/activity-types";
 
 const categoryLabels: Record<ActivityCategory, string> = {
   read_search: "搜索与读取", edit: "修改", build_test: "构建与测试", dependencies: "依赖管理",
   git: "Git", network: "网络", mixed: "组合命令", other: "其他工具",
 };
 const ruleLabels: Record<ActivityCode, string> = { repeated_read: "重复搜索或读取", repeated_build: "重复构建或测试", failed_retry: "连续失败重试" };
+const operationLabels: Record<ActivityOperation, string> = {
+  find_files: "定位文件", search_content: "搜索内容", read_file: "阅读文件", modify_files: "修改文件",
+  verify_tests: "运行测试", verify_static: "静态与类型检查", build_package: "构建与打包", run_program: "运行与调试",
+  manage_dependencies: "准备依赖", vcs_read: "查询版本信息", vcs_write: "修改或同步版本", network: "访问外部服务", unknown: "目的待确认",
+};
 const buttonClass = "rounded-lg border border-zinc-300 px-3 py-1.5 text-xs hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800";
 
-export function ActivityPanel({ revision, selectedProjectId, sessionId, onProjectsChanged, onScopeEventsChanged, onSelectSession }: {
+function observedDuration(milliseconds: number, samples: number): string {
+  if (!samples) return "未采集";
+  if (milliseconds >= 1000) return `${(milliseconds / 1000).toFixed(1)} 秒`;
+  return milliseconds > 0 && milliseconds < 0.01 ? "不足 0.01 毫秒" : `${Number(milliseconds.toFixed(2))} 毫秒`;
+}
+
+export function ActivityPanel({ revision, selectedProjectId, sessionId, onProjectsChanged, onScopeEventsChanged, onSelectSession, onInspectEvidence }: {
   revision: number; selectedProjectId: string | null; sessionId: string | null;
   onProjectsChanged: (projects: ActivityProject[]) => void; onSelectSession: (id: string) => void;
   onScopeEventsChanged: (sessionId: string, projectId: string | null, eventIds: string[]) => void;
+  onInspectEvidence: (finding: ActivityFinding, projectId: string | null) => void;
 }) {
   const [report, setReport] = useState<ActivityReport | null>(null);
   const [capture, setCapture] = useState<CaptureStatus | null>(null);
@@ -31,6 +44,7 @@ export function ActivityPanel({ revision, selectedProjectId, sessionId, onProjec
   const activeReport = sessionId ? scopedResult?.id === sessionId ? scopedResult.report : null : report;
   const scopedProject = activeReport?.projects.find(item => item.project_id === selectedProjectId);
   const activity = selectedProjectId ? scopedProject?.activity : activeReport?.overall_activity;
+  const findings = activityFindings(activeReport, selectedProjectId);
   const scopeLabel = `${project ? project.name : "全部项目"}${sessionId ? ` / 会话 ${sessionId.slice(0, 8)}` : " / 全部会话"}`;
   const policy = report?.rule_policy;
   const memoryProjectId = project?.project_id;
@@ -130,7 +144,7 @@ export function ActivityPanel({ revision, selectedProjectId, sessionId, onProjec
   }
 
   return <section aria-label="跨项目执行审计" className="mb-5 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-    <div className="flex items-center justify-between gap-2"><div><p className="text-[10px] font-semibold uppercase tracking-widest text-teal-600">执行观察</p><h2 className="mt-1 text-lg font-semibold">命令统计与行为提醒</h2></div><button type="button" className={buttonClass} onClick={() => setRefresh(value => value + 1)}>刷新</button></div>
+    <div className="flex items-center justify-between gap-2"><div><p className="text-[10px] font-semibold uppercase tracking-widest text-teal-600">执行观察</p><h2 className="mt-1 text-lg font-semibold">先核对问题，再查看执行统计</h2></div><button type="button" className={buttonClass} onClick={() => setRefresh(value => value + 1)}>刷新</button></div>
     <ol className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-zinc-500"><li>1. 选择左侧项目或会话</li><li>2. 核对提醒与命令证据</li><li>3. 需要时分析并记录结论</li></ol>
     <div className="mt-4 rounded-lg border border-teal-200 bg-teal-50 p-3 dark:border-teal-900 dark:bg-teal-950/30">
       <p className="text-xs font-medium text-teal-800 dark:text-teal-200">当前统计范围</p><p className="mt-1 break-words text-sm font-semibold">{scopeLabel}</p>
@@ -147,16 +161,42 @@ export function ActivityPanel({ revision, selectedProjectId, sessionId, onProjec
     </details>
     {error && <p role="alert" className="mt-2 text-xs text-red-700 dark:text-red-300">{error}</p>}
     {!activity && !error && <p role="status" className="mt-4 text-sm text-zinc-500">正在读取此范围的统计…</p>}
+    {activity && <section aria-label="需要核对的线索" className="mt-4">
+      <h3 className="text-sm font-semibold">需要核对的线索 · {findings.length}</h3>
+      {!findings.length && <p className="mt-2 text-xs text-zinc-500">当前范围没有命中待提醒规则；这不代表任务已完成或验证通过。</p>}
+      {findings.map(({ finding, project: owner }) => <article key={finding.finding_id} className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/20">
+        <p className="text-sm font-medium">{ruleLabels[finding.code]} · {owner?.name ?? "归属待核对"}</p>
+        <p className="mt-1 text-xs leading-5">会话 {finding.session_id.slice(0, 8)}，最后一次已观察操作前 {finding.window_seconds / 60} 分钟内，共 {finding.count} 次。
+          {finding.code === "failed_retry" ? "同命令、同目录连续出现待核对失败。先查看第一处错误及后续结果，再决定是否重试。" : "同命令、同目录重复操作，期间未捕获修改证据。先比较这些调用的输入和结果，再判断重复是否必要。"}</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button type="button" className={buttonClass} onClick={() => onInspectEvidence(finding, owner?.project_id ?? null)}>定位相关证据</button>
+          {project && owner?.project_id === project.project_id && <><button type="button" className={buttonClass} onClick={() => setDialog({ project, finding })}>选择分析</button><button type="button" disabled={busy} className={buttonClass} onClick={() => void decide(finding, "ignore")}>忽略本次</button><button type="button" disabled={busy} className={buttonClass} onClick={() => void decide(finding, "mute")}>静音此类</button></>}
+        </div>
+      </article>)}
+    </section>}
     {activity && <div className="mt-4">
-      <dl className="grid grid-cols-3 gap-2 sm:grid-cols-6">{[
-        ["调用次数", activity.attempt_count], ["成功", activity.success_count], ["失败", activity.failed_count],
-        ["取消", activity.cancelled_count], ["仅捕获开始", activity.pending_count], ["结果未知", activity.unknown_outcome_count],
+      <h3 className="mb-2 text-sm font-semibold">执行结果概览</h3>
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">{[
+        ["调用次数", activity.attempt_count], ["退出成功", activity.success_count], ["失败待核对", activity.failed_count - (activity.expected_nonzero_count ?? 0)],
+        ["无匹配／有差异", activity.expected_nonzero_count ?? 0], ["取消", activity.cancelled_count], ["仅捕获开始", activity.pending_count], ["结果未知", activity.unknown_outcome_count],
       ].map(([label, value]) => <div key={label} className="rounded-lg bg-zinc-50 p-2 dark:bg-zinc-900"><dt className="text-[11px] text-zinc-500">{label}</dt><dd className="mt-1 text-lg font-semibold">{value}</dd></div>)}</dl>
-      <p className="mt-2 text-xs text-zinc-500">开始与结束事件尽量合并为一次调用；「未知」和「仅捕获开始」不算失败。阻断记录 {activity.denied_count} 条。</p>
-      <h3 className="mt-4 text-xs font-medium">按操作类型分类</h3>
-      <dl className="mt-2 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">{Object.entries(categoryLabels).map(([key, label]) => <div key={key} className="rounded-lg border border-zinc-100 p-2 dark:border-zinc-800"><dt className="text-zinc-500">{label}</dt><dd className="mt-1 font-semibold">{activity.categories[key as ActivityCategory]}</dd></div>)}</dl>
+      <p className="mt-2 text-xs leading-5 text-zinc-500">退出成功不等于任务完成。「无匹配／有差异」仅解释已识别查询的退出码 1，不算失败重试，也不替代验收。未知与仅捕获开始保持独立；阻断记录 {activity.denied_count} 条。</p>
+      <h3 className="mt-4 text-sm font-semibold">操作目的与结果</h3>
+      {activity.operations ? <div className="mt-2 overflow-x-auto"><table className="w-full text-left text-xs">
+        <caption className="sr-only">每类操作的调用次数、待核对失败、查询结果和耗时覆盖</caption>
+        <thead className="border-b text-zinc-500"><tr>{["操作目的", "次数", "失败待核对", "无匹配／差异", "结果缺口", "耗时／样本"].map(label => <th key={label} scope="col" className="whitespace-nowrap p-2 font-medium">{label}</th>)}</tr></thead>
+        <tbody>{activity.operations.map(row => <tr key={row.operation} className="border-b border-zinc-100 dark:border-zinc-800">
+          <th scope="row" className="min-w-28 p-2 font-medium">{operationLabels[row.operation]}{row.inferred_count > 0 && <span className="mt-1 block text-[10px] font-normal text-zinc-500">{row.inferred_count} 次按名称或结构推断</span>}</th>
+          <td className="p-2">{row.count}</td><td className="p-2">{row.failed_count - row.expected_nonzero_count}</td><td className="p-2">{row.expected_nonzero_count}</td><td className="p-2">{row.unknown_outcome_count + row.pending_count}</td>
+          <td className="whitespace-nowrap p-2">{observedDuration(row.reported_duration_ms, row.duration_sample_count)} / {row.duration_sample_count} 次</td>
+        </tr>)}</tbody>
+      </table><p className="mt-2 text-xs leading-5 text-zinc-500">结果缺口包含未知和仅捕获开始。脚本名与组合结构只提供目的线索，不证明脚本内容；复杂命令保留待确认。每次调用只归入一个目的，不拆出虚构的执行次数。</p></div> : <p className="mt-2 text-xs text-zinc-500">当前服务仅提供粗分类，重启更新后的服务可查看操作目的与结果。</p>}
       <ExecutionCoverage activity={activity} /><PairingNotice activity={activity} />
-      <details className="mt-3 text-xs text-zinc-500"><summary className="cursor-pointer">这些数字怎么算？</summary><p className="mt-2 leading-5">一次工具调用通常产生开始、结束两条事件，配对后计为一次调用。搜索与读取如 rg、Get-Content；修改如 apply_patch、文件写入；构建与测试含 lint、类型检查；依赖管理如 npm install；Git 和网络请求分别记录。带管道、分号或多个命令的脚本保守归为「组合命令」，不会虚构子命令次数。</p><p className="mt-2 leading-5">耗时只累计拿到明确耗时的样本；并行命令耗时相加不等于会话墙钟时间。命令次数不能换算成磁盘读写量、CPU 消耗或硬件健康。</p></details>
+      <details className="mt-3 text-xs text-zinc-500"><summary className="cursor-pointer">粗分类与统计口径</summary>
+        <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">{Object.entries(categoryLabels).map(([key, label]) => <div key={key} className="rounded-lg border p-2"><dt>{label}</dt><dd className="mt-1 font-semibold">{activity.categories[key as ActivityCategory]}</dd></div>)}</dl>
+        {activity.command_shapes && <p className="mt-2">执行形式：单命令 {activity.command_shapes.single} 次 · 组合或含重定向 {activity.command_shapes.compound} 次 · 结构化工具 {activity.command_shapes.tool} 次。</p>}
+        <p className="mt-2 leading-5">一次工具调用的开始与结束尽量配对后计为一次。组合脚本可能推断出目的，但仍只计一次调用。耗时只累计明确样本；并行耗时相加不等于会话墙钟时间。命令次数不能换算成磁盘读写量、CPU 消耗或硬件健康。</p>
+      </details>
     </div>}
     <details className="mt-4 rounded-lg border border-zinc-200 p-3 text-xs dark:border-zinc-800"><summary className="cursor-pointer font-medium">提醒规则与阈值 · 经验默认值</summary>
       {policy ? <ul className="mt-2 list-inside list-disc space-y-2 text-zinc-500"><li>每个会话以最后一次已观察操作为终点，检查前 {policy.window_seconds / 60} 分钟；历史提醒不表示当前仍在异常。</li><li>同命令、同目录搜索读取或构建测试至少 {policy.repeated_operation_min} 次，且期间未捕获修改，提示核对重复操作。</li><li>同命令、同目录连续观察失败至少 {policy.failed_retry_min} 次，提示核对重试；成功或未知结果打断失败序列。</li><li>规则版本 {policy.version}。这些是启发式提醒，尚未按真实任务标定，不是行业标准，不自动阻断命令；正常验证也可能命中。</li></ul> : <p className="mt-2 text-zinc-500">当前后端未返回规则参数，请重启更新后的服务以查看阈值依据。</p>}
@@ -164,12 +204,6 @@ export function ActivityPanel({ revision, selectedProjectId, sessionId, onProjec
     {report && !report.projects.length && <p className="mt-3 text-sm text-zinc-500">尚未连接项目目录。通过 Context 登记工作区后，已有执行记录也可归入对应项目。</p>}
     {report && !project && <p className="mt-4 rounded-lg bg-zinc-50 p-3 text-xs leading-5 text-zinc-500 dark:bg-zinc-900">选择左侧项目可处理该项目的行为提醒与人工确认记忆。未归属会话也能独立查看统计和证据。</p>}
     {report && project && <>
-      <h3 className="mt-5 text-sm font-semibold">需要核对的行为 · {sessionId ? "当前会话" : project.name}</h3>
-      {(scopedProject?.activity.findings ?? []).filter(item => !item.suppressed).map(finding => <div key={finding.finding_id} className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/20">
-        <p className="text-sm font-medium">{ruleLabels[finding.code]}</p><p className="mt-1 text-xs">该会话最后一次已观察操作前 {finding.window_seconds / 60} 分钟内，共 {finding.count} 次。{finding.code === "failed_retry" ? "同命令、同目录连续失败；建议检查错误原因后再重试。" : "同命令、同目录重复操作，期间未捕获修改；建议核对是否必要。"}这是一条待核对线索。</p>
-        <div className="mt-2 flex flex-wrap gap-2"><button type="button" className={buttonClass} onClick={() => setDialog({ project, finding })}>选择分析</button><button type="button" className={buttonClass} onClick={() => onSelectSession(finding.session_id)}>查看证据</button><button type="button" disabled={busy} className={buttonClass} onClick={() => void decide(finding, "ignore")}>忽略本次</button><button type="button" disabled={busy} className={buttonClass} onClick={() => void decide(finding, "mute")}>静音此类</button></div>
-      </div>)}
-      {activity && !(scopedProject?.activity.findings ?? []).some(item => !item.suppressed) && <p className="mt-3 text-xs text-zinc-500">当前采集范围内暂无待提醒的行为线索。</p>}
       {project.activity.muted_rules.map(code => <button type="button" key={code} disabled={busy} className={`${buttonClass} mr-2 mt-2`} onClick={() => void unmute(code)}>恢复：{ruleLabels[code]}</button>)}
       <details className="mt-4"><summary className="cursor-pointer text-xs font-medium">可复用结论 · 项目记忆</summary><section aria-label="项目审计记忆" className="mt-4 border-t border-zinc-200 pt-3 text-xs dark:border-zinc-800">
         <h3 className="font-medium">已确认的审计记忆 · {project.name}{memory && !memory.error ? `（${memory.entries.length}）` : ""}</h3>
@@ -224,7 +258,7 @@ function MemoryRecallHistory({ entries, recalls }: { entries: AuditMemoryEntry[]
 function ExecutionCoverage({ activity }: { activity: ActivitySummary }) {
   return <div className="mt-2 text-xs text-zinc-500">
     <p>结果已知 {activity.result_sample_count}/{activity.attempt_count} · 仅捕获开始 {activity.pending_count} · 结果未知 {activity.unknown_outcome_count}</p>
-    <p className="mt-1">耗时覆盖 {activity.duration_sample_count}/{activity.attempt_count} 次，共 {(activity.reported_duration_ms / 1000).toFixed(1)} 秒；缺失样本未按零计算。</p>
+    <p className="mt-1">耗时覆盖 {activity.duration_sample_count}/{activity.attempt_count} 次，累计 {observedDuration(activity.reported_duration_ms, activity.duration_sample_count)}；缺失样本未按零计算。</p>
     <p className="mt-1">结果来源：Hook {activity.result_sources.hook} · 执行记录 {activity.result_sources.execution_record} · 来源冲突 {activity.result_sources.conflict}</p>
   </div>;
 }
