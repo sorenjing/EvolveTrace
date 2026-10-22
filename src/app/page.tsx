@@ -18,8 +18,8 @@ import { recoverSession } from "@/app/lib/audit-recovery";
 import { getTask, listTasks, listUnboundRuns } from "@/app/lib/harness-api";
 import type { AuditSession } from "@/app/lib/audit-types";
 import type { TaskContract, UnboundRun } from "@/app/lib/harness-types";
-import type { ActivityProject } from "@/app/lib/activity-types";
-import { projectForSession } from "@/app/lib/activity-navigation";
+import type { ActivityFinding, ActivityProject } from "@/app/lib/activity-types";
+import { evidenceStepId, projectForSession } from "@/app/lib/activity-navigation";
 
 export default function Home() {
   const [tasks, setTasks] = useState<TaskContract[]>([]);
@@ -33,6 +33,7 @@ export default function Home() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [timelineScope, setTimelineScope] = useState<{ sessionId: string; projectId: string | null; eventIds: string[] } | null>(null);
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
+  const [evidenceFocus, setEvidenceFocus] = useState<{ sessionId: string; refs: string[] } | null>(null);
   const [error, setError] = useState("");
   const [recoveryError, setRecoveryError] = useState("");
   const [connected, setConnected] = useState(false);
@@ -47,7 +48,14 @@ export default function Home() {
     return session.events.filter(event => ids.has(event.event_id));
   }, [session, projectId, timelineScope]);
   const steps = useMemo(() => buildAuditSteps(scopedEvents), [scopedEvents]);
-  const selectedStep = steps.find(step => step.id === selectedStepId) ?? steps.at(-1) ?? null;
+  const focusedStepId = evidenceFocus?.sessionId === sessionId ? evidenceStepId(steps, evidenceFocus.refs) : null;
+  const selectedStep = evidenceFocus?.sessionId === sessionId
+    ? steps.find(step => step.id === focusedStepId) ?? null
+    : steps.find(step => step.id === selectedStepId) ?? steps.at(-1) ?? null;
+
+  useEffect(() => {
+    if (focusedStepId) document.getElementById("session-evidence")?.scrollIntoView({ block: "start" });
+  }, [focusedStepId]);
 
   const updateProjects = useCallback((value: ActivityProject[]) => {
     projectIndex.current = value;
@@ -68,21 +76,23 @@ export default function Home() {
     setTask(null);
     setSession(null);
     setSelectedStepId(null);
+    setEvidenceFocus(null);
     setError("");
     setRecoveryError("");
   }
 
-  const selectSession = useCallback(async (id: string, owner: TaskContract | null = null) => {
+  const selectSession = useCallback(async (id: string, owner: TaskContract | null = null, focus?: { refs: string[]; projectId: string | null }) => {
     const version = ++navigation.current;
     const matchingTask = owner?.runs?.some(run => run.task_id === owner.task_id && run.session_id === id) ? owner : null;
     selectedTask.current = matchingTask?.task_id ?? null;
     selectedSession.current = id;
     setSessionId(id);
-    selectedProject.current = projectForSession(projectIndex.current, id, selectedProject.current);
+    selectedProject.current = focus ? focus.projectId : projectForSession(projectIndex.current, id, selectedProject.current);
     setProjectId(selectedProject.current);
     setTask(matchingTask);
     setSession(null);
     setSelectedStepId(null);
+    setEvidenceFocus(focus ? { sessionId: id, refs: focus.refs } : null);
     try {
       setError("");
       const value = await fetchSession(id);
@@ -91,6 +101,10 @@ export default function Home() {
       setSelectedStepId(buildAuditSteps(value.events).at(-1)?.id ?? null);
     } catch (cause) { if (navigation.current === version) setError(cause instanceof Error ? cause.message : "无法读取运行证据"); }
   }, []);
+
+  const inspectEvidence = useCallback((finding: ActivityFinding, ownerId: string | null) => {
+    void selectSession(finding.session_id, null, { refs: finding.evidence_refs, projectId: ownerId });
+  }, [selectSession]);
 
   const selectTask = useCallback(async (id: string) => {
     const version = ++navigation.current;
@@ -102,6 +116,7 @@ export default function Home() {
     setTask(null);
     setSession(null);
     setSelectedStepId(null);
+    setEvidenceFocus(null);
     try {
       setError("");
       const value = await getTask(id);
@@ -189,19 +204,19 @@ export default function Home() {
     }
   }
 
-  return <main className="min-h-screen bg-zinc-50 text-zinc-950 dark:bg-black dark:text-zinc-50">
-    <header className="border-b border-zinc-200 bg-white/90 px-4 py-4 dark:border-zinc-800 dark:bg-black/80">
+  return <main className="min-h-screen bg-zinc-50 text-zinc-950 dark:bg-black dark:text-zinc-50 lg:fixed lg:inset-0 lg:flex lg:min-h-0 lg:flex-col lg:overflow-clip">
+    <header className="border-b border-zinc-200 bg-white/90 px-4 py-4 dark:border-zinc-800 dark:bg-black/80 lg:shrink-0">
       <div className="mx-auto flex max-w-[1600px] items-center justify-between">
         <div><h1 className="text-lg font-bold">EvolveTrace</h1><p className="text-xs text-zinc-500">看清执行记录，找到需要处理的问题</p></div>
         <span className="text-xs text-zinc-500"><i className={`mr-2 inline-block h-2 w-2 rounded-full ${connected ? "bg-emerald-500" : "bg-zinc-300"}`} />{connected ? "事件流已连接" : "事件流未连接"}</span>
       </div>
     </header>
-    <div className="mx-auto grid min-h-[calc(100vh-73px)] max-w-[1600px] lg:grid-cols-[260px_minmax(400px,1fr)_minmax(300px,.8fr)]">
+    <div className="mx-auto grid min-h-[calc(100vh-73px)] w-full max-w-[1600px] lg:min-h-0 lg:flex-1 lg:grid-cols-[260px_minmax(400px,1fr)_minmax(300px,.8fr)] lg:grid-rows-[minmax(0,1fr)]">
       <TaskList projects={projects} selectedProjectId={projectId} onSelectProject={selectProject} tasks={tasks} unboundRuns={unbound} selectedTaskId={task?.task_id ?? null} selectedSessionId={sessionId} onSelectTask={id => void selectTask(id)} onSelectUnbound={id => void selectSession(id)} />
-      <section className="min-w-0 border-b border-zinc-200 p-4 dark:border-zinc-800 sm:p-6 lg:border-b-0">
+      <section className="min-w-0 border-b border-zinc-200 p-4 dark:border-zinc-800 sm:p-6 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:border-b-0">
         {error && <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950/40 dark:text-red-200">{error}</p>}
         {recoveryError && <p className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">历史证据同步暂未完成，将自动重试：{recoveryError}</p>}
-        <ActivityPanel revision={activityRevision} selectedProjectId={projectId} sessionId={sessionId} onProjectsChanged={updateProjects} onScopeEventsChanged={updateScopeEvents} onSelectSession={id => void selectSession(id)} />
+        <ActivityPanel revision={activityRevision} selectedProjectId={projectId} sessionId={sessionId} onProjectsChanged={updateProjects} onScopeEventsChanged={updateScopeEvents} onSelectSession={id => void selectSession(id)} onInspectEvidence={inspectEvidence} />
         {!task && !session && <div className="rounded-xl border border-dashed border-zinc-300 p-5 text-sm text-zinc-500 dark:border-zinc-700"><p className="font-medium text-zinc-700 dark:text-zinc-300">从一次会话开始查看证据</p><p className="mt-2">在左侧选择项目，再选择一次会话，查看命令时间线和右侧详情。想按验收条件复核任务，可展开左侧「任务验收」。</p></div>}
         {task && <details open className="mb-5 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800"><summary className="cursor-pointer text-sm font-semibold">任务验收 · {task.title}</summary>
         <TaskOverview task={task} />
@@ -211,10 +226,12 @@ export default function Home() {
         <EvaluationPanel task={task} sessionId={session?.session_id ?? null} onChanged={() => { if (task) void refreshTask(task.task_id); }} />
         {task && <RunWorkflow key={task.task_id} task={task} onChanged={() => void refreshTask(task.task_id)} />}
         </details>}
-        {session && <div className="mt-5"><h2 className="mb-2 text-sm font-semibold">会话执行时间线 · {session.session_id.slice(0, 8)}</h2><p className="mb-3 text-xs text-zinc-500">{projectId ? "按所选项目与会话筛选，" : "所选会话中"}{scopedEvents.length} 条已入库事件；开始与结束可能属于同一次调用，因此事件数不等于调用次数。点击步骤查看右侧证据。</p><AuditTimeline steps={steps} selectedId={selectedStep?.id ?? null} onSelect={step => setSelectedStepId(step.id)} /></div>}
+        {session && <div id="session-evidence" className="mt-5 scroll-mt-4"><h2 className="mb-2 text-sm font-semibold">会话执行时间线 · {session.session_id.slice(0, 8)}</h2><p className="mb-3 text-xs text-zinc-500">{projectId ? "按所选项目与会话筛选，" : "所选会话中"}{scopedEvents.length} 条已入库事件；开始与结束可能属于同一次调用，因此事件数不等于调用次数。点击步骤查看右侧证据。</p>
+          {evidenceFocus?.sessionId === sessionId && <p role="status" className="mb-3 rounded-lg bg-teal-50 p-3 text-xs dark:bg-teal-950/30">{focusedStepId ? "已选中该线索的相关证据，详情在右侧。" : timelineScope?.sessionId === sessionId && timelineScope.projectId === projectId ? "相关证据未出现在当前有界读取范围内，可能存在历史截断；请核对采集覆盖。" : "正在定位相关证据…"}</p>}
+          <AuditTimeline steps={steps} selectedId={selectedStep?.id ?? null} onSelect={step => { setEvidenceFocus(null); setSelectedStepId(step.id); }} /></div>}
       </section>
-      <aside className="flex min-h-0 flex-col bg-white dark:bg-zinc-950">
-        <div className="min-h-0 flex-1 overflow-y-auto"><EventInspector step={selectedStep} /></div>
+      <aside aria-label="证据详情与修正建议" className="flex min-h-0 min-w-0 flex-col bg-white dark:bg-zinc-950 lg:overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-y-auto lg:overscroll-contain"><EventInspector step={selectedStep} /></div>
         <ReviewComposer event={selectedStep?.event ?? null} />
       </aside>
     </div>

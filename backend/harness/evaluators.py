@@ -143,7 +143,7 @@ def evaluate_verification(task: TaskContract, command_events: Iterable[tuple[str
     edits = [(position, _time(event.get("timestamp")), event["event_id"]) for position, event in enumerate(events)
              if event.get("details", {}).get("changed_files") or event.get("tool_name", "").lower() in {"apply_patch", "edit", "write"}]
     for attempt in attempts:
-        if attempt["category"] == "edit":
+        if attempt["classification"]["operation"] == "modify_files":
             edits.append((attempt["end_position"], attempt["time"], attempt["refs"][-1]))
     results = []
     for criterion in _criteria(task, "command_exit_zero"):

@@ -3,13 +3,13 @@
 from collections import Counter, defaultdict
 from datetime import datetime
 import hashlib
-import re
-import shlex
 
+from .command_classification import VERSION as CLASSIFICATION_VERSION, classify_command, tokens as _tokens
 from .execution_results import execution_result
 
 
 VERSION = "activity/v1"
+RULE_VERSION = "activity/v2"
 CATEGORIES = ("read_search", "edit", "build_test", "dependencies", "git", "network", "mixed", "other")
 WINDOW_SECONDS = 600
 REPEATED_OPERATION_MIN = 5
@@ -18,7 +18,7 @@ PHASES = {"PreToolUse", "PostToolUse", "PostToolUseFailure"}
 
 
 def rule_policy() -> dict:
-    return {"version": VERSION, "window_seconds": WINDOW_SECONDS,
+    return {"version": RULE_VERSION, "window_seconds": WINDOW_SECONDS,
             "repeated_operation_min": REPEATED_OPERATION_MIN, "failed_retry_min": FAILED_RETRY_MIN,
             "window_anchor": "latest_observed_call_per_session", "calibration": "heuristic"}
 
@@ -28,48 +28,6 @@ def _command(event: dict) -> str:
     if isinstance(value, dict):
         return str(value.get("command") or value.get("cmd") or "")
     return value if isinstance(value, str) else ""
-
-
-def _tokens(command: str) -> list[str]:
-    try:
-        # Used for classification only, never for command identity.
-        return shlex.split(command, posix=False)
-    except ValueError:
-        return []
-
-
-def _category(event: dict, command: str) -> str:
-    tool = event.get("tool_name", "").split(".")[-1].lower()
-    if tool in {"apply_patch", "edit", "write"}:
-        return "edit"
-    if tool in {"read", "glob", "grep", "read_file", "list_directory"}:
-        return "read_search"
-    tokens = _tokens(command)
-    if not tokens:
-        return "other"
-    # Strip quoted strings before detecting shell operators. Compound scripts
-    # remain one observed invocation, never imaginary executed subcommands.
-    operators = re.sub(r'''"[^"\n]*"|'[^'\n]*' ''', "", command, flags=re.VERBOSE)
-    if re.search(r"[;&|\n]", operators):
-        return "mixed"
-    executable = tokens[0].replace("\\", "/").rsplit("/", 1)[-1].lower().removesuffix(".exe")
-    args = [value.lower() for value in tokens[1:]]
-    if executable == "git":
-        return "git"
-    if executable in {"rg", "grep", "find", "ls", "dir", "cat", "head", "tail", "get-content", "get-childitem", "select-string"}:
-        return "read_search"
-    if executable in {"rm", "cp", "mv", "mkdir", "remove-item", "set-content", "add-content", "copy-item", "move-item", "new-item"}:
-        return "edit"
-    if executable in {"curl", "wget", "invoke-webrequest", "invoke-restmethod"}:
-        return "network"
-    if executable in {"npm", "pnpm", "yarn", "pip", "pip3", "uv", "poetry", "cargo", "go", "python", "python3"}:
-        if any(value in {"install", "ci", "add", "update", "sync", "download", "uninstall"} for value in args[:3]):
-            return "dependencies"
-        if any(value in {"test", "build", "lint", "check", "pytest", "unittest", "compile", "vitest", "jest"} for value in args[:3]):
-            return "build_test"
-    if executable in {"pytest", "ruff", "eslint", "tsc", "make", "cmake", "msbuild", "dotnet"}:
-        return "build_test"
-    return "other"
 
 
 def _time(value: object) -> float | None:
@@ -106,9 +64,10 @@ def command_attempts(events: list[dict]) -> list[dict]:
         call_id = details.get("tool_use_id")
         key = (session, str(call_id)) if call_id else (session, event["event_id"])
         command = _command(event)
-        category = _category(event, command)
+        classification = classify_command(event.get("tool_name", ""), command)
+        category = classification["category"]
         attempt = calls.setdefault(key, {"session_id": session, "command": command,
-                                        "category": category, "epoch": epoch[session], "refs": [],
+                                        "category": category, "classification": classification, "epoch": epoch[session], "refs": [],
                                         "cwd": event.get("cwd", ""), "has_call_id": bool(call_id), "has_start": False,
                                         "position": position, "tool_name": event.get("tool_name", ""),
                                         "start_position": position if "event_type" not in original else None,
@@ -118,7 +77,7 @@ def command_attempts(events: list[dict]) -> list[dict]:
             attempt["start_position"] = position
             attempt["start_time"] = _time(event.get("timestamp"))
         if command and not attempt["command"]:
-            attempt.update(command=command, category=category)
+            attempt.update(command=command, category=category, classification=classification)
         attempt["refs"].append(event["event_id"])
         # Terminal evidence wins if delivery order is reversed.
         outcome = execution_result(event)
@@ -134,16 +93,27 @@ def command_attempts(events: list[dict]) -> list[dict]:
             attempt["outcome"] = outcome["outcome"]
             attempt["pending"] = outcome["outcome"] == "pending"
             attempt["failed"] = outcome["outcome"] == "failure"
+            attempt["query_result"] = outcome.get("query_result") if outcome["source"] != "conflict" else None
             attempt["terminal"] = not attempt["pending"]
             attempt["duration"] = outcome["duration_ms"]
             attempt["result_source"] = outcome["source"]
             attempt["duration_source"] = outcome["duration_source"]
+            attempt["_outcome_event"] = event
             attempt["end_position"] = position
             if outcome["started_at"] is not None:
                 attempt["start_time"] = outcome["started_at"]
-        if category == "edit":
+        if classification["operation"] == "modify_files":
             epoch[session] += 1
-    return list(calls.values())
+    attempts = list(calls.values())
+    for attempt in attempts:
+        terminal = attempt.pop("_outcome_event", None)
+        if (terminal and attempt["has_call_id"] and attempt.get("failed")
+                and attempt.get("result_source") != "conflict" and attempt["command"] and not _command(terminal)):
+            # Delivery may be reversed. Borrow only the same call's observed
+            # command for interpretation; never rewrite stored evidence or exits.
+            projected = {**terminal, "details": {**terminal.get("details", {}), "tool_input": {"command": attempt["command"]}}}
+            attempt["query_result"] = execution_result(projected).get("query_result")
+    return attempts
 
 
 def _fingerprint(attempt: dict) -> str | None:
@@ -184,7 +154,7 @@ def analyze_activity(events: list[dict]) -> dict:
                 failures[retry_key] = []
                 continue
             repeated[(fingerprint, item["epoch"], item["category"])].append(item)
-            if item["failed"]:
+            if item["failed"] and not item.get("query_result"):
                 failures[retry_key].append(item)
             else:
                 failures[retry_key] = []
@@ -204,18 +174,33 @@ def analyze_activity(events: list[dict]) -> dict:
                 candidates[(fingerprint, category)] = (code, group)
         for (fingerprint, category), (code, evidence) in candidates.items():
             refs = list(dict.fromkeys(ref for item in evidence for ref in item["refs"]))
-            identity = f"{VERSION}:{session_id}:{code}:{fingerprint}"
+            identity = f"{RULE_VERSION}:{session_id}:{code}:{fingerprint}"
             findings.append({"finding_id": hashlib.sha256(identity.encode()).hexdigest()[:32],
                              "session_id": session_id, "code": code, "category": category,
                              "count": len(evidence), "window_seconds": WINDOW_SECONDS,
-                             "evidence_refs": refs[-20:], "rule_version": VERSION,
+                             "evidence_refs": refs[-20:], "rule_version": RULE_VERSION,
                              "summary": "Repeated observed failures" if code == "failed_retry" else "Repeated operations without captured edit evidence",
                              "requires_review": True})
     durations = [item["duration"] for item in attempts if item.get("duration") is not None]
     unpaired = sum(not item["has_call_id"] for item in attempts)
     orphaned = sum(item["has_call_id"] and item["terminal"] and not item["has_start"] for item in attempts)
     denied = len({event["event_id"] for event in events if _denied(event)})
+    operations = defaultdict(list)
+    for item in attempts:
+        operations[item["classification"]["operation"]].append(item)
+    breakdown = []
+    for operation, items in sorted(operations.items()):
+        samples = [item["duration"] for item in items if item.get("duration") is not None]
+        breakdown.append({"operation": operation, "count": len(items),
+            **{f"{key}_count": sum(item["outcome"] == value for item in items) for key, value in
+               (("success", "success"), ("failed", "failure"), ("unknown_outcome", "unknown"), ("pending", "pending"), ("cancelled", "cancelled"))},
+            "expected_nonzero_count": sum(bool(item.get("query_result")) for item in items),
+            "duration_sample_count": len(samples), "reported_duration_ms": sum(samples),
+            "inferred_count": sum(item["classification"]["basis"] in {"script_name_hint", "compound_hint"} for item in items)})
     return {"schema_version": VERSION, "attempt_count": len(attempts),
+            "classification_version": CLASSIFICATION_VERSION, "operations": breakdown,
+            "command_shapes": {shape: sum(item["classification"]["shape"] == shape for item in attempts) for shape in ("single", "compound", "tool")},
+            "expected_nonzero_count": sum(bool(item.get("query_result")) for item in attempts),
             "unpaired_event_count": unpaired, "orphan_completion_count": orphaned,
             "coverage": "incomplete_pairing" if unpaired or orphaned else "captured_hook_events_only",
             "denied_count": denied,

@@ -12,19 +12,19 @@ export function TaskList({ projects, selectedProjectId, onSelectProject, tasks, 
 }) {
   const attributed = new Set(projects.flatMap(project => project.sessions?.map(session => session.session_id) ?? []));
   const otherSessions = unboundRuns.filter(session => !attributed.has(session.session_id));
-  return <nav aria-label="项目与会话导航" className="border-b border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950 lg:border-b-0 lg:border-r">
+  return <nav aria-label="项目与会话导航" className="border-b border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:border-b-0 lg:border-r">
     <p className="mb-1 text-sm font-semibold">项目与会话</p>
     <p className="mb-4 text-xs leading-5 text-zinc-500">先选项目，再查看某次会话。路径用于说明归属，不是文件目录树。</p>
     <button type="button" aria-pressed={!selectedProjectId && !selectedSessionId && !selectedTaskId} className={`mb-3 w-full rounded-lg p-3 text-left text-sm ${!selectedProjectId && !selectedSessionId && !selectedTaskId ? selectedClass : idleClass}`} onClick={() => onSelectProject(null)}>全部项目总览</button>
-    <ul className="space-y-2">{projects.toSorted((a, b) => b.activity.attempt_count - a.activity.attempt_count).map(project => <li key={project.project_id}>
+    <ul className="space-y-2">{projects.toSorted((a, b) => b.activity.findings.filter(item => !item.suppressed).length - a.activity.findings.filter(item => !item.suppressed).length || b.activity.attempt_count - a.activity.attempt_count).map(project => <li key={project.project_id}>
       <button type="button" aria-pressed={selectedProjectId === project.project_id} className={`w-full rounded-lg p-3 text-left text-sm ${selectedProjectId === project.project_id ? selectedClass : idleClass}`} onClick={() => onSelectProject(project.project_id)}>
         <span className="block font-medium">{project.name}{!project.active && <span className="ml-1 text-xs text-zinc-500">历史</span>}</span>
         <span className="mt-1 block truncate text-xs text-zinc-500" title={project.relative_path}>{project.relative_path}</span>
-        <span className="mt-1 block text-xs text-zinc-500">{project.session_count} 个会话 · {project.activity.attempt_count} 次调用</span>
+        <span className="mt-1 block text-xs text-zinc-500">{project.activity.findings.filter(item => !item.suppressed).length} 条待核对线索 · {project.session_count} 个会话</span>
       </button>
       {selectedProjectId === project.project_id && <div className="ml-3 mt-1 max-h-80 space-y-1 overflow-y-auto border-l border-teal-200 pl-2 dark:border-teal-900">
         {project.sessions?.length ? project.sessions.map(session => <button type="button" key={session.session_id} aria-pressed={selectedSessionId === session.session_id} className={`w-full rounded-lg p-2 text-left text-xs ${selectedSessionId === session.session_id ? selectedClass : idleClass}`} onClick={() => onSelectUnbound(session.session_id)}>
-          <span className="block font-medium">会话 {session.session_id.slice(0, 8)}</span><span className="mt-1 block text-zinc-500">{new Date(session.last_seen).toLocaleString("zh-CN")} · {session.event_count} 条事件</span>
+          <span className="block font-medium">{tasks.find(task => task.runs?.some(run => run.session_id === session.session_id))?.title ?? `会话 ${session.session_id.slice(0, 8)}`}</span><span className="mt-1 block text-zinc-500">{new Date(session.last_seen).toLocaleString("zh-CN")} · {session.event_count} 条事件</span>
         </button>) : <p className="p-2 text-xs text-zinc-500">当前采集范围内暂无会话。</p>}
       </div>}
     </li>)}</ul>

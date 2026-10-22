@@ -30,7 +30,9 @@ venv\Scripts\python.exe -m uvicorn main:app --host 127.0.0.1 --port 8002
 
 ## 3. 核对当前界面
 
-1. 选择 `Verify sample export` 任务，查看目标、范围和 `sample-app` 上下文快照。
+桌面端中间内容和右侧证据独立滚动；选择步骤后，右侧底部的修正建议与「复制修正提示」按钮保持可见。
+
+1. 展开左侧「任务验收 · 进阶」，选择 `Verify sample export` 任务，查看目标、范围和 `sample-app` 上下文快照。
 2. 在 Task Runs 中选择 `demo-session`，查看合成修改事件和 `npm test -- tests/example.test.ts` 命令。
 3. 核对证据边界：fixture 没有提供该命令的结构化退出结果，也没有任务结束事件，不能据此宣称测试通过或任务完成。
 
@@ -45,7 +47,7 @@ cd backend
 
 工作台支持已结束 Run 的确定性评估和人工 Review Decision。
 Task 创建、Context 导入与首次活动任务设置通过 Context CLI / HTTP API 完成。标为“需修复”后，工作台可准备新尝试，并在新 Run 经评估和人工接受后展示前后结果与确认比较；执行修正仍需新开 Codex 会话。
-证据交接链路见[上下文证据演示](context-evidence-demo.md)，启动本地服务后可在 `/docs` 查看 HTTP API 契约；通用案例导入导出和重放仍在路线图中。
+证据交接链路见[上下文证据演示](context-evidence-demo.md)，启动本地服务后可在 `/docs` 查看 HTTP API 契约。本地 Run 支持[回归草稿导出、人工冻结与离线证据重新评分](regression.md)；Agent 重新执行与案例集合管理仍在路线图中。
 
 ## 接入自己的执行
 

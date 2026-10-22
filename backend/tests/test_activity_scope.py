@@ -73,7 +73,7 @@ def test_empty_session_has_explicit_scope_and_policy_not_global_fallback(setup):
     assert report["overall_activity"]["attempt_count"] == 0
     assert all(item["sessions"] == [] for item in report["projects"])
     assert report["rule_policy"] == {
-        "version": "activity/v1", "window_seconds": 600,
+        "version": "activity/v2", "window_seconds": 600,
         "repeated_operation_min": 5, "failed_retry_min": 3,
         "window_anchor": "latest_observed_call_per_session", "calibration": "heuristic",
     }
