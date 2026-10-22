@@ -232,7 +232,7 @@ export default function Home() {
       </section>
       <aside aria-label="证据详情与修正建议" className="flex min-h-0 min-w-0 flex-col bg-white dark:bg-zinc-950 lg:overflow-hidden">
         <div className="min-h-0 flex-1 overflow-y-auto lg:overscroll-contain"><EventInspector step={selectedStep} /></div>
-        <ReviewComposer event={selectedStep?.event ?? null} />
+        <ReviewComposer key={selectedStep?.id ?? "no-step"} step={selectedStep} />
       </aside>
     </div>
   </main>;
