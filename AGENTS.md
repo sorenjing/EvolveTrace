@@ -12,7 +12,7 @@ EvolveTrace is a local-first command audit and evidence-based review tool for co
 
 It does not run an Agent, expose hidden chain of thought, upload source code, replace repository inspection, or claim to be a complete sandbox. Team collaboration, cloud sync, RAG, general-purpose requirements management, and multi-agent orchestration remain out of scope.
 
-Read `DESIGN.md` before changing product behavior. Treat future milestones as planned, not implemented.
+Read `docs/product-review.md` for the current product assessment and proposed validation priorities, then `DESIGN.md` before changing product behavior. Treat hypotheses as unvalidated and future milestones as planned, not implemented.
 
 ## Current implementation
 
@@ -57,7 +57,7 @@ The EvolveTrace Context component under `context/` owns context discovery, fresh
 
 ## Development sequence
 
-M0.3 Task & Context and the first M0.4 Evidence-based Evals vertical slice are implemented. Continue with the remaining M0.4 evaluators, M0.5 generalized Regression Harness, then M0.6 optional LLM Judge experiments. The active eval plan is `docs/superpowers/plans/2026-09-17-evidence-eval-vertical-slice.md`.
+M0.3 Task & Context and the first M0.4 Evidence-based Evals vertical slice are implemented. The next recommended sequence is delivery and first-use verification, then a focused task-review usability and effectiveness pilot; see `docs/product-review.md` for evidence, proposed acceptance criteria and stop conditions. Recheck source, release and installed-client versions before continuing. Extend evaluators or regression capabilities in response to observed gaps; optional LLM Judge experiments remain deferred. The earlier eval implementation plan is `docs/superpowers/plans/2026-09-17-evidence-eval-vertical-slice.md`, not the current product priority order.
 
 ## Verification
 

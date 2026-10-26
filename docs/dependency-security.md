@@ -4,6 +4,15 @@ Run `npm run security:deps` after `npm ci`. CI checks production and development
 dependencies through the official npm advisory endpoint. An unavailable or
 malformed response fails the check.
 
+## Patched development dependency
+
+The ESLint React Hooks dependency chain previously resolved `zod` 4.4.3.
+The lockfile now resolves 4.6.7, above the patched boundary 4.6.6 reported for
+[GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5).
+The update stays within the existing dependency range and adds no advisory
+exception. Run the full check again after dependency resolution changes;
+an earlier clean audit is not a permanent guarantee.
+
 ## Reviewed development-only advisory
 
 [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm)

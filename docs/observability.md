@@ -28,6 +28,13 @@ EvolveTrace 观察的是 Coding Agent 公开暴露的工程事件和验证结果
 
 ## 第一层：服务和工作台
 
+配置了自动启动时，可先运行 `python ./plugin/hooks/runtime_control.py status`。
+`collection=paused` 是用户暂停，`configuration_error` 是偏好不可读；这两种情况
+均不自动启动或上报。`service=ready` 仅证明兼容服务可访问，需继续核对本次收件。
+自动启动失败时查看用户目录 `~/.evolvetrace/service.log`；缺少依赖或静态工作台
+按 [RUN.md](../RUN.md) 修复后重新开启。自定义 `EVOLVETRACE_CONTROL_DIR` 时检查
+对应目录。源码移动后重新设置 `enable --runtime <新目录>`。
+
 检查：
 
 ```powershell

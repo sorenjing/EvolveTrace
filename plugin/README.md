@@ -10,6 +10,13 @@ Most hook collection is best-effort: malformed input, a stopped backend, or a ne
 
 Start the dashboard with <code>./start.ps1</code>. In ChatGPT desktop Codex, use <code>./start.ps1 -NoBrowser</code> and ask <code>@Browser</code> to open <code>http://127.0.0.1:8001</code> for an in-app review workflow. Port 3000 is only for Next.js hot-reload development. The local audit database is stored outside the repository by default.
 
+After runtime dependencies and the static UI are prepared, opt into automatic startup
+with `python plugin/hooks/runtime_control.py enable --runtime .` from the source root.
+The packaged `control-evolvetrace` Skill provides enable, pause, status and open commands.
+Trusted SessionStart Hooks reuse or start the local service. Pause keeps Context,
+Safety Sentinel, historical evidence and the running workbench. No runtime dependencies
+are shipped in the plugin archive; see [RUN.md](../RUN.md) for setup and recovery.
+
 See the [usage guide](../docs/usage.md) and [observability guide](../docs/observability.md) for setup, evidence checks, and troubleshooting.
 The [Hook event contract](../docs/hook-event-contract.md) lists the packaged
 event names, stored fields, and evidence limits. The [evidence validation

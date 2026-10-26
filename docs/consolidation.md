@@ -46,13 +46,46 @@ CLI 仍只观察规定范围的元数据、加载选定项目记忆。自动筛�
 
 ## 统一插件
 
+### 安装目录与升级
+
+本地目录来源应选择 **EvolveTrace 仓库根目录**，也就是同时包含下列内容的目录：
+
+```text
+EvolveTrace/
+├── .codex-plugin/plugin.json
+├── hooks/hooks.json
+├── plugin/hooks/
+└── context/skills/
+```
+
+不要只选择 `.codex-plugin/`、`plugin/` 或 `context/`。前者只有清单，
+`plugin/` 只有采集与安全实现，`context/` 是可独立安装的上下文组件；
+它们都不是完整统一插件。如果客户端要求插件市场目录，应选择包含市场清单的目录，
+并让其中 EvolveTrace 条目的来源指向该仓库根目录；市场目录与插件目录不是同一概念。
+
+已有统一 EvolveTrace 插件优先更新同一安装，无需先删除缓存目录。源码修改
+不会自动更新已安装副本；本地来源需刷新或重新安装后重启客户端，并确认安装版本。
+GitHub 来源只能安装已推送到所选分支的代码；未发布的本地改动请通过本地来源
+或下方 ZIP 安装。客户端无法替换旧安装时，再通过插件管理界面卸载旧统一插件、
+安装新包，不要手工删除整个缓存目录。
+
+旧 `ai-context-kit`、独立 `evolvetrace-context` 或 audit-only 插件若重复提供相同
+Hook，应保持停用，避免重复加载与采集。更新插件不需要删除工作区 `.ai/`、
+`.aictx.toml`、本地数据库或 `~/.evolvetrace/` 偏好，也不等于更新独立 Python CLI。
+
+更新后审核当前 Hook 定义，再开启新会话；安装或更新不自动授予信任。
+在支持的客户端确认可用的 `$control-evolvetrace` Skill，并检查新事件收件。
+本地市场与 Hook 的宿主规则参见[官方插件文档](https://developers.openai.com/plugins/build/plugins)。
+
+### 构建 ZIP
+
 ```powershell
 python scripts/build_plugin_archive.py
 ```
 
 输出 `dist/evolvetrace-plugin.zip`。上传该文件，启用统一 EvolveTrace 插件，再停用重复提供上下文加载或 audit-only 采集的旧插件，避免重复采集。源码更新不会自动替换客户端已安装的插件。
 
-ZIP 根目录直接包含 `.codex-plugin/plugin.json`，并同时包含上下文 Skill、SessionStart 加载器和原有审计 Hook。插件不包含后端、Python CLI、私人工作区记忆或数据库；CLI 和本地服务需要分别安装、运行。
+ZIP 根目录直接包含 `.codex-plugin/plugin.json`，并同时包含上下文与控制 Skill、SessionStart 加载器和审计 Hook。插件不包含后端、Python CLI、私人工作区记忆或数据库；CLI 和本地服务需首次单独准备，之后可按下方步骤启用服务自动启动。
 
 独立 audit-only 插件包装已退役，`plugin/hooks/` 保留统一插件使用的采集与安全实现；安装清单和 Hook 配置以仓库根目录为准。`context/` 中可独立安装的组件插件使用 `evolvetrace-context` 标识。
 
@@ -70,6 +103,19 @@ ZIP 根目录直接包含 `.codex-plugin/plugin.json`，并同时包含上下文
 aictx task prepare <项目名> --intent "本次任务目标" --platform codex
 aictx task submit <task-id> --evolvetrace-url http://127.0.0.1:8001
 ```
+
+## 日常自动启动与采集开关
+
+完成后端依赖和静态工作台构建后，在源码根目录运行
+`python ./plugin/hooks/runtime_control.py enable --runtime .`。安装或刷新包含
+`control-evolvetrace` 的新版统一插件，审核当前 Hook，并新开会话。
+之后由 SessionStart 检查并启动或复用服务，不必每次手动运行 `start.ps1`。
+在 Codex 使用 `$control-evolvetrace` 请求开启、暂停、恢复、查看状态或打开工作台。
+命令行和故障恢复见 [RUN.md](../RUN.md)。
+
+插件归档包含控制器和 Skill，不包含后端依赖与静态工作台。源码目录移动后需重新配置。
+暂停只停止后续采集和自动启动，保留历史、工作台、Context 和安全保护；全插件停用
+由 Codex 管理。服务可访问不证明当前 Hook 已获信任或事件采集完整。
 
 ## 源码与发布
 
