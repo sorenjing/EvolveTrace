@@ -1,6 +1,6 @@
 {
   "name": "evolvetrace",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Local project context delivery and coding-agent execution evidence.",
   "author": {"name": "EvolveTrace contributors"},
   "homepage": "https://github.com/sorenjing/EvolveTrace#readme",
@@ -18,7 +18,8 @@
     "defaultPrompt": [
       "Load the current project's context and show its freshness and gaps.",
       "Prepare a task with context, then review its execution in EvolveTrace.",
-      "Show the available execution evidence and verification results."
+      "Show the available execution evidence and verification results.",
+      "Enable or pause EvolveTrace collection and check the local service."
     ],
     "brandColor": "#0f766e"
   }

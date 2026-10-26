@@ -18,7 +18,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"${PLUGIN_ROOT}/plugin/hooks/capture_event.py\""
+            "command": "python \"${PLUGIN_ROOT}/plugin/hooks/capture_event.py\"",
+            "statusMessage": "Connecting EvolveTrace local service",
+            "timeout": 15
           }
         ]
       }

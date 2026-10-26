@@ -15,14 +15,18 @@ PAYLOAD_FILES = (
     "hooks/hooks.json",
     "plugin/hooks/capture_event.py",
     "plugin/hooks/safety_policy.py",
+    "plugin/hooks/runtime_control.py",
     "context/hooks/session_start.py",
     "context/skills/manage-ai-context/SKILL.md",
     "context/skills/manage-ai-context/agents/openai.yaml",
+    "context/skills/control-evolvetrace/SKILL.md",
+    "context/skills/control-evolvetrace/agents/openai.yaml",
     "LICENSE",
     "context/LICENSE",
     "NOTICE",
     "README.md",
     "docs/consolidation.md",
+    "RUN.md",
 )
 
 

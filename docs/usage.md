@@ -23,6 +23,11 @@ cd ..
 
 ## 普通启动
 
+日常使用可先按 [RUN.md 的自动启动与开关步骤](../RUN.md)完成一次配置。
+安装并信任当前插件后，新会话会自动启动或复用服务；`$control-evolvetrace`
+提供开启、暂停、恢复和状态入口。首次依赖安装及静态构建仍需完成。
+下面的手动启动方式继续可用。
+
 ```powershell
 ./start.ps1
 ```
@@ -73,6 +78,10 @@ python scripts/build_plugin_archive.py
 在支持本地插件的 Codex 客户端上传 `dist/evolvetrace-plugin.zip`，或通过插件市场安装仓库根目录；启用后审核并信任 Hook，再开启新的项目会话。CLI 可用 `/hooks` 核查当前定义和信任状态。安装或启用插件本身不会自动信任 Hook，网页安装也不会把脚本部署到本机。参见 [官方 Hook 文档](https://learn.chatgpt.com/docs/hooks) 和[合并安装指南](consolidation.md)。
 
 部署内容包括根目录 `hooks/hooks.json`、`context/hooks/session_start.py` 与 `plugin/hooks/`。独立 audit-only 插件包装已退役；切换统一插件后停用旧安装，避免重复采集。
+
+选择本地插件目录时使用完整 EvolveTrace 根目录，不是 `plugin/` 或 `context/`。
+已有统一插件优先更新同一安装，不必先删旧缓存；市场安装只能获取已发布的来源版本。
+目录、ZIP 和旧版替换的区别见[安装目录与升级](consolidation.md#安装目录与升级)。
 
 更新后若 Hook 显示 `modified` 或 `untrusted`，先重新审核当前定义，再开新会话。旧信任记录和数据库里的旧 Session 都不能证明新版已运行；具体核查顺序见[当前 Hook 信任与真实派发检查](observability.md#先确认当前-hook-定义已获信任)。
 

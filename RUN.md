@@ -6,6 +6,35 @@ EvolveTrace 以一个 FastAPI 本地服务提供 API、SSE 和已构建的工作
 
 ## 用户模式（单进程）
 
+安装依赖并构建静态工作台后，可一次性启用插件自动启动：
+
+```powershell
+python ./plugin/hooks/runtime_control.py enable --runtime .
+python ./plugin/hooks/runtime_control.py status
+```
+
+安装或刷新统一插件并审核当前 Hook 后，新会话会自动启动或复用本地服务。
+本地插件来源选择整个 EvolveTrace 根目录，或上传 `dist/evolvetrace-plugin.zip`；
+目录区别与旧版替换见[安装目录与升级](docs/consolidation.md#安装目录与升级)。
+不需要每次运行启动脚本。也可以在 Codex 使用 `$control-evolvetrace` 请求开启、
+暂停、恢复采集或打开工作台。开关是 Skill 控制入口，不是 Codex 原生设置按钮。
+
+```powershell
+python ./plugin/hooks/runtime_control.py pause
+python ./plugin/hooks/runtime_control.py enable
+python ./plugin/hooks/runtime_control.py open
+```
+
+暂停保留运行中的工作台、历史证据、Context 交付和本地命令保护，只停止后续
+采集与自动启动；正在发送的事件可能完成。整个插件的停用由 Codex 管理。
+偏好和自动启动日志默认位于用户目录 `~/.evolvetrace/`，独立于安装版本；
+需要隔离时，Hook 与控制器都设置同一个 `EVOLVETRACE_CONTROL_DIR`。
+配置损坏会暂停采集，可重新运行带 `--runtime` 的开启命令修复。
+已有 `EVOLVETRACE_API_URL` 覆盖时保留该地址，地址不同则不自动启动默认服务。
+当前自动启动不自动登记项目；首次项目归属仍按下文使用 `aictx audit sync`。
+
+保留手动启动方式：
+
 ```powershell
 ./scripts/build_static_ui.ps1
 ./start.ps1

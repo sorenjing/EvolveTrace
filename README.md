@@ -64,6 +64,12 @@ python -m venv backend/venv
 - **先看看界面**：使用[隔离的合成数据演示](docs/demo.md)，无需接入真实项目。
 - **记录自己的执行**：构建并安装统一插件，按[安装与启用步骤](docs/consolidation.md)完成客户端配置后，运行一次 Codex 任务。
 
+**日常不用反复启动服务**：完成首次依赖安装和静态构建后，运行
+`python ./plugin/hooks/runtime_control.py enable --runtime .`，再安装或刷新统一插件、
+审核当前 Hook。此后会话开始时自动启动或复用本地服务。在 Codex 用
+`$control-evolvetrace` 开启、暂停或查看状态；暂停采集保留 Context 和命令保护。
+这仍需一次性准备本地运行环境，详见[运行与开关说明](RUN.md)。
+
 ```powershell
 # 在仓库根目录构建插件归档
 ./backend/venv/Scripts/python.exe scripts/build_plugin_archive.py
@@ -131,7 +137,8 @@ flowchart LR
 ## 接下来与参与贡献
 
 接下来优先用真实任务验证“发现问题 → 记录处理 → 新 Run → 同一组条件复核”的操作路径，
-再扩展更多评估器和通用回归案例。可选 LLM Judge、系统资源采集需要单独设计与验证。
+先验证首次接入和相对原始记录的审查收益，再按真实问题扩展评估器和回归案例。
+阶段判断、试用指标与下一轮建议见[产品评审](docs/product-review.md)。可选 LLM Judge、系统资源采集需要单独设计与验证。
 架构见 [DESIGN.md](DESIGN.md)，变更见 [CHANGELOG.md](CHANGELOG.md)。
 
 适合参与的方向包括：

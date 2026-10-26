@@ -1,0 +1,4 @@
+interface:
+  display_name: "Control EvolveTrace"
+  short_description: "Enable or pause local execution collection"
+  default_prompt: "Use $control-evolvetrace to inspect or change EvolveTrace collection and local service status."

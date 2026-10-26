@@ -13,6 +13,7 @@ if str(HOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(HOOKS_DIR))
 
 from safety_policy import apply_safety_decision, codex_hook_output, evaluate_pre_tool_use
+import runtime_control
 
 
 REDACTED = "[REDACTED]"
@@ -73,7 +74,7 @@ def capture(payload: dict[str, Any], endpoint: str | None = None) -> bool:
     ).strip():
         return False
 
-    url = endpoint or os.getenv("EVOLVETRACE_API_URL", "http://127.0.0.1:8001/api/audit/events")
+    url = endpoint or os.getenv("EVOLVETRACE_API_URL") or runtime_control.read_settings()["base_url"] + "/api/audit/events"
     try:
         request = urllib.request.Request(
             url,
@@ -95,10 +96,20 @@ def process_payload(payload: dict[str, Any]) -> int:
 
     # Best-effort telemetry must not discard a local policy decision.
     try:
+        if not runtime_control.read_settings()["enabled"]:
+            return 0
+        if payload.get("hook_event_name") == "SessionStart":
+            result = runtime_control.ensure_service()
+            if result["service"] == "paused":
+                return 0
+            message = runtime_control.MESSAGES.get(result["service"])
+            if message:
+                print(json.dumps({"systemMessage": "EvolveTrace: " + message}), flush=True)
         captured = apply_safety_decision(payload, decision)
         if payload.get("hook_event_name") in {"SessionStart", "SessionEnd"}:
             captured = {**captured, "repository_state": repository_state(payload.get("cwd"))}
-        capture(captured)
+        if runtime_control.read_settings()["enabled"]:
+            capture(captured)
     except Exception:
         pass
     return 0

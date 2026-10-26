@@ -33,6 +33,16 @@ def test_extracted_plugin_resolves_all_hooks_and_loads_context(tmp_path: Path):
     manifest = json.loads((extracted / ".codex-plugin/plugin.json").read_text(encoding="utf-8"))
     assert manifest["name"] == "evolvetrace"
     assert (extracted / manifest["skills"] / "manage-ai-context/SKILL.md").is_file()
+    # The control must be executable after extraction, not just from a checkout.
+    control_env = {**os.environ, "EVOLVETRACE_CONTROL_DIR": str(tmp_path / "control")}
+    skill_dir = extracted / manifest["skills"] / "control-evolvetrace"
+    assert (skill_dir / "SKILL.md").is_file()
+    control_script = (skill_dir / "../../../plugin/hooks/runtime_control.py").resolve()
+    subprocess.run([sys.executable, str(control_script), "pause"], env=control_env,
+                   capture_output=True, check=True)
+    controlled = subprocess.run([sys.executable, str(control_script), "status"], env=control_env,
+                               text=True, capture_output=True, check=True)
+    assert json.loads(controlled.stdout)["collection"] == "paused"
     hooks = json.loads((extracted / "hooks/hooks.json").read_text(encoding="utf-8"))["hooks"]
     startup = hooks["SessionStart"]
     assert len(startup) == 2
